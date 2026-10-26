@@ -1,0 +1,11 @@
+{# Reiter der Einstellungen. Die Panes wechseln per Hash auf derselben Seite,
+   „Marke & Wissen" ist eine eigene Seite und haengt nur optisch mit dran. #}
+{% macro einstellungen_reiter(aktiv=None) %}
+  {% set e = url_for('einstellungen') %}
+  <nav class="st-tabs" aria-label="Bereiche">
+    <a href="{{ e }}#allgemein" data-pane="allgemein">Allgemein</a>
+    <a href="{{ url_for('wissen') }}" class="{{ 'on' if aktiv == 'wissen' else '' }}">Marke &amp; Wissen</a>
+    <a href="{{ e }}#formate" data-pane="formate">Formate</a>
+    {% if brand.get('module', {}).get('scan', False) %}<a href="{{ e }}#feeds" data-pane="feeds">Feeds</a>{% endif %}
+  </nav>
+{% endmacro %}

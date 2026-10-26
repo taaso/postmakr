@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b0b0b">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  {% include "_app_kopf.html" %}
+  <title>{{ brand.name }} | postmakr</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='mobil.css') }}?v=20261017b">
+</head>
+{% set ICO = {
+  'uebersicht': '<rect x="3" y="3" width="7" height="7" rx="1.6"/><rect x="14" y="3" width="7" height="7" rx="1.6"/><rect x="3" y="14" width="7" height="7" rx="1.6"/><rect x="14" y="14" width="7" height="7" rx="1.6"/>',
+  'entwuerfe': '<path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4Z"/>',
+  'plan': '<rect x="3" y="4.5" width="18" height="16.5" rx="2.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/><path d="M7.5 13.5h3M7.5 17h6"/>',
+  'trial': '<rect x="3" y="4" width="5" height="16" rx="1.5"/><rect x="9.5" y="4" width="5" height="16" rx="1.5"/><rect x="16" y="4" width="5" height="16" rx="1.5"/>',
+  'switch': '<path d="M8 3 4 7l4 4"/><path d="M4 7h16"/><path d="m16 21 4-4-4-4"/><path d="M20 17H4"/>'
+} %}
+{% macro ico(name) -%}
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{{ ICO[name]|safe }}</svg>
+{%- endmacro %}
+<body>
+  <header class="m-kopf">
+    <a class="m-wechsel" href="{{ url_for('platform.auswahl') }}" aria-label="Workspace wechseln">{{ ico('switch') }}</a>
+    <div class="m-titel">
+      <span class="m-ws">{{ brand.name }}</span>
+      {% if reiter == 'plan' %}
+      <span class="m-unter">Upload-Plan, {{ plan.offen }} {{ 'Termin' if plan.offen == 1 else 'Termine' }} offen</span>
+      {% else %}
+      <span class="m-unter">{{ 'Übersicht' if reiter == 'uebersicht' else 'Entwürfe' }}, {{ karten|length }} {{ 'Beitrag' if karten|length == 1 else 'Beiträge' }}</span>
+      {% endif %}
+    </div>
+    <span class="m-marke">postmakr</span>
+  </header>
+
+  {% if reiter == 'plan' %}
+  <nav class="p-leiste" id="p-leiste" aria-label="Tage">
+    {% for t in plan.leiste %}
+    <button type="button" class="p-tagknopf{{ ' heute' if t.heute }}{{ ' leer' if not t.anzahl }}{{ ' montag' if t.montag and not loop.first }}" data-ziel="{{ t.id }}" {{ 'disabled' if not t.anzahl }}>
+      <span class="p-wt">{{ t.kurz }}</span><span class="p-zahl">{{ t.zahl }}</span>
+      <span class="p-punkte">{% for _ in range(t.anzahl if t.anzahl < 4 else 3) %}<i></i>{% endfor %}</span>
+    </button>
+    {% endfor %}
+  </nav>
+  <main class="p-liste" id="raster">
+    {% if plan.hinweise %}
+    <div class="p-hinweise">
+      {% for h in plan.hinweise %}
+      <button type="button" class="p-hinweis p-hinweis-{{ h.art }}" data-ziel="{{ h.ziel }}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 2.5 20h19Z"/><path d="M12 10v4.5M12 17.5v.01"/></svg>
+        <span>{{ h.text }}</span>
+      </button>
+      {% endfor %}
+    </div>
+    {% endif %}
+    {% for tag in plan.tage %}
+    <section class="p-tag{{ ' p-offen' if tag.id == 'offen' }}" id="tag-{{ tag.id }}">
+      <h2 class="p-tag-kopf">{{ tag.titel }}{% if tag.rel %} <span>{{ tag.rel }}</span>{% endif %}</h2>
+      {% for i in tag.indizes %}{% set k = karten[i] %}
+      <button class="m-zeile" type="button" data-index="{{ i }}" aria-label="{{ k.thema }}">
+        <span class="p-thumb">
+          {% if k.vorschau_typ == 'bild' %}<img src="{{ k.vorschau }}" alt="" loading="lazy" decoding="async">
+          {% elif k.vorschau_typ == 'video' %}<video data-src="{{ k.vorschau }}#t=0.1" muted playsinline loop preload="none"></video>
+          {% elif k.vorschau_typ == 'quelle' %}<iframe data-src="{{ k.vorschau }}" sandbox="allow-same-origin" tabindex="-1" aria-hidden="true" loading="lazy"></iframe>{% endif %}
+        </span>
+        <span class="p-text">
+          <span class="p-meta">
+            <b>{{ k.uhrzeit }} Uhr</b>
+            {% if k.kanal %}<span class="p-kanal">{{ kanal_svg(k.kanal, 'p-kanal-ico')|safe }}{{ k.kanal_name }}</span>{% endif %}
+            {% if tag.id == 'offen' %}<span class="p-alt">{{ k.termin_datum[8:10] }}.{{ k.termin_datum[5:7] }}.</span>{% endif %}
+          </span>
+          <span class="p-titel">{{ k.thema }}</span>
+          <span class="p-format">{{ k.format }}{% if k.reihe_ende %} <span class="p-ende">Letzte Folge der Reihe</span>{% endif %}</span>
+          {% if k.notiz and k.status.key != 'gepostet' %}<span class="p-notiz">{{ k.notiz }}</span>{% endif %}
+        </span>
+        <span class="m-pille m-st-{{ k.status.key }}">{{ k.status.text }}</span>
+      </button>
+      {% endfor %}
+    </section>
+    {% else %}
+    <div class="m-nichts">
+      <p class="m-nichts-gross">Noch kein Upload-Plan</p>
+      <p>Bitte deine KI, deine Entwürfe in einen Plan zu sortieren. Die Termine erscheinen dann hier Tag für Tag.</p>
+    </div>
+    {% endfor %}
+  </main>
+  {% else %}
+  <main class="m-raster" id="raster">
+    {% for k in karten %}
+    <button class="m-kachel" type="button" data-index="{{ loop.index0 }}" aria-label="{{ k.thema }}">
+      <span class="m-thumb">
+        {% if k.vorschau_typ == 'bild' %}
+          <img src="{{ k.vorschau }}" alt="" loading="lazy" decoding="async">
+        {% elif k.vorschau_typ == 'video' %}
+          <video data-src="{{ k.vorschau }}#t=0.1" muted playsinline loop preload="none"></video>
+        {% elif k.vorschau_typ == 'quelle' %}
+          <iframe data-src="{{ k.vorschau }}" sandbox="allow-same-origin" tabindex="-1" aria-hidden="true" loading="lazy"></iframe>
+        {% else %}
+          <span class="m-leer">{{ k.format or 'Beitrag' }}</span>
+        {% endif %}
+      </span>
+      {% if k.vorschau_typ == 'video' or 'reel' in k.format_key or 'motion' in k.format_key %}<span class="m-play" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l10.5-6.5Z" fill="currentColor"/></svg></span>{% endif %}
+      <span class="m-kachel-info">
+        <span class="m-pille m-st-{{ k.status.key }}">{{ k.status.text }}{% if k.status.datum %} {{ k.status.datum[8:10] }}.{{ k.status.datum[5:7] }}.{% endif %}</span>
+        <span class="m-kachel-titel">{{ k.thema }}</span>
+      </span>
+    </button>
+    {% else %}
+    <div class="m-nichts">
+      <p class="m-nichts-gross">{{ 'Keine offenen Entwürfe' if reiter == 'entwuerfe' else 'Noch keine Beiträge' }}</p>
+      <p>Sobald deine KI etwas produziert hat, erscheint es hier.</p>
+    </div>
+    {% endfor %}
+  </main>
+  {% endif %}
+
+  <nav class="m-leiste" aria-label="Bereiche">
+    <a href="{{ url_for('mobil', reiter='plan') }}" class="{{ 'an' if reiter == 'plan' else '' }}">{{ ico('plan') }}<span>Plan</span></a>
+    <a href="{{ url_for('mobil', reiter='uebersicht') }}" class="{{ 'an' if reiter == 'uebersicht' else '' }}">{{ ico('uebersicht') }}<span>Übersicht</span></a>
+    <a href="{{ url_for('mobil', reiter='entwuerfe') }}" class="{{ 'an' if reiter == 'entwuerfe' else '' }}">{{ ico('entwuerfe') }}<span>Entwürfe</span>{% if anzahl_entwuerfe %}<b class="m-zahl">{{ anzahl_entwuerfe }}</b>{% endif %}</a>
+    {% if brand.get('module', {}).get('trial_reels', True) %}<a href="{{ url_for('mobil_trial') }}">{{ ico('trial') }}<span>Trial</span></a>{% endif %}
+  </nav>
+
+  <!-- Vollbild: senkrecht durch die Beitraege, waagerecht durch die Slides -->
+  <section class="v" id="viewer" hidden aria-label="Beitragsansicht">
+    <div class="v-feed" id="feed"></div>
+    <button class="v-zu" id="v-zu" type="button" aria-label="Schließen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+  </section>
+
+  <!-- Blatt von unten: Speichern, Planen, Gepostet, Text -->
+  <div class="s-hinter" id="s-hinter" hidden></div>
+  <section class="s" id="blatt" hidden role="dialog" aria-modal="true" aria-labelledby="s-titel">
+    <div class="s-griff"></div>
+    <h2 id="s-titel"></h2>
+    <div id="s-inhalt"></div>
+  </section>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <template id="tpl-post">
+    <article class="v-post">
+      <div class="v-slides"></div>
+      <div class="v-render" hidden>
+        <p class="v-render-text"></p>
+        <button class="v-knopf v-render-los" type="button">Jetzt rendern</button>
+        <div class="v-balken"><i></i></div>
+      </div>
+      <div class="v-leiste-rechts">
+        <button type="button" data-akt="speichern"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg><span>Speichern</span></button>
+        <button type="button" data-akt="planen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16.5" rx="2.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/></svg><span>Planen</span></button>
+        <button type="button" data-akt="gepostet"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m8 12.5 2.7 2.7L16.2 9.5"/></svg><span>Gepostet</span></button>
+        <button type="button" data-akt="text"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 11h16M4 16h10"/></svg><span>Text</span></button>
+        <button type="button" data-akt="ton" class="v-ton" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4Z"/><path class="an" d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/><path class="aus" d="m16 9 6 6M22 9l-6 6"/></svg><span>Ton</span></button>
+      </div>
+      <div class="v-unten">
+        <div class="v-punkte"></div>
+        <span class="m-pille v-status"></span>
+        <p class="v-titel"></p>
+        <p class="v-format"></p>
+      </div>
+    </article>
+  </template>
+
+  <script>
+  window.MOBIL = {
+    karten: {{ karten | tojson }},
+    kanaele: {{ kanal_liste | tojson }},
+    startPost: {{ start_post | tojson }},
+    reiter: {{ reiter | tojson }},
+    apiBasis: {{ url_for('mobil_beitrag', kind='KIND', slug='SLUG') | tojson }},
+    statusBasis: {{ url_for('mobil_status', kind='KIND', slug='SLUG') | tojson }},
+    kalenderBasis: {{ url_for('kalender_eintrag', eintrag_id='00000000') | tojson }},
+    markensound: {{ markensound | tojson }}
+  };
+  </script>
+  <script src="{{ url_for('static', filename='mobil.js') }}?v=20261018b"></script>
+</body>
+</html>

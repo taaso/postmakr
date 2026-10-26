@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% from "_rows.html" import format_rows %}
+{% from "_help.html" import help %}
+{% from "_neu.html" import neuer_beitrag %}
+{% block content %}
+  {# Die Pillen teilen sich ihr Aussehen mit dem Kalender-Umschalter. #}
+  <link rel="stylesheet" href="{{ url_for('static', filename='kalender.css') }}?v=20261024">
+  <div class="page-title-row">
+    <h1 class="page">Beiträge</h1>
+    {{ help('Oben umschalten zwischen Entwürfen (noch nicht freigegeben) und geposteten Beiträgen. Format anklicken zum Auf- und Zuklappen.') }}
+    <nav class="ansicht-umschalter" aria-label="Beiträge filtern">
+      <a href="{{ url_for('beitraege', tab='entwuerfe') }}" aria-current="{{ 'page' if tab == 'entwuerfe' else 'false' }}">Entwürfe <span class="count">{{ anzahl.entwuerfe }}</span></a>
+      <a href="{{ url_for('beitraege', tab='gepostet') }}" aria-current="{{ 'page' if tab == 'gepostet' else 'false' }}">Gepostet <span class="count">{{ anzahl.gepostet }}</span></a>
+    </nav>
+    {% if brand.get('module', {}).get('scan', False) %}{{ neuer_beitrag() }}{% endif %}
+  </div>
+
+  {% if queue %}
+  <section class="queue-strip">
+    <h2 class="speicher-group-h">In der Produktions-Warteschlange <span class="count">{{ queue|length }}</span>
+      {{ help('Diese Themen sind zur Produktion vorgemerkt (<code>/create</code> im Terminal oder per MCP), der fertige Entwurf erscheint dann hier.') }}
+    </h2>
+    <div class="speicher-grid">
+      {% for item in queue %}
+      <article class="topic">
+        <div class="topic-title">{{ item.titel }}</div>
+        {% if item.notiz %}<div class="topic-note">{{ item.notiz }}</div>{% endif %}
+        <div class="topic-foot">
+          <span class="typ-tag">{{ 'Scan' if item.typ == 'scan' else 'Eigen' }}</span>
+          <span class="topic-date">{{ item.datum | datum_de }}</span>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  {% if has_posts %}
+    {{ format_rows(sections, layout='grid', show_state=False) }}
+  {% elif tab == 'gepostet' %}
+    <div class="empty">
+      <div class="big">Noch nichts gepostet</div>
+      <p>Freigegebene Beiträge erscheinen hier, sobald du einen Entwurf freigibst.</p>
+    </div>
+  {% else %}
+    <div class="empty">
+      <div class="big">Keine offenen Entwürfe</div>
+      <p>Alles freigegeben oder noch nichts begonnen. Starte einen Beitrag im Terminal mit <code>/create &lt;nr&gt;</code>.</p>
+    </div>
+  {% endif %}
+{% endblock %}

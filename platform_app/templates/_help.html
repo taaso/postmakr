@@ -1,0 +1,9 @@
+{# Hilfe-Knopf mit Popover: ersetzt die kleinen Erklaertexte unter den
+   Seitentiteln. Oeffnen per Klick auf das ?, Schliessen per Klick daneben
+   (globaler Listener in base.html). #}
+{% macro help(text) %}
+<details class="help-pop">
+  <summary aria-label="Erklärung anzeigen" title="Was ist das?">?</summary>
+  <div class="help-card">{{ text | safe }}</div>
+</details>
+{% endmacro %}

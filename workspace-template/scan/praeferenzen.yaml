@@ -1,0 +1,9 @@
+# Themen-Praeferenzen ("Mehr davon" / "Weniger davon"), von der Scan-Seite
+# verwaltet. Leere Liste zum Start.
+#
+# Format je Eintrag:
+# - datum: "2026-01-01"
+#   richtung: mehr        # mehr | weniger
+#   titel: "..."
+#   ressort_oder_stichworte: ""
+[]

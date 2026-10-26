@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="de"><head><meta charset="UTF-8"><style>
+/* Karussell: PERSONEN-GRID (Porträt-Slide)
+   Kopf: Logo links, rechts optional leer. Inter-800-Headline mit Redbox als Zuspitzung.
+   Partei/Gruppen-Label in Archivo Black plus graue Stimmen-Info dahinter.
+   Grid aus runden Porträts: 6 Spalten Standard (kleine Kacheln, viele Personen), Klasse
+   .grid.big schaltet auf 3 Spalten mit größeren Porträts um (wenige Personen, mehr Gewicht
+   pro Gesicht), dieselbe Markup-Struktur, nur die Grid-Klasse wechseln.
+   Jedes Porträt: <img> mit onerror-Fallback auf einen Initialen-Kreis (.fb), falls die
+   Bild-URL nicht lädt. Bilder liegen im Beitragsordner (assets/) oder kommen von einer erlaubten Bildquelle.
+   Footer: Quellen links plus kleinere Foto-Credits-Zeile darunter, weiter-Blinker rechts. */
+@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;}
+body{width:1080px;height:1350px;overflow:hidden;background:radial-gradient(circle at 50% 0%, var(--grund-hell,#1f232a) 0%, var(--grund,#121417) 65%);font-family:'Inter',sans-serif;color:#fff;padding:44px 56px 36px;display:flex;flex-direction:column;}
+img.logoimg{height:58px;}
+.head{display:flex;justify-content:space-between;align-items:center;margin-bottom:36px;}
+h1{font-weight:800;font-size:44px;line-height:1.35;margin-bottom:36px;}
+h1 .redbox{background:var(--akzent,#E02020);padding:2px 12px 6px;display:inline-block;border-radius:4px;}
+.party{font-family:'Archivo Black',sans-serif;font-size:28px;margin-bottom:22px;}
+.party span{font-family:'Inter';font-weight:600;font-size:22px;color:rgba(255,255,255,0.55);}
+.grid{display:grid;grid-template-columns:repeat(6,1fr);gap:22px 12px;margin-bottom:26px;}
+.grid.big{grid-template-columns:repeat(3,1fr);gap:40px 20px;}
+.pc{text-align:center;}
+.pc img{width:108px;height:108px;border-radius:50%;object-fit:cover;border:4px solid #0b0b0b;box-shadow:0 0 0 2px rgba(255,255,255,0.28);display:block;margin:0 auto 10px;}
+.grid.big .pc img{width:170px;height:170px;margin-bottom:14px;}
+.fb{width:108px;height:108px;border-radius:50%;border:4px solid #0b0b0b;box-shadow:0 0 0 2px rgba(255,255,255,0.28);background:var(--flaeche,#262a31);display:none;align-items:center;justify-content:center;font-weight:800;font-size:32px;margin:0 auto 10px;}
+.nm{font-size:17px;line-height:1.35;font-weight:600;color:rgba(255,255,255,0.9);}
+.grid.big .nm{font-size:23px;}
+.note{font-size:21px;color:rgba(255,255,255,0.6);font-style:italic;line-height:1.55;margin-top:8px;}
+.footer{margin-top:auto;display:flex;justify-content:space-between;align-items:flex-end;gap:20px;}
+.fsrc{font-size:19px;color:rgba(255,255,255,0.45);line-height:1.5;}
+.fsrc b{color:rgba(255,255,255,0.75);}
+.credits{font-size:14px;color:rgba(255,255,255,0.35);display:block;}
+.next{font-weight:700;font-size:26px;color:rgba(255,255,255,0.75);letter-spacing:2px;white-space:nowrap;}
+.next .ch{opacity:0.25;display:inline-block;animation:sweep 1.5s linear infinite;}
+.next .ch:nth-child(1){animation-delay:0s;}
+.next .ch:nth-child(2){animation-delay:0.15s;}
+.next .ch:nth-child(3){animation-delay:0.3s;}
+@keyframes sweep{0%{opacity:0.25;}10%{opacity:1;}55%{opacity:1;}65%{opacity:0.25;}100%{opacity:0.25;}}
+</style></head><body>
+<!-- INHALT: Kopf, rechte Seite darf wie im Original leer bleiben -->
+<div class="head"><img class="logoimg" src="LOGO_B64"><div></div></div>
+<!-- INHALT: Headline, Redbox = Zuspitzung/Kernaussage -->
+<h1>Diese Personen haben <span class="redbox">dafür</span> gestimmt:</h1>
+<!-- INHALT: Partei/Gruppen-Label plus graue Stimmen-Info -->
+<div class="party">Gruppe A <span>12 von 12 anwesenden Stimmen dafür</span></div>
+<!-- INHALT: Porträt-Grid. Standard 6 Spalten (class="grid"), für wenige Personen
+     class="grid big" verwenden (3 Spalten, größere Porträts, größerer Name-Text).
+     Pro Person: Bild-URL plus onerror-Fallback auf Initialen-Kreis (.fb mit 2 Buchstaben). -->
+<div class="grid"><div class="pc"><img src="assets/person_01.jpg" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="fb">VN</div><div class="nm">Vorname<br>Nachname</div></div>
+<div class="pc"><img src="assets/person_02.jpg" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="fb">VN</div><div class="nm">Vorname<br>Nachname</div></div>
+<div class="pc"><img src="assets/person_03.jpg" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="fb">VN</div><div class="nm">Vorname<br>Nachname</div></div>
+<div class="pc"><img src="assets/person_04.jpg" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="fb">VN</div><div class="nm">Vorname<br>Nachname</div></div>
+<div class="pc"><img src="assets/person_05.jpg" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="fb">VN</div><div class="nm">Vorname<br>Nachname</div></div>
+<div class="pc"><img src="assets/person_06.jpg" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="fb">VN</div><div class="nm">Vorname<br>Nachname</div></div>
+<div class="pc"><img src="assets/person_07.jpg" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="fb">VN</div><div class="nm">Vorname<br>Nachname</div></div>
+<div class="pc"><img src="assets/person_08.jpg" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="fb">VN</div><div class="nm">Vorname<br>Nachname</div></div>
+<div class="pc"><img src="assets/person_09.jpg" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="fb">VN</div><div class="nm">Vorname<br>Nachname</div></div>
+<div class="pc"><img src="assets/person_10.jpg" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="fb">VN</div><div class="nm">Vorname<br>Nachname</div></div>
+<div class="pc"><img src="assets/person_11.jpg" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="fb">VN</div><div class="nm">Vorname<br>Nachname</div></div>
+<div class="pc"><img src="assets/person_12.jpg" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="fb">VN</div><div class="nm">Vorname<br>Nachname</div></div></div>
+<!-- Beispiel fuer die grosse 3-Spalten-Variante bei wenigen Personen (nicht aktiv, zur Doku):
+<div class="grid big">
+  <div class="pc"><img src="..." onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="fb">XY</div><div class="nm">Vorname<br>Nachname</div></div>
+</div>
+-->
+<!-- INHALT: Footer, Quellenzeile plus kleinere Foto-Credits-Zeile, weiter-Blinker rechts -->
+<div class="footer"><div class="fsrc">Quelle: Name der Quelle, Datum <b>Deine Marke</b><span class="credits">Fotos: Rechteinhaber, Lizenz</span></div><div class="next">weiter <span class="ch">›</span><span class="ch">›</span><span class="ch">›</span></div></div>
+</body></html>

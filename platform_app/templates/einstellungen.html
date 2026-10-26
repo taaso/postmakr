@@ -1,0 +1,420 @@
+{% extends "base.html" %}
+{% from "_help.html" import help %}
+{% from "_einstellungen_reiter.html" import einstellungen_reiter with context %}
+{% block content %}
+  <div class="page-title-row">
+    <h1 class="page">Einstellungen</h1>
+  </div>
+
+  {{ einstellungen_reiter() }}
+
+  <!-- ============ Allgemein ============ -->
+  <section class="st-pane" id="pane-allgemein" hidden>
+    <header class="st-head">
+      <h2>Allgemein</h2>
+      <p>Deine Seitenleiste und die Angaben, die deine KI bei jeder Produktion mitbekommt.</p>
+    </header>
+
+    <div class="st-card st-rows" id="bereiche">
+      {% for b in bereiche %}
+      <div class="st-row">
+        <div class="st-row-text"><label for="bereich-{{ b.key }}">{{ b.name }}</label><p>{{ b.text }}</p></div>
+        <label class="switch">
+          <input type="checkbox" class="bereich-schalter" id="bereich-{{ b.key }}" data-bereich="{{ b.key }}" {{ 'checked' if b.an else '' }} aria-label="{{ b.name }} in der Seitenleiste zeigen">
+          <span class="switch-track" aria-hidden="true"></span>
+        </label>
+      </div>
+      {% endfor %}
+      <div class="st-card-fuss"><span class="row-msg" id="bereiche-msg">Übersicht, Beiträge, Templates und Einstellungen sind immer da.</span></div>
+    </div>
+
+    <form id="ausspielung-form" class="st-card st-rows">
+      <div class="st-row">
+        <div class="st-row-text"><label for="cta_standard">Abschluss-Aufruf</label><p>Der Satz, den deine KI standardmäßig ans Ende jedes Beitrags setzt.</p></div>
+        <input class="text-input" id="cta_standard" name="cta_standard" type="text" value="{{ cta_standard }}" placeholder="z. B. Folge uns für mehr">
+      </div>
+      <div class="st-row">
+        <div class="st-row-text"><label for="sprachen">Sprachen</label><p>Kommagetrennt. Bei mehreren wählt deine KI je Beitrag eine.</p></div>
+        <input class="text-input" id="sprachen" name="sprachen" type="text" value="{{ sprachen }}" placeholder="de, en">
+      </div>
+      <div class="st-row">
+        <div class="st-row-text"><label for="kanaele">Deine Kanäle</label><p>Kommagetrennt. Für diese Kanäle wählt deine KI Formate und Seitenverhältnisse, und du planst sie im Kalender.</p></div>
+        <input class="text-input" id="kanaele" name="kanaele" type="text" value="{{ kanaele }}" placeholder="instagram, tiktok">
+      </div>
+      {% if radar_an %}
+      <div class="st-row">
+        <div class="st-row-text"><label for="ressorts">Ressorts</label><p>Themenfelder, nach denen der Radar Vorschläge sortiert.</p></div>
+        <input class="text-input" id="ressorts" name="ressorts" type="text" value="{{ ressorts }}" placeholder="politik, wirtschaft, tech">
+      </div>
+      {% endif %}
+      <div class="st-card-fuss">
+        <span class="row-msg" id="ausspielung-msg"></span>
+        <button class="btn" type="submit">Speichern</button>
+      </div>
+    </form>
+
+    <form id="zeitzone-form" class="st-card st-rows">
+      <div class="st-row">
+        <div class="st-row-text"><label for="zeitzone">Zeitzone</label><p>Bestimmt, was im Plan heute ist. Geplant um 17:00 heißt 17:00 in <span id="zeitzone-beispiel">{{ zeitzone }}</span>.</p></div>
+        <select class="st-select" id="zeitzone" name="zeitzone">
+          {% for tz in zeitzonen_auswahl %}<option value="{{ tz }}" {{ 'selected' if tz == zeitzone else '' }}>{{ tz }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="st-card-fuss"><span class="row-msg" id="zeitzone-msg"></span></div>
+    </form>
+
+    <form id="markensound-form" class="st-card st-rows" enctype="multipart/form-data">
+      <div class="st-row">
+        <div class="st-row-text"><label for="markensound-datei">Markensound</label><p>Läuft in Schleife unter jedem Reel und jeder Motion Graphic ohne eigenen Ton, beim Speichern, im Export und in der Handy-Ansicht. Videos mit Sprecher oder Originalton bleiben, wie sie sind.</p></div>
+        <span class="switch">
+          <input type="checkbox" id="markensound-aktiv" {{ 'checked' if markensound.aktiv else '' }} {{ '' if markensound.vorhanden or markensound.cta_vorhanden else 'disabled' }} aria-label="Markensound aktiv">
+          <span class="switch-track" aria-hidden="true"></span>
+        </span>
+      </div>
+      <div class="st-row">
+        <div class="st-row-text">
+          <label>Datei</label>
+          <p id="markensound-name">{{ markensound.name if markensound.vorhanden else 'Noch kein Sound hinterlegt. MP3, M4A, AAC oder WAV, höchstens 15 MB.' }}</p>
+          <audio id="markensound-player" controls preload="none" {% if markensound.url %}src="{{ markensound.url }}"{% else %}hidden{% endif %} style="margin-top:8px;width:100%;max-width:360px"></audio>
+        </div>
+        <span style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
+          <label class="btn ghost btn-sm" for="markensound-datei" style="cursor:pointer">{{ 'Ersetzen' if markensound.vorhanden else 'Hochladen' }}</label>
+          <input type="file" id="markensound-datei" accept=".mp3,.m4a,.aac,.wav,audio/*" hidden>
+          <button class="btn ghost btn-sm" type="button" id="markensound-weg" {{ '' if markensound.vorhanden else 'hidden' }}>Entfernen</button>
+        </span>
+      </div>
+      <div class="st-row">
+        <div class="st-row-text">
+          <label>CTA-Sound</label>
+          <p id="cta-sound-name">{{ markensound.cta_name if markensound.cta_vorhanden else 'Optional: ein kurzer Ton für die Abschluss-Slide mit dem Folgen-Knopf. Läuft einmal, danach bleibt es still.' }}</p>
+          <audio id="cta-sound-player" controls preload="none" {% if markensound.cta_url %}src="{{ markensound.cta_url }}"{% else %}hidden{% endif %} style="margin-top:8px;width:100%;max-width:360px"></audio>
+        </div>
+        <span style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
+          <label class="btn ghost btn-sm" for="cta-sound-datei" style="cursor:pointer">{{ 'Ersetzen' if markensound.cta_vorhanden else 'Hochladen' }}</label>
+          <input type="file" id="cta-sound-datei" accept=".mp3,.m4a,.aac,.wav,audio/*" hidden>
+          <button class="btn ghost btn-sm" type="button" id="cta-sound-weg" {{ '' if markensound.cta_vorhanden else 'hidden' }}>Entfernen</button>
+        </span>
+      </div>
+      <div class="st-row">
+        <div class="st-row-text"><label for="markensound-laut">Lautstärke</label><p>Wie laut der Sound unter den Videos liegt.</p></div>
+        <input type="range" id="markensound-laut" min="0.05" max="1" step="0.05" value="{{ markensound.lautstaerke }}">
+      </div>
+      <div class="st-card-fuss"><span class="row-msg" id="markensound-msg"></span></div>
+    </form>
+  </section>
+
+  <!-- ============ Feeds ============ -->
+  {% if radar_an %}
+  <section class="st-pane" id="pane-feeds" hidden>
+    <header class="st-head">
+      <h2>Feeds</h2>
+      <p>Die Quellen deines Radars. Jede Quelle bekommt ein Ressort, damit die Vorschläge nach Themen sortiert ankommen.</p>
+    </header>
+
+    <div class="st-card st-list" id="src-manage">
+      {% for s in sources_rows %}
+      <div class="src-row" data-name="{{ s.name }}">
+        <span class="src-main">
+          <span class="src-name">{{ s.name }}</span>
+          <span class="src-url" title="{{ s.url }}">{{ s.url_kurz }}</span>
+        </span>
+        {% if s.ressort %}<span class="src-ressort">{{ s.ressort }}</span>
+        {% else %}<span class="src-ressort is-leer" aria-hidden="true"></span>{% endif %}
+        <span class="src-actions"><button class="btn ghost btn-sm src-del" type="button">Entfernen</button></span>
+      </div>
+      {% else %}
+      <p class="st-leer" id="src-empty">Noch keine Quellen. Trag unten deine erste ein.</p>
+      {% endfor %}
+    </div>
+
+    <form id="src-add-form" class="st-card st-add">
+      <h3>Neue Quelle</h3>
+      <div class="st-add-grid">
+        <span><label class="st-label" for="src-name">Name</label>
+          <input class="text-input" id="src-name" name="name" type="text" placeholder="z. B. tagesschau" required></span>
+        <span><label class="st-label" for="src-ressort">Ressort</label>
+          <input class="text-input" id="src-ressort" name="ressort" type="text" list="src-ressorts" placeholder="z. B. politik" autocomplete="off">
+          <datalist id="src-ressorts">{% for r in sources_ressorts %}<option value="{{ r }}"></option>{% endfor %}</datalist></span>
+        <span class="st-add-voll"><label class="st-label" for="src-url">Feed-Adresse</label>
+          <input class="text-input" id="src-url" name="url" type="text" spellcheck="false" placeholder="https://www.beispiel.de/feed.xml" required></span>
+      </div>
+      <div class="st-card-fuss">
+        <span class="row-msg" id="src-msg"></span>
+        <button class="btn" type="submit">Hinzufügen</button>
+      </div>
+    </form>
+
+    <details class="st-details">
+      <summary>Quelldatei direkt bearbeiten</summary>
+      <form id="feeds-form">
+        <textarea class="text-input feeds-textarea" name="sources" rows="16" spellcheck="false">{{ sources_raw }}</textarea>
+        <div class="st-card-fuss">
+          <span class="row-msg" id="feeds-msg"></span>
+          <button class="btn ghost" type="submit">Speichern</button>
+        </div>
+      </form>
+    </details>
+  </section>
+  {% endif %}
+
+  <!-- ============ Formate ============ -->
+  <section class="st-pane" id="pane-formate" hidden>
+    <header class="st-head">
+      <h2>Formate</h2>
+      <p>Die Formate, die deine KI produziert. Deaktivierte bleiben erhalten und lassen sich jederzeit zurückholen.</p>
+    </header>
+    <div class="st-card st-list" id="fmt-manage">
+      {% for f in formate_rows %}
+      <div class="fmt-row {{ '' if f.active else 'off' }}" data-slug="{{ f.slug }}">
+        <span class="fmt-name">{{ f.label }}</span>
+        <span class="fmt-actions">
+          <button class="btn ghost btn-sm fmt-rename" type="button">Umbenennen</button>
+          <label class="switch" title="{{ 'Aktiv' if f.active else 'Inaktiv' }}">
+            <input type="checkbox" class="fmt-check" {{ 'checked' if f.active else '' }} aria-label="{{ f.label }} aktiv">
+            <span class="switch-track" aria-hidden="true"></span>
+          </label>
+        </span>
+      </div>
+      {% else %}
+      <p class="st-leer" id="fmt-empty">Noch keine Formate. Leg unten dein erstes an.</p>
+      {% endfor %}
+    </div>
+    <form id="fmt-add-form" class="st-inline-add">
+      <input class="text-input" id="fmt-add-name" name="name" type="text" placeholder="Neues Format, z. B. Zitat-Karte" required>
+      <button class="btn" type="submit">Anlegen</button>
+      <span class="row-msg" id="fmt-msg"></span>
+    </form>
+  </section>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+const $ = id => document.getElementById(id);
+function sag(el, text, ok) {
+  if (!el) return;
+  el.className = 'row-msg' + (ok === true ? ' ok' : ok === false ? ' err' : '');
+  el.textContent = text;
+}
+function posten(url, daten) {
+  return fetch(url, { method: 'POST', body: daten instanceof FormData ? new URLSearchParams(daten) : new URLSearchParams(daten || {}) })
+    .then(r => r.json());
+}
+
+// ---- Reiter (Hash) ----
+(function () {
+  const links = Array.from(document.querySelectorAll('.st-tabs a[data-pane]'));
+  const gueltig = links.map(a => a.dataset.pane);
+  function zeige(pane) {
+    if (!gueltig.includes(pane)) pane = gueltig[0];
+    document.querySelectorAll('.st-pane').forEach(p => { p.hidden = (p.id !== 'pane-' + pane); });
+    links.forEach(a => a.classList.toggle('on', a.dataset.pane === pane));
+  }
+  window.addEventListener('hashchange', () => zeige(location.hash.slice(1)));
+  zeige(location.hash.slice(1));
+})();
+
+// ---- Bereiche der Seitenleiste ----
+document.querySelectorAll('.bereich-schalter').forEach(cb => {
+  cb.addEventListener('change', () => {
+    const msg = $('bereiche-msg');
+    sag(msg, 'Speichert …');
+    posten('{{ url_for("einstellungen_module") }}', { module: cb.dataset.bereich, enabled: cb.checked ? '1' : '0' })
+      .then(d => {
+        if (!d.ok) { cb.checked = !cb.checked; sag(msg, d.error || 'Fehler', false); return; }
+        // Seitenleiste neu aufbauen, damit der Bereich sofort erscheint oder verschwindet.
+        location.hash = 'allgemein';
+        location.reload();
+      })
+      .catch(err => { cb.checked = !cb.checked; sag(msg, 'Fehler: ' + err, false); });
+  });
+});
+
+// ---- Allgemein ----
+$('ausspielung-form').addEventListener('submit', function (e) {
+  e.preventDefault();
+  const msg = $('ausspielung-msg');
+  sag(msg, 'Speichert …');
+  posten('{{ url_for("einstellungen_ausspielung") }}', new FormData(this))
+    .then(d => d.ok ? sag(msg, 'Gespeichert', true) : sag(msg, d.error || 'Fehler', false))
+    .catch(err => sag(msg, 'Fehler: ' + err, false));
+});
+$('zeitzone').addEventListener('change', function () {
+  $('zeitzone-beispiel').textContent = this.value;
+  const msg = $('zeitzone-msg');
+  sag(msg, 'Speichert …');
+  posten('{{ url_for("einstellungen_zeitzone") }}', { zeitzone: this.value })
+    .then(d => d.ok ? sag(msg, 'Gespeichert', true) : sag(msg, d.error || 'Fehler', false))
+    .catch(err => sag(msg, 'Fehler: ' + err, false));
+});
+
+// ---- Markensound ----
+(function () {
+  const url = '{{ url_for("einstellungen_markensound") }}';
+  const msg = $('markensound-msg');
+  function schicken(fd) {
+    sag(msg, 'Speichert …');
+    return fetch(url, { method: 'POST', body: fd }).then(r => r.json()).then(d => {
+      if (!d.ok) { sag(msg, d.error || 'Fehler', false); return null; }
+      sag(msg, 'Gespeichert', true);
+      return d.markensound;
+    }).catch(err => { sag(msg, 'Fehler: ' + err, false); return null; });
+  }
+  function feld(aktion, extra) {
+    const fd = new FormData();
+    fd.append('aktion', aktion);
+    Object.entries(extra || {}).forEach(([k, v]) => fd.append(k, v));
+    return fd;
+  }
+  $('markensound-datei').addEventListener('change', function () {
+    if (!this.files[0]) return;
+    schicken(feld('hochladen', { datei: this.files[0] })).then(m => { if (m) location.reload(); });
+  });
+  $('markensound-aktiv').addEventListener('change', function () {
+    const cb = this;
+    schicken(feld('aktiv', { aktiv: cb.checked ? '1' : '0' })).then(m => { if (!m) cb.checked = !cb.checked; });
+  });
+  $('markensound-laut').addEventListener('change', function () {
+    schicken(feld('lautstaerke', { lautstaerke: this.value }));
+  });
+  $('markensound-weg').addEventListener('click', function () {
+    schicken(feld('entfernen')).then(m => { if (m) location.reload(); });
+  });
+  $('cta-sound-datei').addEventListener('change', function () {
+    if (!this.files[0]) return;
+    schicken(feld('hochladen', { art: 'cta', datei: this.files[0] })).then(m => { if (m) location.reload(); });
+  });
+  $('cta-sound-weg').addEventListener('click', function () {
+    schicken(feld('entfernen', { art: 'cta' })).then(m => { if (m) location.reload(); });
+  });
+})();
+
+// ---- Formate ----
+(function () {
+  const liste = $('fmt-manage');
+  const msg = $('fmt-msg');
+  const URLS = {
+    neu: '{{ url_for("einstellungen_formate_neu") }}',
+    umbenennen: '{{ url_for("einstellungen_formate_umbenennen") }}',
+    status: '{{ url_for("einstellungen_formate_status") }}',
+  };
+  function zeile(f) {
+    const row = document.createElement('div');
+    row.className = 'fmt-row' + (f.active ? '' : ' off');
+    row.dataset.slug = f.slug;
+    row.innerHTML = '<span class="fmt-name"></span><span class="fmt-actions">'
+      + '<button class="btn ghost btn-sm fmt-rename" type="button">Umbenennen</button>'
+      + '<label class="switch"><input type="checkbox" class="fmt-check"><span class="switch-track" aria-hidden="true"></span></label></span>';
+    row.querySelector('.fmt-name').textContent = f.label;
+    row.querySelector('.fmt-check').checked = !!f.active;
+    return row;
+  }
+  $('fmt-add-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    const name = $('fmt-add-name').value.trim();
+    if (!name) return;
+    sag(msg, 'Legt an …');
+    posten(URLS.neu, { name }).then(d => {
+      if (!d.ok) { sag(msg, d.error || 'Fehler', false); return; }
+      $('fmt-empty')?.remove();
+      liste.appendChild(zeile(d.format));
+      this.reset();
+      sag(msg, 'Format „' + d.format.label + '“ angelegt.', true);
+    });
+  });
+  liste.addEventListener('change', e => {
+    const cb = e.target.closest('.fmt-check');
+    if (!cb) return;
+    const row = cb.closest('.fmt-row');
+    posten(URLS.status, { slug: row.dataset.slug, aktiv: cb.checked ? '1' : '0' }).then(d => {
+      if (!d.ok) { cb.checked = !cb.checked; sag(msg, d.error || 'Fehler', false); return; }
+      row.classList.toggle('off', !d.active);
+      sag(msg, 'Gespeichert', true);
+    });
+  });
+  liste.addEventListener('click', e => {
+    if (!e.target.closest('.fmt-rename')) return;
+    const row = e.target.closest('.fmt-row');
+    const aktuell = row.querySelector('.fmt-name').textContent;
+    const name = window.prompt('Neuer Name für dieses Format:', aktuell);
+    if (name === null || !name.trim()) return;
+    posten(URLS.umbenennen, { slug: row.dataset.slug, name: name.trim() }).then(d => {
+      if (!d.ok) { sag(msg, d.error || 'Fehler', false); return; }
+      row.dataset.slug = d.format.slug;
+      row.querySelector('.fmt-name').textContent = d.format.label;
+      sag(msg, 'Umbenannt in „' + d.format.label + '“.', true);
+    });
+  });
+})();
+
+// ---- Feeds ----
+(function () {
+  const liste = $('src-manage');
+  const form = $('src-add-form');
+  if (!liste || !form) return;
+  const msg = $('src-msg');
+  const URLS = { neu: '{{ url_for("einstellungen_feeds_neu") }}', entfernen: '{{ url_for("einstellungen_feeds_entfernen") }}' };
+  function yamlSpiegeln(text) {
+    const ta = document.querySelector('#feeds-form textarea');
+    if (ta && typeof text === 'string') ta.value = text;
+  }
+  function zeile(q) {
+    const row = document.createElement('div');
+    row.className = 'src-row';
+    row.dataset.name = q.name;
+    row.innerHTML = '<span class="src-main"><span class="src-name"></span><span class="src-url"></span></span>'
+      + '<span class="src-ressort"></span><span class="src-actions"><button class="btn ghost btn-sm src-del" type="button">Entfernen</button></span>';
+    row.querySelector('.src-name').textContent = q.name;
+    row.querySelector('.src-url').textContent = q.url_kurz || q.url;
+    row.querySelector('.src-url').title = q.url;
+    const r = row.querySelector('.src-ressort');
+    if (q.ressort) r.textContent = q.ressort; else { r.classList.add('is-leer'); r.setAttribute('aria-hidden', 'true'); }
+    return row;
+  }
+  form.addEventListener('submit', e => {
+    e.preventDefault();
+    sag(msg, 'Legt an …');
+    posten(URLS.neu, new FormData(form)).then(d => {
+      if (!d.ok) { sag(msg, d.error || 'Fehler', false); return; }
+      $('src-empty')?.remove();
+      liste.appendChild(zeile(d.quelle));
+      yamlSpiegeln(d.sources_raw);
+      const dl = $('src-ressorts');
+      if (dl && Array.isArray(d.ressorts)) dl.innerHTML = d.ressorts.map(r => '<option value="' + r.replace(/"/g, '&quot;') + '"></option>').join('');
+      form.reset();
+      sag(msg, 'Quelle „' + d.quelle.name + '“ hinzugefügt.', true);
+    }).catch(err => sag(msg, 'Fehler: ' + err, false));
+  });
+  liste.addEventListener('click', e => {
+    const knopf = e.target.closest('.src-del');
+    if (!knopf) return;
+    const row = knopf.closest('.src-row');
+    if (knopf.dataset.scharf !== '1') {
+      knopf.dataset.scharf = '1';
+      knopf.classList.add('is-scharf');
+      knopf.textContent = 'Wirklich entfernen?';
+      setTimeout(() => { knopf.dataset.scharf = ''; knopf.classList.remove('is-scharf'); knopf.textContent = 'Entfernen'; }, 4000);
+      return;
+    }
+    knopf.disabled = true;
+    posten(URLS.entfernen, { name: row.dataset.name }).then(d => {
+      if (!d.ok) { knopf.disabled = false; sag(msg, d.error || 'Fehler', false); return; }
+      row.remove();
+      yamlSpiegeln(d.sources_raw);
+      if (!liste.querySelector('.src-row')) liste.innerHTML = '<p class="st-leer" id="src-empty">Noch keine Quellen. Trag unten deine erste ein.</p>';
+      sag(msg, 'Quelle entfernt.', true);
+    });
+  });
+  const yaml = $('feeds-form');
+  if (yaml) yaml.addEventListener('submit', e => {
+    e.preventDefault();
+    const m = $('feeds-msg');
+    sag(m, 'Speichert …');
+    posten('{{ url_for("einstellungen_feeds") }}', new FormData(yaml)).then(d => {
+      if (d.ok) { sag(m, 'Gespeichert', true); setTimeout(() => location.reload(), 600); }
+      else sag(m, d.error || 'Fehler', false);
+    });
+  });
+})();
+</script>
+{% endblock %}

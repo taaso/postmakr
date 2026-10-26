@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block content %}
+  <div class="detail-head">
+    <div>
+      <a class="back" href="{{ url_for('detail', kind=post.kind, slug=post.slug) }}">‹ zurück zum Beitrag</a>
+      <p class="eyebrow" style="margin-top:10px;">{{ post.thema }}</p>
+      <h1 class="page">{{ label }}</h1>
+    </div>
+  </div>
+
+  {% if items %}
+    <div class="media-filter" id="media-filter">
+      <button class="chip toggle" id="old-toggle">Alte Versionen zeigen</button>
+    </div>
+    <div class="media-grid-lg">
+      {% for m in items %}
+        <figure class="media-cell lg r{{ m.ratio }}" data-old="{{ '1' if m.old else '0' }}">
+          {% if m.type == 'image' %}
+            <img src="{{ url_for('asset', kind=post.kind, slug=post.slug, filename=m.name) }}" alt="{{ m.name }}" loading="lazy">
+          {% else %}
+            <video controls preload="metadata" src="{{ url_for('asset', kind=post.kind, slug=post.slug, filename=m.name) }}"></video>
+          {% endif %}
+          <span class="media-name">{{ m.name }}</span>
+        </figure>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty"><div class="big">Keine Dateien</div><p>Für diesen Typ liegen keine Medien im Beitrag.</p></div>
+  {% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  const toggle = document.getElementById('old-toggle');
+  if (!toggle) return;
+  const cells = Array.from(document.querySelectorAll('.media-cell'));
+  let showOld = false;
+  function apply() {
+    cells.forEach(el => el.classList.toggle('hidden', !showOld && el.dataset.old === '1'));
+  }
+  toggle.addEventListener('click', () => {
+    showOld = !showOld;
+    toggle.classList.toggle('on', showOld);
+    toggle.textContent = showOld ? 'Alte Versionen ausblenden' : 'Alte Versionen zeigen';
+    apply();
+  });
+  apply();
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,1929 @@
+/* ============================================================================
+   design.css: Helles Designsystem der Content-Plattform
+   ----------------------------------------------------------------------------
+   Wird NACH style.css geladen und verfeinert die bestehende Struktur zu einem
+   hellen, cleanen Stil: weisse Flaechen, feine 1px-Kanten,
+   sehr dezente Schatten, kein Glas/Blur/Farbverlauf am Grund. Die Tokens von
+   style.css (--surface, --line, --text, ...) werden hier nur leicht verfeinert
+   (Radien, Schatten, Spacing-Skala) — die Materialitaet bleibt konsequent
+   flach und papierartig.
+
+   Die Akzentfarbe (--red / --link) bleibt unangetastet: sie wird pro Workspace
+   in base.html aus brand.yaml gesetzt (Rot / Orange / Teal). Das Theme ist so
+   gebaut, dass die helle Flaeche mit JEDEM Akzent funktioniert.
+   ============================================================================ */
+
+/* ---------- Schriften (lokal, DSGVO — keine Google-Fonts-CDN) ------------- */
+/* DM Sans: Display + Body. DM Mono: Daten, Code, Captions. woff2, latin + ext. */
+@font-face {
+  font-family: "DM Sans"; font-style: normal; font-weight: 400; font-display: swap;
+  src: url("fonts/dm-sans-400-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "DM Sans"; font-style: normal; font-weight: 400; font-display: swap;
+  src: url("fonts/dm-sans-400-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02AF, U+0304, U+0308, U+0329, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "DM Sans"; font-style: normal; font-weight: 500; font-display: swap;
+  src: url("fonts/dm-sans-500-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "DM Sans"; font-style: normal; font-weight: 500; font-display: swap;
+  src: url("fonts/dm-sans-500-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02AF, U+0304, U+0308, U+0329, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "DM Sans"; font-style: normal; font-weight: 700; font-display: swap;
+  src: url("fonts/dm-sans-700-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "DM Sans"; font-style: normal; font-weight: 700; font-display: swap;
+  src: url("fonts/dm-sans-700-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02AF, U+0304, U+0308, U+0329, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "DM Mono"; font-style: normal; font-weight: 400; font-display: swap;
+  src: url("fonts/dm-mono-400-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "DM Mono"; font-style: normal; font-weight: 400; font-display: swap;
+  src: url("fonts/dm-mono-400-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02AF, U+0304, U+0308, U+0329, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "DM Mono"; font-style: normal; font-weight: 500; font-display: swap;
+  src: url("fonts/dm-mono-500-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "DM Mono"; font-style: normal; font-weight: 500; font-display: swap;
+  src: url("fonts/dm-mono-500-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02AF, U+0304, U+0308, U+0329, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+/* ---------- Tokens: helles Set --------------------------------------- */
+:root {
+  /* Plattform-Akzent: dezentes Himmelblau, NUR dort einsetzen, wo die
+     PLATTFORM selbst spricht (Auswahlseite, Login-nahe UI) — nicht fuer
+     Workspace-Marken, die ihren eigenen Akzent aus brand.yaml mitbringen. */
+  --platform-accent: #2c6ecb;
+
+  /* Akzent-Alias: nutzt --red (Workspace) oder faellt auf das Plattform-Blau
+     zurueck, wenn kein Workspace gesetzt ist (Landing/Auswahl). */
+  --accent: var(--red, var(--platform-accent));
+
+  /* Grundflaeche: helles, neutrales Grau — Karten sitzen als reines Weiss
+     darauf. Kein Verlauf, kein Rauschen, keine Tiefe aus Farbe. */
+  --bg: #f6f6f7;
+  --surface: #ffffff;
+  --surface-2: #f6f6f7;
+  --surface-3: #fbfbfb;
+  --chip-hover: #ececec;
+
+  --line: #e3e3e3;
+  --line-strong: #d1d1d1;
+
+  --text: #1a1a1a;
+  --sub: #616161;
+  --faint: #8a8a8a;
+  --md-text: #2b2b2b;
+  --chip: var(--surface-2);
+
+  --radius: 12px;
+  --radius-sm: 8px;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.07), 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.12);
+
+  --font: "DM Sans", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --display: "DM Sans", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --mono: "DM Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+/* ---------- Basis-Reset + Typo (macht design.css allein tragfaehig, damit
+   auch Seiten ohne style.css — Landing — korrekt gesetzt sind) ------------- */
+*, *::before, *::after { box-sizing: border-box; }
+
+/* ---------- Seitenhintergrund: flache, ruhige Flaeche ---------------------- */
+body {
+  margin: 0;
+  font-family: var(--font);
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--bg);
+  color: var(--text);
+  letter-spacing: -0.006em;
+}
+
+::selection { background: color-mix(in srgb, var(--accent) 28%, transparent); color: var(--text); }
+
+/* ============================================================================
+   Flaeche + Kante — reines Weiss, feine 1px-Kante, sehr dezenter Schatten.
+   Kein backdrop-filter, kein Glas, keine Lichtkante.
+   ============================================================================ */
+.stat,
+.card,
+.panel,
+.empty,
+.scan-doc,
+.wissen-doc,
+.table-wrap,
+.speicher,
+.vcard,
+.reserve,
+.modal,
+.glass-card {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-sm);
+}
+/* .sys-node bekommt dieselbe Flaeche, aber KEIN position:relative — die
+   Schaltplan-Knoten werden in style.css absolut auf der .sys-frame platziert.
+   Ein position:relative hier hat sie frueher in den normalen Fluss gekippt,
+   wodurch die Karten untereinander stapelten und die SVG-Linien frei
+   schwebten. */
+
+.toast { box-shadow: var(--shadow-md); }
+
+.card:hover, .vcard:hover { border-color: var(--line-strong); box-shadow: var(--shadow); }
+
+/* ---------- Sidebar: weisse, feste Leiste --------------------------------- */
+.sidebar {
+  background: var(--surface);
+  border-right: 1px solid var(--line);
+}
+.brand {
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+}
+.brand .eye {
+  font-weight: 700;
+  font-size: 20px;
+  letter-spacing: -0.01em;
+  text-transform: lowercase;
+  color: var(--text);
+}
+/* Aktive Nav-Pille: hellgrau, Icon in Akzentfarbe */
+.nav a { border-radius: 10px; }
+.nav a.on {
+  background: var(--chip-hover);
+}
+.nav a.on .dot { background: var(--accent); }
+
+/* „Workspace wechseln" — ruhige Kapsel im Sidebar-Fuss */
+.side-switch {
+  display: inline-flex; align-items: center; gap: 7px;
+  margin: 2px 2px 14px; padding: 8px 13px;
+  border-radius: 999px; text-decoration: none;
+  color: var(--sub); font-size: 12.5px; font-weight: 600;
+  border: 1px solid var(--line); background: var(--surface-2);
+  transition: background 0.15s, color 0.15s, transform 0.15s;
+}
+.side-switch:hover { color: var(--text); background: var(--chip-hover); }
+.side-switch .sw-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
+
+/* ---------- Eyebrows / Kopf ------------------------------------------------ */
+.eyebrow { color: var(--accent); }
+h1.page { letter-spacing: -0.03em; }
+
+/* ---------- Buttons: klare, feste Kapsel (kein Glas, kein Glanz) ---------- */
+.btn {
+  border-radius: var(--radius-sm);
+  letter-spacing: -0.005em;
+  transition: background 0.15s, filter 0.15s, box-shadow 0.15s;
+}
+
+.btn.ghost {
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  color: var(--text);
+}
+.btn.ghost:hover { background: var(--surface-2); color: var(--text); }
+
+/* Accent-Utility (Landing/Auswahl) */
+.btn-accent {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  background: var(--accent); color: #fff; border: none;
+  padding: 12px 24px; border-radius: var(--radius-sm);
+  font-family: var(--font); font-weight: 700; font-size: 15px;
+  text-decoration: none; cursor: pointer;
+  transition: filter 0.15s, box-shadow 0.15s;
+}
+.btn-accent:hover { filter: brightness(0.94); }
+
+/* ---------- Chips / Badges -------------------------------------------------- */
+.chip {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 6px 14px; border-radius: 999px;
+  border: 1px solid var(--line); background: var(--surface-2);
+  color: var(--sub); font-size: 12.5px; font-weight: 600;
+}
+.chip.on, .chip.toggle.on { background: var(--chip-hover); border-color: var(--line-strong); color: var(--text); }
+
+/* ---------- Kennzahlen ----------------------------------------------------- */
+.stat.accent .num { color: var(--accent); }
+
+/* ---------- Markdown-Fliesstext -------------------------------------------- */
+.md { color: var(--md-text); }
+.md code { background: var(--surface-2); color: var(--text); }
+.md blockquote { color: var(--sub); }
+
+/* ============================================================================
+   Landing / Auswahl — geteilte Karten-Bausteine
+   ============================================================================ */
+.glass-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+/* Fein abgestimmte Scrollbar (Webkit) */
+* { scrollbar-color: rgba(0, 0, 0, 0.18) transparent; }
+::-webkit-scrollbar { width: 11px; height: 11px; }
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.14); border-radius: 999px;
+  border: 3px solid transparent; background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover { background: rgba(0, 0, 0, 0.24); background-clip: content-box; }
+
+@media (prefers-reduced-motion: reduce) {
+  .btn-accent, .card, .vcard { transition: none !important; }
+}
+
+/* ============================================================================
+   APP-SCHLIFF — Produkt-Politur der Workspace-Seiten
+   ----------------------------------------------------------------------------
+   Kommt NACH allen Basis-/Theme-Regeln und professionalisiert Seitenanatomie,
+   Karten, Tabellen, Formulare, Buttons und Leerzustaende auf SaaS-Niveau
+   (Referenz: Linear, Vercel). Es werden KEINE Klassen/IDs/Formularfelder
+   entfernt — nur Materialitaet, Rhythmus und Tokens verfeinert.
+   ============================================================================ */
+:root {
+  /* Eine konsistente Spacing-Skala (8er-Raster) statt Zufallswerte */
+  --sp-1: 6px; --sp-2: 10px; --sp-3: 16px; --sp-4: 22px;
+  --sp-5: 32px; --sp-6: 44px; --sp-7: 64px;
+
+  /* Eine Radius-Skala fuer die ganze App: Karten 12px, Kontrollen 8/6px */
+  --radius: 12px;
+  --radius-sm: 8px;
+  --radius-xs: 6px;
+
+  /* Standard-Uebergang: 0.15s, ruhige Kurve */
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Marken-Aliase auf den WORKSPACE-Akzent umgemappt. In style.css hart als
+     Rot kodiert (--red-tint/--red-deep) — dadurch leuchteten Viral-, System-
+     und Status-Badges auf Teal/Orange-Workspaces faelschlich rot. Jetzt folgt
+     alles der Marke aus brand.yaml. */
+  --red-deep: color-mix(in srgb, var(--accent) 80%, #ffffff 12%);
+  --red-tint: color-mix(in srgb, var(--accent) 15%, transparent);
+  --red-tint-strong: color-mix(in srgb, var(--accent) 24%, transparent);
+}
+@supports not (background: color-mix(in srgb, red, blue)) {
+  :root { --red-deep: var(--accent); --red-tint: rgba(0,0,0,0.05); --red-tint-strong: rgba(0,0,0,0.08); }
+}
+
+/* ---------- Seitenanatomie: einheitlicher Kopf-Rhythmus ------------------- */
+.eyebrow { margin: 0 0 var(--sp-2); font-size: 11px; letter-spacing: 0.16em; }
+h1.page { font-size: 33px; margin: 0 0 var(--sp-2); }
+.page-sub { margin: 0 0 var(--sp-6); color: var(--sub); line-height: 1.55; }
+/* Kopfzeile mit rechtsbuendigen Aktionen (Detail nutzt bereits .detail-head) */
+.page-head {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: var(--sp-4); flex-wrap: wrap; margin: 0 0 var(--sp-5);
+}
+.page-head .page-head-text { min-width: 0; }
+.page-head .eyebrow, .page-head h1.page { margin-bottom: var(--sp-1); }
+.page-head .page-sub { margin: 4px 0 0; max-width: 64ch; }
+.page-head .page-head-actions { display: flex; gap: var(--sp-2); flex: 0 0 auto; align-items: center; }
+
+/* ---------- Kennzahl-Kacheln: ruhiger, gleichmaessiger ------------------- */
+.stats { gap: var(--sp-3); margin-bottom: var(--sp-5); }
+.stat { padding: 18px 22px 17px; border-radius: var(--radius); }
+.stat .num {
+  font-size: 26px; line-height: 1.08; letter-spacing: -0.02em;
+  overflow-wrap: anywhere; font-variant-numeric: tabular-nums;
+}
+.stat.accent .num { color: var(--accent); }
+.stat .lbl { margin-top: 9px; font-size: 10.5px; letter-spacing: 0.12em; color: var(--faint); }
+
+/* ---------- Buttons: feste Akzent-Flaeche, kein Glanz, kein Gradient ----- */
+.btn {
+  background: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 82%, #000000 12%);
+  color: #fff; font-weight: 600; font-size: 13px; padding: 9px 17px;
+  border-radius: var(--radius-sm);
+}
+.btn:hover { filter: brightness(0.94); }
+.btn.ghost {
+  background: var(--surface); border: 1px solid var(--line-strong);
+  color: var(--text); font-weight: 600;
+}
+.btn.ghost:hover { background: var(--surface-2); }
+.btn.btn-sm { padding: 7px 13px; font-size: 12px; }
+.btn:disabled { opacity: 0.45; }
+
+/* ---------- Toolbar: gleichmaessige Zeile -------------------------------- */
+.toolbar { gap: var(--sp-3); margin-bottom: var(--sp-4); align-items: center; }
+.toolbar .hint { color: var(--sub); }
+
+/* ---------- Format-/Meta-Chips: eine konsistente Glas-Kapsel ------------- */
+.badge {
+  font-family: var(--mono); font-size: 10px; font-weight: 500;
+  letter-spacing: 0.04em; text-transform: uppercase;
+  padding: 3px 9px; border-radius: 7px;
+  background: var(--surface-2); border: 1px solid var(--line);
+  color: var(--sub); box-shadow: var(--shadow-sm);
+}
+.date { font-size: 12px; color: var(--faint); font-variant-numeric: tabular-nums; }
+
+/* ---------- Beitragskarten: sauberes Verhaeltnis + klare Meta ------------ */
+.grid { gap: var(--sp-4); grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); }
+.card { border-radius: var(--radius); }
+.thumb { aspect-ratio: 4 / 5; border-bottom: 1px solid var(--line); }
+.card-body { padding: 14px 15px 15px; gap: 9px; }
+.card-meta { gap: 9px; }
+/* Kartenordnung: Datum konsequent oben rechts. */
+.card-meta .date { margin-left: auto; }
+.card-title { font-size: 14.5px; font-weight: 600; letter-spacing: -0.01em; }
+.card-foot {
+  border-top: 1px solid var(--line); padding-top: 11px; margin-top: auto;
+  justify-content: space-between; align-items: center; gap: 10px;
+}
+.card-foot .prog { display: inline-flex; align-items: baseline; gap: 7px; }
+.card-foot .k {
+  font-size: 9.5px; letter-spacing: 0.11em; text-transform: uppercase;
+  color: var(--faint); font-weight: 600;
+}
+.card-foot .prog-val { font-family: var(--mono); font-size: 14px; color: var(--text); font-weight: 500; }
+
+/* ---------- Leerzustaende: intentional statt gaehnende Leere ------------- */
+.empty {
+  border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 52px 34px; background: var(--surface-3);
+  position: relative;
+}
+.empty::before {
+  content: ""; display: block; width: 42px; height: 42px; margin: 0 auto 18px;
+  border-radius: 12px; background: var(--surface-2); border: 1px solid var(--line);
+  box-shadow: var(--shadow-sm),
+    inset 0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent);
+  position: relative;
+}
+.empty::after {
+  content: ""; position: absolute; top: 67px; left: 50%; transform: translateX(-50%);
+  width: 12px; height: 12px; border-radius: 50%;
+  background: var(--accent); box-shadow: 0 0 14px color-mix(in srgb, var(--accent) 70%, transparent);
+}
+.empty .big { font-size: 19px; margin-bottom: 7px; }
+.empty p { max-width: 46ch; margin-left: auto; margin-right: auto; color: var(--sub); }
+.empty code { color: var(--accent); }
+
+/* ---------- Panels / Detail: klare Hierarchie --------------------------- */
+.panel { border-radius: var(--radius); padding: 20px 22px; }
+.panel h3 { font-size: 15px; letter-spacing: -0.01em; margin-bottom: 13px; }
+.kv { grid-template-columns: auto 1fr; gap: 9px 18px; font-size: 13.5px; }
+.kv dt { color: var(--faint); }
+.kv dd { color: var(--text); font-variant-numeric: tabular-nums; }
+.back {
+  display: inline-flex; align-items: center; gap: 6px; color: var(--sub);
+  font-size: 12.5px; font-weight: 600; padding: 5px 11px; border-radius: 999px;
+  border: 1px solid var(--line); background: var(--surface-2);
+  box-shadow: var(--shadow-sm); transition: color 0.15s var(--ease), background 0.15s var(--ease);
+}
+.back:hover { color: var(--text); background: var(--chip-hover); }
+.media-stack { gap: var(--sp-4); }
+.media-stack img, .media-stack video { border: 1px solid var(--line); border-radius: var(--radius-sm); }
+.media-name { font-family: var(--mono); color: var(--faint); margin-top: 8px; }
+
+/* ---------- Tabellen: saubere Glas-Tabelle ------------------------------ */
+.table-wrap { border: 1px solid var(--line); border-radius: var(--radius); }
+table.perf thead th {
+  color: var(--faint); font-size: 10.5px; letter-spacing: 0.07em; padding: 13px 14px;
+  border-bottom: 1px solid var(--line-strong);
+}
+table.perf tbody td { padding: 13px 14px; border-bottom: 1px solid var(--line); }
+table.perf tbody tr:hover td { background: var(--surface-2); }
+table.perf input.num {
+  font-family: var(--mono); font-size: 12.5px; text-align: right;
+  border-radius: var(--radius-xs);
+}
+table.perf textarea.note { border-radius: var(--radius-xs); }
+table.perf input:focus, table.perf textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+.vt-metric.has { color: var(--red-deep); }
+.vt-format {
+  font-family: var(--mono); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.03em;
+  background: var(--surface-2); border: 1px solid var(--line); color: var(--sub);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Performance-Abrufaktionen: eine Zeile, zwei Gruppen statt zwei Toolbars */
+
+/* ---------- Performance: Karten statt ueberbreiter Tabelle -------------- */
+/* Eine zweizeilige Karte je Beitrag (Titel/Format/Prognose, dann die Zahlen-
+   felder als kompaktes Grid + Learnings + Speichern), damit ab ~1100px kein
+   horizontales Scrollen mehr noetig ist. */
+
+.ig-suggest-box {
+  border-radius: var(--radius-sm); padding: 10px 12px; margin-top: 2px;
+}
+.ig-suggest-box { background: var(--red-tint); }
+
+.detail-head .back { margin-bottom: 12px; }
+
+/* ---------- Formulare: konsistenter Glas-Stil --------------------------- */
+.field-label { font-size: 10.5px; letter-spacing: 0.09em; color: var(--faint); margin-bottom: 7px; }
+.text-input {
+  border-radius: var(--radius-sm); background: var(--surface);
+  border: 1px solid var(--line-strong); font-size: 14px; padding: 10px 12px;
+  transition: border-color 0.15s var(--ease), box-shadow 0.15s var(--ease), background 0.15s var(--ease);
+}
+.text-input:focus {
+  border-color: var(--accent); background: var(--surface);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent);
+}
+select.text-input { -webkit-appearance: none; appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, var(--sub) 50%), linear-gradient(135deg, var(--sub) 50%, transparent 50%);
+  background-position: calc(100% - 18px) center, calc(100% - 13px) center;
+  background-size: 5px 5px, 5px 5px; background-repeat: no-repeat; padding-right: 34px; }
+.settings-actions { margin-top: var(--sp-4); gap: var(--sp-3); }
+.settings-note { border-top-color: var(--line); color: var(--faint); }
+.conn-state { border-radius: 999px; border-color: var(--line); background: var(--surface-2); color: var(--sub); }
+.conn-state.ok { color: var(--red-deep); border-color: color-mix(in srgb, var(--accent) 32%, transparent); background: var(--red-tint); }
+.setup-steps li::before { background: var(--accent); box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 40%, transparent); }
+.notice { border-radius: var(--radius-sm); }
+.notice-err { color: var(--red-deep); background: var(--red-tint); border-color: color-mix(in srgb, var(--accent) 32%, transparent); }
+
+/* ---------- Status-/Typ-Chips einheitlich ------------------------------- */
+.status-badge { border-radius: 999px; border-color: var(--line); background: var(--surface-2); color: var(--sub); }
+.status-badge.s-zur_produktion { background: var(--red-tint); border-color: color-mix(in srgb, var(--accent) 30%, transparent); color: var(--red-deep); }
+
+/* ---------- Scan-Vorschlagskarten: Nummer + Score verfeinern ------------ */
+.vcard { border-radius: var(--radius); }
+.vcard-nr {
+  font-family: var(--mono); border-color: var(--line); background: var(--surface-2);
+  color: var(--sub); box-shadow: var(--shadow-sm);
+}
+.vcard-title { font-size: 15.5px; letter-spacing: -0.01em; }
+.score strong { color: var(--accent); font-family: var(--mono); }
+.scan-chip.active { background: var(--accent); border-color: color-mix(in srgb, var(--accent) 60%, #000); color: #fff; }
+.count { border-radius: 999px; border-color: var(--line); background: var(--surface-2); color: var(--sub); }
+.icon-btn {
+  border-radius: 9px; border-color: var(--line); background: var(--surface-2); color: var(--sub);
+  box-shadow: var(--shadow-sm); transition: color 0.15s var(--ease), background 0.15s var(--ease);
+}
+.icon-btn:hover { color: var(--text); background: var(--chip-hover); }
+
+/* ---------- System-Schaltplan: Zonenfarben ins dunkle Glas holen -------- */
+/* Die alten Zonenfarben waren grelle Hell-Theme-Toene (Blau/Violett/Orange/
+   Gruen), die den ruhigen Graphit sprengten. Hier entsaettigt + aufgehellt,
+   damit sie auf Dunkel lesbar bleiben und zueinander gehoeren. Der
+   Rueckkanal (z-loop) folgt dem Workspace-Akzent statt Hart-Rot. */
+
+.produce-state.on { background: var(--accent); border-color: var(--accent); }
+.flow { stroke: rgba(0,0,0,0.28); }
+/* Pfeilspitzen liegen als <marker> in den SVG-defs und tragen dort feste
+   Hell-Theme-Farben. Hier auf Theme bzw. Workspace-Akzent ziehen, damit die
+   Spitze zur Linie passt (sonst rote Spitzen an tuerkisen Linien). */
+#ah-grey path { fill: rgba(0,0,0,0.35); }
+#ah-red path { fill: var(--accent); }
+
+/* ---------- Fokus-Ringe: einheitlich am Akzent ------------------------- */
+a:focus-visible, button:focus-visible, input:focus-visible,
+textarea:focus-visible, select:focus-visible, summary:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .back, .icon-btn, .text-input { transition: none !important; }
+}
+/* ============================================================================
+   Zusaetze: Glas-Look fuer Format-Zeilen, Medien-Reihen und Editor.
+   ============================================================================ */
+.mat-item, .editor-toolbar {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-sm);
+}
+.mat-item img, .mat-item video { border: 1px solid var(--line); }
+.format-head .count {
+  background: var(--surface-2); border-color: var(--line); color: var(--sub);
+  box-shadow: var(--shadow-sm);
+}
+.badge.draft {
+  background: var(--red-tint-strong);
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  color: var(--red-deep);
+}
+.media-cell img, .media-cell video { border-color: var(--line); }
+.media-filter .chip.on, .media-filter .chip.toggle.on { background: var(--chip-hover); border-color: var(--line-strong); color: var(--text); }
+.cell-edit { box-shadow: var(--shadow-sm); }
+.editor-frame { border-color: var(--line-strong); background: #000; }
+.frame-label { color: var(--sub); font-family: var(--mono); }
+.edit-links .btn.on { background: var(--accent); border-color: color-mix(in srgb, var(--accent) 60%, #000); color: #fff; }
+.row-scroll::-webkit-scrollbar-thumb { background: var(--line-strong); }
+
+/* „Alle anzeigen"-Link neben Reihen-Ueberschriften */
+.format-head .show-all {
+  margin-left: 6px; padding: 4px 12px; border-radius: 999px;
+  font-size: 12px; font-weight: 600; text-decoration: none;
+  color: var(--sub); background: var(--surface-2); border: 1px solid var(--line);
+  box-shadow: var(--shadow-sm);
+  transition: color 0.15s var(--ease), background 0.15s var(--ease);
+}
+.format-head .show-all:hover { color: var(--text); background: var(--chip-hover); }
+
+/* Einheitliche Kachel-Proportionen in der Detail-Ansicht */
+.media-cell { flex-basis: 270px; }
+.media-cell.wide { flex-basis: 270px; }
+.media-cell.r916 { flex-basis: 200px; }
+
+/* Medientyp-Vollansicht (neues Fenster): grosse Kacheln, voller Platz */
+.media-grid-lg {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  gap: 30px;
+}
+.media-cell.lg { flex: none; width: 100%; display: flex; flex-direction: column; gap: 8px; position: relative; }
+.media-cell.lg img, .media-cell.lg video { width: 100%; border-radius: var(--radius-sm); }
+.media-cell.lg.r916 { max-width: 460px; }
+
+/* Detail-Ansicht: Medienspalte bekommt die volle Restbreite */
+.detail-cols { grid-template-columns: minmax(0, 1fr) 360px; gap: 30px; }
+.detail-cols.detail-cols-single { grid-template-columns: minmax(0, 1fr); }
+.media-cell { flex-basis: 300px; }
+.media-cell.wide { flex-basis: 300px; }
+.media-cell.r916 { flex-basis: 220px; }
+
+/* Quell-zuerst: echter 1080er-Slide im sicheren iframe, nur visuell skaliert. */
+.quell-vorschau-rahmen {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+.quell-vorschau.r916 .quell-vorschau-rahmen { aspect-ratio: 9 / 16; }
+.quell-vorschau-rahmen iframe {
+  position: absolute;
+  inset: 0 auto auto 0;
+  display: block;
+  border: 0;
+  transform-origin: top left;
+  pointer-events: none;
+}
+
+/* Beitragsdetail: eine einzige kompakte Reihe der tatsaechlich verwendeten
+   Quellen. Technische Renderdateien bekommen keine zweite Galerie mehr. */
+.source-slides { margin: 4px 0 28px; }
+.source-slides-head { margin-bottom: 14px; }
+.source-slides-row {
+  gap: 12px;
+  padding: 2px 24px 10px 2px;
+  scroll-padding-right: 24px;
+}
+.media-cell.quell-vorschau-kompakt,
+.media-cell.quell-vorschau-kompakt.r916 {
+  flex: 0 0 150px;
+}
+.quell-vorschau-kompakt .quell-vorschau-rahmen {
+  border-radius: 12px;
+}
+.quell-vorschau-kompakt .media-name {
+  margin-top: 5px;
+  font-family: var(--font);
+  font-size: 11px;
+}
+
+/* Persistenter Beitrags-Export mit wiederherstellbarem Fortschritt. */
+.render-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 22px;
+  padding: 16px 18px;
+  margin: 0 0 22px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+}
+.render-status[hidden] { display: none; }
+.render-status-copy { min-width: 0; flex: 1; }
+.render-status-copy h2 { margin: 0; font-size: 15px; font-weight: 700; }
+.render-status-copy p { margin: 4px 0 0; color: var(--sub); font-size: 13px; }
+.render-progress-row { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
+.render-progress-row progress {
+  flex: 1;
+  width: 100%;
+  height: 8px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 999px;
+  background: var(--surface-2);
+  accent-color: var(--accent);
+}
+.render-progress-row progress::-webkit-progress-bar { background: var(--surface-2); border-radius: 999px; }
+.render-progress-row progress::-webkit-progress-value { background: var(--accent); border-radius: 999px; }
+.render-progress-row progress::-moz-progress-bar { background: var(--accent); border-radius: 999px; }
+.render-progress-row span {
+  min-width: 5ch;
+  color: var(--sub);
+  font-family: var(--mono);
+  font-size: 12px;
+  text-align: right;
+}
+.render-status-actions { flex: none; }
+
+@media (max-width: 900px) {
+  .render-status { align-items: stretch; flex-direction: column; }
+  .render-status-actions .btn { width: 100%; justify-content: center; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .render-progress-row progress:indeterminate { opacity: 0.75; }
+}
+
+/* Detail-Kopf: Pfeil-Link statt Pille, ruhige Meta-Zeile unter dem Titel */
+.back-arrow {
+  display: inline-flex; align-items: center; gap: 7px;
+  color: var(--text); font-weight: 600; font-size: 14px;
+  text-decoration: none; padding: 2px 0;
+  transition: opacity 0.15s var(--ease);
+}
+.back-arrow svg { flex: none; }
+.back-arrow:hover { opacity: 0.6; }
+.detail-meta-line { color: var(--faint); font-size: 13px; }
+.detail-meta-line .meta-dot { margin: 0 8px; }
+.detail-meta-line .mono-slug { font-family: var(--mono); font-size: 12px; }
+
+/* Slide-Vorschau: Bearbeiten-Overlay beim Hover — exakt der gleiche weisse
+   Pillen-Stil wie auf den Beitragskarten (.card-edit), oben rechts. */
+.media-cell { position: relative; }
+.media-cell .cell-edit-overlay {
+  position: absolute; top: 10px; right: 10px; z-index: 3;
+  opacity: 0; pointer-events: none;
+  background: rgba(255, 255, 255, 0.95); border: 1px solid var(--line-strong);
+  color: var(--text); font-size: 12px; font-weight: 600; line-height: 1;
+  padding: 7px 13px; border-radius: 999px; box-shadow: var(--shadow-sm);
+  text-decoration: none;
+  transition: opacity 0.15s var(--ease), box-shadow 0.15s var(--ease);
+}
+.media-cell:hover .cell-edit-overlay,
+.media-cell:focus-within .cell-edit-overlay { opacity: 1; pointer-events: auto; }
+.media-cell .cell-edit-overlay:hover { background: #ffffff; box-shadow: var(--shadow-md); }
+
+/* Kachel-Menue: Wrapper uebernimmt Position/Hover, die Pille (summary) bleibt
+   sichtbar-normal, das Menue klappt darunter auf. */
+.media-cell .edit-menu {
+  position: absolute; top: 10px; right: 10px; z-index: 3;
+  opacity: 0; pointer-events: none; transition: opacity 0.15s var(--ease);
+}
+.media-cell:hover .edit-menu, .media-cell .edit-menu[open] { opacity: 1; pointer-events: auto; }
+.media-cell .edit-menu > summary.cell-edit-overlay {
+  position: static; opacity: 1; pointer-events: auto;
+}
+
+/* Export-Formate: eine kompakte Zeile statt einer zweiten Kachel-Galerie */
+.export-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+.export-chip {
+  display: inline-flex; align-items: center; gap: 9px;
+  padding: 9px 14px; border-radius: var(--radius-sm);
+  background: var(--surface); border: 1px solid var(--line);
+  box-shadow: var(--shadow-sm); text-decoration: none;
+  color: var(--text); font-size: 13px;
+  transition: background 0.14s var(--ease), border-color 0.14s var(--ease);
+}
+.export-chip:hover { background: var(--surface-2); border-color: var(--line-strong); }
+.export-chip.hidden { display: none; }
+.export-chip-type {
+  font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.04em;
+  color: var(--sub); background: var(--surface-2); border: 1px solid var(--line);
+  border-radius: var(--radius-xs); padding: 2px 6px;
+}
+.export-chip-name { font-family: var(--mono); color: var(--sub); }
+
+/* Editor: numerisches Groessenfeld + Raster-Knopf */
+.num-input {
+  width: 64px; padding: 7px 9px; border-radius: var(--radius-xs);
+  background: var(--surface); border: 1px solid var(--line-strong);
+  color: var(--text); font-family: var(--mono); font-size: 13px; text-align: right;
+}
+.num-input:focus { outline: none; border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent); }
+#grid-toggle.on { background: var(--accent); border-color: color-mix(in srgb, var(--accent) 60%, #000); color: #fff; }
+
+/* Editor: Verlauf-Panel + Ausrichten-Knoepfe */
+.history-panel { margin: 12px 0 16px; padding: 16px 18px; border-radius: var(--radius);
+  background: var(--surface); border: 1px solid var(--line);
+  box-shadow: var(--shadow-sm); }
+.history-panel.hidden { display: none; }
+.history-row { display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  padding: 8px 0; border-bottom: 1px solid var(--line); font-family: var(--mono); font-size: 12.5px; color: var(--sub); }
+.history-row:last-child { border-bottom: none; }
+.editor-toolbar .al { min-width: 40px; }
+select.num-input option { background: var(--surface); color: var(--text); }
+
+/* --- Detail: KI-Ueberarbeitung (/revise) und Caption-Editor ------------- */
+.revise-textarea { width: 100%; min-height: 90px; resize: vertical; display: block; }
+.revise-status { margin: 10px 0 0; font-size: 13px; color: var(--sub); }
+.revise-status a { color: var(--accent); }
+.panel .panel-head-row { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.panel .panel-head-row h3 { margin-bottom: 10px; }
+.caption-textarea { width: 100%; min-height: 320px; resize: vertical; display: block;
+  font-family: var(--mono); font-size: 13px; line-height: 1.55; }
+.caption-counts { margin: 8px 0 0; font-size: 12px; color: var(--faint);
+  font-family: var(--mono); }
+.caption-actions { display: flex; gap: 8px; margin-top: 10px; }
+.caption-status { margin: 10px 0 0; font-size: 13px; color: var(--sub); }
+
+/* Detail: unter 1100px Fensterbreite Spalten untereinander */
+@media (max-width: 1100px) {
+  .detail-cols { grid-template-columns: 1fr; }
+}
+
+/* Markdown-Tabellen (Brief/Skript): im Panel scrollen statt ueberzustehen,
+   lange URLs in Zellen und Links umbrechen */
+.md table { display: block; max-width: 100%; overflow-x: auto; border-collapse: collapse; }
+.md table th, .md table td { border: 1px solid var(--line); padding: 9px 12px; vertical-align: top; }
+.md table th { color: var(--faint); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap; }
+.md table td { min-width: 120px; max-width: 420px; overflow-wrap: anywhere; }
+.md a { overflow-wrap: anywhere; word-break: break-all; }
+.panel { min-width: 0; }
+.panel .md { min-width: 0; }
+
+/* Lange URLs/Strings duerfen nirgends die Seite aufziehen */
+.main { min-width: 0; }
+.detail-cols > div { min-width: 0; }
+.md, .src-list, .kv dd { overflow-wrap: anywhere; }
+.md code, .md pre { overflow-wrap: anywhere; white-space: pre-wrap; }
+
+/* Volle Bildschirmbreite nutzen */
+.main { max-width: none; }
+.mat-item.hidden { display: none; }
+
+/* Rechte Panel-Spalte der Detail-Ansicht: bleibt sticky im Sichtfeld und
+   scrollt intern, statt die Seite endlos nach unten zu verlaengern */
+@media (min-width: 1101px) {
+  .detail-cols:not(.detail-cols-single) > div:last-child {
+    position: sticky; top: 18px; align-self: start;
+    max-height: calc(100vh - 36px); overflow-y: auto;
+    padding-right: 4px;
+  }
+}
+
+/* ============================================================================
+   PHASE E1 · Iteration 2 — Produktreife: festes Content-Raster, kraeftigere
+   Sidebar mit Icons, hoeherer Textkontrast. Baut auf den bestehenden Tokens
+   auf; keine neuen Farben — Graphit + ein Akzent + dosierte Workspace-Marke.
+   ============================================================================ */
+
+/* ---------- Textstufen: dunkel auf hell, klare Hierarchie ------------------ */
+:root {
+  --text: #1a1a1a;   /* Primaer */
+  --sub:  #616161;   /* Sekundaer */
+  --faint: #8a8a8a;  /* Muted, aber noch lesbar */
+  --md-text: #2b2b2b;
+  --sidebar-w: 272px;
+}
+
+/* ---------- Feste Content-Spalte: alles auf EIN Raster ------------------- */
+.main { max-width: 1200px; font-size: 15.5px; }
+/* Breite Arbeitsflaechen behalten die volle Breite (hoehere Spezifitaet) */
+.main:has(.detail-cols), .main:has(.media-grid-lg),
+.main:has(.editor-toolbar), .main:has(.editor-frame) { max-width: none; }
+
+/* ---------- Sidebar: breiter, kraeftiger, mit Icon-Struktur -------------- */
+.sidebar {
+  width: var(--sidebar-w); flex: 0 0 var(--sidebar-w);
+  padding: 20px 16px 18px; gap: 0;
+}
+.brand { margin-bottom: 6px; padding: 9px 13px 10px; }
+.brand .eye { font-size: 21px; }
+.brand .kw { font-size: 10.5px; letter-spacing: 0.06em; padding: 3px 8px 4px; }
+
+.nav { margin-top: 12px; gap: 0; overflow-y: auto; scrollbar-width: none; }
+.nav::-webkit-scrollbar { width: 0; }
+.nav-group { display: flex; flex-direction: column; gap: 2px; margin-bottom: 20px; }
+.nav-group:last-child { margin-bottom: 0; }
+.nav-group-label {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--faint); margin: 0 0 7px; padding: 0 12px;
+}
+
+/* Nav-Items (Haupt- UND Fussnavigation teilen diesen Stil) */
+.nav a {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 12px; border-radius: 11px;
+  font-size: 15px; font-weight: 500; line-height: 1.2;
+  color: var(--sub); text-decoration: none;
+  transition: background 0.15s var(--ease), color 0.15s var(--ease);
+}
+.nav a .nav-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nav-ico { width: 19px; height: 19px; flex: 0 0 auto; color: var(--faint); transition: color 0.15s var(--ease); }
+.nav a:hover { background: var(--surface-2); color: var(--text); }
+.nav a:hover .nav-ico { color: var(--sub); }
+.nav a.on { color: var(--text); font-weight: 600;
+  background: var(--chip-hover);
+}
+.nav a.on .nav-ico { color: var(--accent); }
+
+/* „Templates — Bald": sichtbar, aber klar inaktiv */
+.nav-soon {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 12px; border-radius: 11px;
+  font-size: 15px; font-weight: 500; color: var(--faint); cursor: default; opacity: 0.7;
+}
+.nav-soon .nav-ico { color: var(--faint); opacity: 0.7; }
+.nav-soon .soon {
+  margin-left: auto; font-size: 9px; font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--faint);
+  padding: 2px 7px; border-radius: 999px;
+  border: 1px solid var(--line); background: var(--surface-2);
+}
+
+/* ---------- Sidebar-Fuss: echte Nav-Items + Profil ---------------------- */
+.side-foot {
+  margin-top: auto; padding: 14px 0 0; border-top: 1px solid var(--line);
+  display: flex; flex-direction: column; gap: 12px;
+  font-size: inherit; color: inherit;
+}
+.foot-nav { margin: 0; gap: 2px; }
+
+/* Live-Punkt neben „Aktivitaet", wenn gerade MCP-Events reinkommen */
+.foot-nav .live-dot {
+  margin-left: auto; width: 7px; height: 7px; border-radius: 50%; flex: 0 0 auto;
+  background: var(--accent);
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 55%, transparent);
+  animation: nav-live 2s ease-out infinite;
+}
+@keyframes nav-live {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 50%, transparent); }
+  70% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 0%, transparent); }
+  100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 0%, transparent); }
+}
+@media (prefers-reduced-motion: reduce) { .foot-nav .live-dot { animation: none; } }
+
+/* „Workspace wechseln" — ruhiges Nav-Item, kein farbiger Punkt mehr */
+.side-switch {
+  display: flex; align-items: center; gap: 12px;
+  margin: 4px 0 0; padding: 10px 12px; border-radius: 11px;
+  background: transparent; border: none; box-shadow: none;
+  color: var(--faint); font-size: 14px; font-weight: 500; text-decoration: none;
+  -webkit-backdrop-filter: none; backdrop-filter: none;
+  transition: background 0.15s var(--ease), color 0.15s var(--ease);
+}
+.side-switch:hover { background: var(--surface-2); color: var(--text); transform: none; }
+.side-switch .nav-ico { color: var(--faint); }
+.side-switch:hover .nav-ico { color: var(--sub); }
+
+/* Profilkapsel ganz unten */
+
+/* ---------- Seitenkopf + Sektions-Rhythmus (aus einheitlichen Tokens) ---- */
+.page-head { margin-bottom: var(--sp-5); }
+.page-head-actions .btn { font-size: 13px; }
+.section { margin-top: 64px; }
+.section:first-of-type { margin-top: var(--sp-6); }
+.section-head { margin-bottom: 24px; }
+.section-title {
+  font-family: var(--font); font-weight: 700; font-size: 20px; letter-spacing: -0.02em;
+  color: var(--text); margin: 0 0 6px;
+}
+.section-sub { color: var(--sub); font-size: 14.5px; line-height: 1.55; margin: 0; max-width: 66ch; }
+
+/* Karten-Innentexte: nicht unter 14px, hoeherer Kontrast */
+.field-hint { font-size: 13px; color: var(--faint); line-height: 1.5; }
+.settings-lead { font-size: 14px; color: var(--sub); }
+.apikey-meta { font-size: 12.5px; color: var(--faint); }
+
+/* ---------- Profilseite: echtes 12er-Gefuehl, gleiche Kartenhoehen ------- */
+
+.identity-card { display: flex; flex-direction: column; }
+.identity-head { display: flex; gap: var(--sp-4); align-items: center; flex-wrap: wrap; }
+.identity-avatar {
+  width: 80px; height: 80px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center; overflow: hidden;
+  font-size: 27px; font-weight: 700; color: var(--text);
+  background: linear-gradient(150deg,
+    color-mix(in srgb, var(--accent) 32%, var(--surface-2)),
+    color-mix(in srgb, var(--accent) 10%, var(--surface-2)));
+  border: 1px solid var(--line); box-shadow: var(--shadow-sm);
+}
+.identity-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.identity-body { flex: 1; min-width: 220px; }
+.name-form .field-row { display: flex; gap: var(--sp-2); align-items: stretch; }
+.name-form .field-row .text-input { flex: 1; }
+.name-form .btn { flex: 0 0 auto; }
+.field-err { color: var(--red-deep); margin-top: 10px; }
+.swatch {
+  display: inline-block; width: 13px; height: 13px; border-radius: 4px;
+  vertical-align: -2px; margin-right: 8px; border: 1px solid var(--line);
+  box-shadow: var(--shadow-sm);
+}
+.kv dd code, .kv dd { font-size: 14px; }
+.kv dd code { font-family: var(--mono); color: var(--sub); }
+
+/* Key-Paar: fuellt gemeinsam die volle Spaltenbreite, gleiche Hoehe */
+
+.keys-panel { margin: 0; }
+
+/* ---------- Code-Snippet: voller Befehl, scrollbar + Kopieren ------------ */
+.snippet-wrap { position: relative; margin: 6px 0 0; }
+.snippet-copy {
+  position: absolute; top: 8px; right: 8px;
+  width: 30px; height: 30px; border-radius: 8px; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--sub); background: var(--surface-2); border: 1px solid var(--line);
+  box-shadow: var(--shadow-sm); transition: color 0.15s var(--ease), background 0.15s var(--ease);
+}
+.snippet-copy:hover { color: var(--text); background: var(--chip-hover); }
+.snippet-copy svg { width: 15px; height: 15px; }
+.snippet-copy.copied { color: var(--accent); }
+
+/* ---------- Format-Auswahl beim „Zur Produktion" (ruhiges Popover) ------- */
+.fmt-pop {
+  position: absolute; z-index: 40; top: 100%; left: 0; margin-top: 8px; min-width: 250px;
+  padding: 10px; border-radius: var(--radius-sm);
+  background: var(--surface); border: 1px solid var(--line);
+  box-shadow: var(--shadow-md);
+}
+.fmt-pop[hidden] { display: none; }
+.fmt-pop-title { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--faint); margin: 2px 4px 8px; }
+.fmt-opt {
+  display: flex; width: 100%; align-items: center; gap: 9px; text-align: left;
+  padding: 9px 11px; border-radius: 9px; cursor: pointer;
+  background: transparent; border: 1px solid transparent; color: var(--sub);
+  font-family: var(--font); font-size: 13.5px; font-weight: 500;
+  transition: background 0.13s var(--ease), color 0.13s var(--ease);
+}
+.fmt-opt:hover { background: var(--surface-2); color: var(--text); }
+.fmt-opt .fmt-check { margin-left: auto; opacity: 0; color: var(--accent); }
+.fmt-opt.sel { color: var(--text); background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 28%, transparent); }
+.fmt-opt.sel .fmt-check { opacity: 1; }
+.fmt-opt.auto { border-top: 1px solid var(--line); border-radius: 0 0 9px 9px; margin-top: 4px; padding-top: 12px; }
+
+/* ---------- Format-Verwaltung (Wissen / Einstellungen) ------------------- */
+.fmt-manage { display: flex; flex-direction: column; gap: 8px; margin: 4px 0 0; }
+.fmt-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; border-radius: 11px;
+  border: 1px solid var(--line); background: var(--surface-3);
+}
+.fmt-row .fmt-name { font-size: 14px; font-weight: 600; color: var(--text); }
+.fmt-row .fmt-flag { font-size: 11px; color: var(--faint); }
+.fmt-row .fmt-actions { margin-left: auto; display: flex; gap: 6px; }
+.fmt-row.off { opacity: 0.6; }
+.fmt-add-row { display: flex; gap: var(--sp-2); align-items: stretch; margin-top: 4px; }
+.fmt-add-row .text-input { flex: 1; }
+
+/* Format-Popover-Anker im Radar */
+.gen-wrap { position: relative; display: inline-flex; }
+.note-drawer .fmt-select { flex: 0 0 auto; min-width: 190px; }
+
+/* ============================================================================
+   PHASE E1 · Iteration 3 — Breite nutzen, breitere Sidebar, Ambient-Grund.
+   ----------------------------------------------------------------------------
+   Baut auf Iteration 1+2 auf; KEINE neuen Farben — Graphit + ein Akzent +
+   dosierte Workspace-Marke. Reine Layout- und Materialpolitur, nach hinten
+   angehaengt, damit sie die frueheren Werte gezielt ueberschreibt.
+   ============================================================================ */
+
+/* ---------- Breitere Sidebar (mehr Luft zwischen den Gruppen) ------------- */
+:root { --sidebar-w: 304px; }
+.sidebar { padding: 22px 18px 18px; }
+.nav { margin-top: 14px; }
+.nav-group { margin-bottom: 28px; }
+.nav-group:last-child { margin-bottom: 0; }
+.nav-group-label { margin-bottom: 9px; }
+.side-foot { padding-top: 16px; gap: 14px; }
+
+/* ---------- Content-Spalte: deutlich mehr Arbeitsbreite ------------------- */
+/* Der 1200er-Deckel war auf Breitbild zu eng — die Beitraege endeten in der
+   Mitte. Jetzt fluid bis ~1680px; links an der Sidebar verankert, die
+   Restflaeche rechts traegt der Ambient-Grund (bewusst, nicht „tot"). */
+/* Zentriert im verbleibenden Raum: auf Ultrawide entstehen so symmetrische
+   Gutter links UND rechts (statt einer einseitigen Leere rechts). Symmetrie
+   liest sich als Absicht. `margin-inline:auto` zentriert das Flex-Item .main
+   innerhalb des Rests nach der Sidebar. */
+.main { max-width: 1680px; margin-inline: auto; padding: 34px clamp(28px, 3vw, 56px) 76px; }
+/* Volle Arbeitsbreite (Detail/Medien/Editor/System) bleibt randlos + linksbuendig */
+.main:has(.detail-cols),
+.main:has(.media-grid-lg),
+.main:has(.editor-toolbar),
+.main:has(.editor-frame) { max-width: none; margin-inline: 0; }
+
+/* Fliesstext lesbar begrenzen — Karten und Raster fuellen weiter die Flaeche */
+.page-head .page-sub, .page-sub { max-width: 80ch; }
+.section-sub { max-width: 74ch; }
+.settings-lead { max-width: 76ch; }
+.setup-steps li { max-width: 80ch; }
+
+/* ---------- Uebersicht/Entwuerfe: Format-Zeilen fuellen bis rechts -------- */
+/* .row-scroll ist bereits volle Breite; die hoehere .main-Breite dehnt die
+   Scroller automatisch bis an den rechten Rand. Karten minimal groesser. */
+.row-scroll .card { flex-basis: 268px; }
+
+/* ---------- Einstellungen: Mehrspalten-Raster statt Karten-links-Leere ---- */
+/* Zwei-Spalten-Modell statt auto-fit: die hohe Kriterien-Karte steht links,
+   Module (kurz) + Ausspielung (mittel) stapeln sich rechts in EINER Spalte
+   (.settings-col) — so sind die Hoehen der ersten Zeile annaehernd gleich und
+   es entsteht kein totes Loch unter der kurzen Module-Karte. Die vollbreiten
+   Karten (Format-Katalog, Feeds) laufen darunter durch. Das zweite
+   .settings-grid (IG/TikTok, vier gleich hohe Karten) wird so ein sauberes
+   2x2 ohne Luecken. */
+.settings-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-flow: row dense;
+  gap: var(--sp-4);
+  align-items: start;
+}
+.settings-col { display: flex; flex-direction: column; gap: var(--sp-4); min-width: 0; }
+.settings-col > .settings-card { margin: 0; }
+@media (max-width: 900px) {
+  .settings-grid { grid-template-columns: 1fr; }
+  .settings-col { display: contents; }
+}
+
+/* ---------- Radar: Speicher breiter, Vorschlaege als fuellendes Raster ---- */
+.scan-layout { grid-template-columns: 336px minmax(0, 1fr); gap: var(--sp-5); }
+.vcards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(460px, 1fr));
+  gap: var(--sp-4); align-items: start;
+}
+.vcard-body.md { max-width: 82ch; }
+@media (max-width: 1280px) {
+  .vcards { grid-template-columns: 1fr; }
+  .scan-layout { grid-template-columns: 300px minmax(0, 1fr); }
+}
+
+/* (a) Format-Popover: deckende weisse Flaeche, klare Kante */
+.fmt-pop { background: var(--surface); }
+
+/* (b) Profil-Identitaetskarte: Inhalt vertikal zentriert, damit unter der
+       Avatar-Zeile kein gaehnender Leerraum bleibt (Karte streckt sich auf
+       die Hoehe der Workspace-Karte daneben). */
+.identity-card { justify-content: center; gap: var(--sp-3); }
+
+/* Kein Ambient-Hintergrund: die Flaeche bleibt flaches, einfarbiges Grau
+   (--bg). Tiefe kommt aus Kanten/Schatten der
+   Karten, nicht aus Farbverlaeufen am Grund. */
+
+/* ---------- Fix: Sidebar fest verankern (kein Mitscrollen/Overscroll-Gap) ---------- */
+html { background: var(--bg); }
+.sidebar { position: fixed; top: 0; left: 0; bottom: 0; height: 100vh; height: 100dvh; z-index: 60; }
+.shell { padding-left: var(--sidebar-w); }
+
+/* ============================================================================
+   PHASE E2 — Entkastelung: Einstellungen mit Unter-Navigation, flaches Profil,
+   Listen statt Kartengitter, Toggle-Switches.
+   ----------------------------------------------------------------------------
+   Prinzip: Inhalte direkt auf den Grund drucken,
+   Glas-Panels nur noch dort, wo etwas wirklich schwebt (Dialoge, Popover,
+   Sidebar). Gliederung über Typo + Hairlines, nicht über Kaesten.
+   ============================================================================ */
+
+/* ---------- Einstellungen: Unter-Sidebar + ein sichtbarer Bereich --------- */
+.settings-layout {
+  display: grid; grid-template-columns: 216px minmax(0, 1fr);
+  gap: clamp(28px, 4vw, 64px); margin-top: var(--sp-5); align-items: start;
+}
+.settings-subnav {
+  position: sticky; top: 34px;
+  display: flex; flex-direction: column; gap: 2px;
+  border-right: 1px solid var(--line); padding-right: 18px;
+}
+.settings-subnav .subnav-label {
+  font-size: 10.5px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase;
+  color: var(--faint); margin: 18px 0 7px 11px;
+}
+.settings-subnav .subnav-label:first-child { margin-top: 2px; }
+.settings-subnav a {
+  display: block; padding: 8px 11px; border-radius: 9px;
+  font-size: 13.5px; font-weight: 500; color: var(--sub); text-decoration: none;
+  transition: background 0.13s var(--ease), color 0.13s var(--ease);
+}
+.settings-subnav a:hover { color: var(--text); background: var(--surface-2); }
+.settings-subnav a.on {
+  color: var(--text); background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+@media (max-width: 900px) {
+  .settings-layout { grid-template-columns: 1fr; }
+  .settings-subnav {
+    position: static; flex-direction: row; flex-wrap: wrap; gap: 6px;
+    border-right: none; border-bottom: 1px solid var(--line);
+    padding: 0 0 14px;
+  }
+  .settings-subnav .subnav-label { display: none; }
+}
+
+/* Bereich: flach auf dem Grund, keine Panels */
+.settings-pane { max-width: 1040px; }
+.pane-head { margin-bottom: 26px; }
+.pane-head h2 {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  font-family: var(--font); font-weight: 700; font-size: 21px; letter-spacing: -0.02em;
+  color: var(--text); margin: 0 0 8px;
+}
+.pane-head .settings-lead { max-width: 72ch; }
+.pane-sub-h {
+  font-family: var(--font); font-weight: 700; font-size: 15px; letter-spacing: -0.01em;
+  color: var(--text); margin: 0 0 10px;
+}
+.pane-form { max-width: 560px; }
+.pane-form .field-label { margin-top: 16px; }
+.pane-form .field-label:first-child { margin-top: 0; }
+.pane-cols {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: clamp(28px, 3.5vw, 56px); align-items: start;
+}
+.pane-guide { border-left: 1px solid var(--line); padding-left: clamp(20px, 2.5vw, 40px); }
+@media (max-width: 1100px) {
+  .pane-cols { grid-template-columns: 1fr; }
+  .pane-guide { border-left: none; padding-left: 0; border-top: 1px solid var(--line); padding-top: 22px; }
+}
+.settings-pane .feeds-textarea { max-width: none; width: 100%; }
+
+/* Kriterien-Zeilen: flach, Hairline statt Kaestchen */
+
+/* Format-Zeilen in der Pane ebenfalls flach */
+.settings-pane .fmt-manage { gap: 0; }
+.settings-pane .fmt-row {
+  border: none; border-radius: 0; background: transparent;
+  padding: 12px 2px; border-bottom: 1px solid var(--line);
+}
+.settings-pane .fmt-row:first-child { border-top: 1px solid var(--line); }
+.settings-pane .fmt-add-row { margin-top: 18px; max-width: 560px; }
+
+/* ---------- Module: Zeilen mit echten Schaltern --------------------------- */
+.module-list { display: flex; flex-direction: column; max-width: 640px; }
+.module-row {
+  display: flex; align-items: center; gap: 18px; cursor: pointer;
+  padding: 14px 2px; border-bottom: 1px solid var(--line);
+}
+.module-row:first-child { border-top: 1px solid var(--line); }
+.module-text { display: flex; flex-direction: column; gap: 2px; }
+.module-name { font-size: 14.5px; font-weight: 600; color: var(--text); }
+.module-hint { font-size: 12.5px; color: var(--faint); }
+.switch { position: relative; margin-left: auto; flex: 0 0 auto; display: inline-flex; }
+.switch input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.switch-track {
+  width: 40px; height: 24px; border-radius: 999px; display: inline-block;
+  background: var(--surface-2); border: 1px solid var(--line);
+  box-shadow: var(--shadow-sm); position: relative;
+  transition: background 0.18s var(--ease);
+}
+.switch-track::after {
+  content: ""; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px;
+  border-radius: 50%; background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  transition: transform 0.18s var(--ease), background 0.18s var(--ease);
+}
+.switch input:checked + .switch-track {
+  background: color-mix(in srgb, var(--accent) 55%, var(--surface-2));
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+}
+.switch input:checked + .switch-track::after { transform: translateX(16px); background: #fff; }
+.switch input:focus-visible + .switch-track {
+  outline: 2px solid color-mix(in srgb, var(--accent) 60%, transparent); outline-offset: 2px;
+}
+
+/* Verbindungs-Status im Pane-Titel */
+.pane-head .conn-state { font-size: 11px; }
+
+/* ---------- Profil: flach statt Karten ------------------------------------ */
+
+.kv-hint { display: block; font-size: 12px; color: var(--faint); line-height: 1.5; margin-top: 3px; max-width: 46ch; }
+.accent-row { display: block; }
+.accent-pick { position: relative; display: inline-block; cursor: pointer; vertical-align: middle; }
+.accent-pick input[type="color"] { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
+.accent-pick .swatch { width: 22px; height: 22px; border-radius: 7px; margin-right: 10px; vertical-align: -5px; }
+.accent-row .btn-sm { margin-left: 10px; }
+.accent-row .row-msg { margin-left: 8px; }
+
+/* ---------- <dialog>: Glas-Dialog mit Backdrop ---------------------------- */
+dialog.modal {
+  margin: auto; border: 1px solid var(--line); max-width: 480px;
+  background: var(--surface); color: var(--text);
+  border-radius: var(--radius); box-shadow: var(--shadow-md);
+  padding: 26px 26px 22px;
+}
+dialog.modal::backdrop { background: rgba(4, 5, 8, 0.55); backdrop-filter: blur(6px); }
+.modal-close-form { position: absolute; top: 12px; right: 14px; margin: 0; }
+dialog.modal .modal-close { position: static; }
+dialog.modal .modal-title { color: var(--text); }
+dialog.modal .settings-actions { margin-top: 18px; }
+
+/* hidden-Attribut gewinnt auch gegen display-setzende Komponentenklassen */
+[hidden] { display: none !important; }
+
+/* ---------- Einstellungen fest verankert: nur der Inhalt rechts scrollt --- */
+.main:has(.settings-layout) {
+  height: 100dvh; overflow: hidden; max-width: 1680px;
+  display: flex; flex-direction: column; padding-bottom: 0;
+}
+.main:has(.settings-layout) .settings-layout { flex: 1; min-height: 0; }
+.settings-panes {
+  height: 100%; overflow-y: auto; overscroll-behavior: contain;
+  padding: 2px 8px 76px 2px;
+}
+
+/* ---------- Subnav in der Formensprache der Haupt-Sidebar ----------------- */
+.settings-subnav {
+  border-right: none; padding-right: 12px; gap: 3px; position: static;
+}
+.settings-layout { grid-template-columns: 236px minmax(0, 1fr); }
+.settings-subnav a {
+  display: flex; align-items: center; gap: 11px;
+  padding: 9px 12px; border-radius: 10px; font-size: 14px;
+}
+.subnav-ico {
+  width: 17px; height: 17px; flex: 0 0 auto; color: var(--faint);
+  transition: color 0.13s var(--ease);
+}
+.settings-subnav a:hover .subnav-ico { color: var(--sub); }
+.settings-subnav a.on .subnav-ico { color: var(--accent); }
+.settings-subnav .subnav-label { margin: 20px 0 8px 12px; }
+@media (max-width: 900px) {
+  .main:has(.settings-layout) { height: auto; overflow: visible; display: block; padding-bottom: 76px; }
+  .settings-panes { height: auto; overflow: visible; padding: 0; }
+  .settings-subnav { padding-right: 0; }
+}
+
+/* ---------- Uebersicht: Meta-Zeile statt Stat-Kaesten --------------------- */
+.meta-line {
+  display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+  margin: 14px 0 0; font-size: 13.5px; color: var(--faint);
+  font-variant-numeric: tabular-nums;
+}
+.meta-sep { color: var(--faint); opacity: 0.6; }
+
+/* „Weiterarbeiten"-Leiste: juengster Entwurf als direkter Einstieg */
+.resume-strip {
+  display: flex; align-items: center; gap: 16px; text-decoration: none;
+  margin: 26px 0 6px; padding: 13px 18px 13px 13px; border-radius: 15px;
+  border: 1px solid var(--line); background: var(--surface-3);
+  box-shadow: var(--shadow-sm);
+  transition: background 0.15s var(--ease), box-shadow 0.15s var(--ease);
+  max-width: 640px;
+}
+.resume-strip:hover { background: var(--surface-2); }
+.resume-thumb {
+  flex: 0 0 auto; width: 46px; height: 58px; border-radius: 8px; overflow: hidden;
+  background: var(--surface-2); border: 1px solid var(--line);
+}
+.resume-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.resume-text { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.resume-kicker {
+  font-size: 10.5px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase;
+  color: var(--accent);
+}
+.resume-title {
+  font-size: 14.5px; font-weight: 600; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.resume-meta { font-size: 12px; color: var(--faint); }
+.resume-go { margin-left: auto; flex: 0 0 auto; color: var(--sub); display: inline-flex; }
+.resume-go svg { width: 18px; height: 18px; }
+.resume-strip:hover .resume-go { color: var(--text); }
+
+/* ---------- Klappbare Format-Sektionen ------------------------------------ */
+.format-list { margin-top: 26px; }
+.format-sec.collapsible { margin-top: 0; border-bottom: 1px solid var(--line); }
+.format-sec.collapsible:first-child { border-top: 1px solid var(--line); }
+.format-sec.collapsible .format-head {
+  display: flex; align-items: center; gap: 12px; width: 100%;
+  margin: 0; padding: 15px 4px; cursor: pointer;
+  background: none; border: none; text-align: left;
+  font-family: var(--font); color: var(--text);
+  transition: color 0.13s var(--ease);
+}
+.format-sec.collapsible .format-head:hover h2 { color: var(--text); }
+.format-sec.collapsible .format-head h2 { margin: 0; font-size: 1.05rem; color: var(--sub); transition: color 0.13s var(--ease); }
+.format-sec.collapsible.open .format-head h2 { color: var(--text); }
+.fold-chev {
+  width: 15px; height: 15px; flex: 0 0 auto; color: var(--faint);
+  transition: transform 0.18s var(--ease), color 0.13s var(--ease);
+}
+.format-sec.collapsible.open .fold-chev { transform: rotate(90deg); color: var(--accent); }
+.format-sec.collapsible .head-draft { margin-left: 2px; }
+.format-sec.collapsible .row-scroll { display: none; }
+.format-sec.collapsible.open .row-scroll { display: flex; padding: 4px 2px 22px; }
+
+/* ---------- Entwuerfe: Raster statt Seitwaerts-Scroller ------------------- */
+.format-sec.collapsible .card-grid { display: none; }
+.format-sec.collapsible.open .card-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: var(--sp-4); padding: 4px 2px 26px;
+}
+.card-grid .card { flex: none; }
+
+/* ---------- Radar: Datums-Pager statt Chip-Reihe -------------------------- */
+.scan-pager { position: relative; display: flex; align-items: center; gap: 8px; margin: -4px 0 20px; }
+.pager-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; border-radius: 9px; text-decoration: none;
+  font-size: 17px; line-height: 1; color: var(--sub);
+  border: 1px solid var(--line); background: var(--surface-2);
+  box-shadow: var(--shadow-sm);
+  transition: color 0.13s var(--ease), background 0.13s var(--ease);
+}
+.pager-btn:hover { color: var(--text); background: var(--chip-hover); }
+.pager-btn.off { opacity: 0.35; pointer-events: none; }
+.pager-day {
+  display: inline-flex; align-items: center; gap: 9px; cursor: pointer;
+  padding: 7px 13px; border-radius: 9px;
+  font-family: var(--font); font-size: 13.5px; font-weight: 600; color: var(--text);
+  border: 1px solid var(--line); background: var(--surface-2);
+  box-shadow: var(--shadow-sm);
+  transition: background 0.13s var(--ease);
+}
+.pager-day:hover { background: var(--chip-hover); }
+.pager-day svg { width: 15px; height: 15px; color: var(--faint); }
+.pager-now {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase;
+  color: var(--accent); padding: 2px 7px; border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+.pager-latest { font-size: 13px; color: var(--link); text-decoration: none; margin-left: 6px; }
+.pager-latest:hover { text-decoration: underline; }
+.day-pop {
+  position: absolute; z-index: 40; top: calc(100% + 8px); left: 40px;
+  min-width: 230px; max-height: 320px; overflow-y: auto;
+  padding: 8px; border-radius: var(--radius-sm);
+  background: var(--surface); border: 1px solid var(--line);
+  box-shadow: var(--shadow-md);
+}
+.day-opt {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 8px 11px; border-radius: 8px; text-decoration: none;
+  font-size: 13.5px; color: var(--sub);
+  transition: background 0.13s var(--ease), color 0.13s var(--ease);
+}
+.day-opt:hover { background: var(--surface-2); color: var(--text); }
+.day-opt.sel { color: var(--text); background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 28%, transparent); }
+
+/* ---------- Radar: Vorschlaege einspaltig, Texte eingeklappt -------------- */
+.vcards { display: flex; flex-direction: column; gap: var(--sp-4); max-width: 980px; }
+.vcard-body.clamp {
+  height: 260px; overflow: hidden;
+  -webkit-mask-image: linear-gradient(to bottom, #000 72%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 72%, transparent 100%);
+}
+.body-toggle {
+  align-self: flex-start; margin-top: 4px; cursor: pointer;
+  font-family: var(--font); font-size: 12.5px; font-weight: 600; color: var(--link);
+  background: none; border: none; padding: 4px 0;
+}
+.body-toggle:hover { text-decoration: underline; }
+.vcard { display: flex; flex-direction: column; }
+
+/* Themenspeicher: klebt beim Scrollen (align-self schuetzt vor Grid-Streckung) */
+.speicher { align-self: start; }
+/* Glas-Regel oben setzt .speicher auf position:relative — Sticky reaktivieren */
+.scan-layout .speicher { position: sticky; top: 24px; }
+
+/* ---------- Radar: gestapeltes Layout, Themenspeicher unter dem Radar ----- */
+.scan-stack { display: flex; flex-direction: column; }
+.vorschlaege { max-width: 980px; }
+.speicher-sec { margin-top: 64px; }
+.speicher-sec .section-title { display: flex; align-items: center; gap: 10px; }
+.idea-row { display: flex; gap: var(--sp-2); align-items: stretch; max-width: 760px; margin: 0 0 22px; }
+.idea-row .text-input { flex: 1; }
+.idea-row #idea-titel { flex: 1.2; }
+.idea-row .btn { flex: 0 0 auto; }
+.speicher-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--sp-3); align-items: start;
+}
+.speicher-grid .topic { margin: 0; }
+@media (max-width: 700px) { .idea-row { flex-direction: column; } }
+
+/* ---------- Monatskalender im Datums-Popover ------------------------------ */
+.day-pop.cal { min-width: 280px; max-height: none; padding: 14px; left: 40px; }
+.cal-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.cal-title { font-size: 13.5px; font-weight: 700; color: var(--text); }
+.cal-nav { width: 28px; height: 28px; font-size: 15px; }
+.cal-week, .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+.cal-week span {
+  text-align: center; font-size: 10px; font-weight: 700; letter-spacing: 0.05em;
+  color: var(--faint); text-transform: uppercase; padding: 3px 0 6px;
+}
+.cal-day {
+  display: inline-flex; align-items: center; justify-content: center;
+  height: 32px; border-radius: 8px; font-size: 12.5px;
+  color: var(--faint); opacity: 0.45; font-variant-numeric: tabular-nums;
+}
+a.cal-day.has {
+  opacity: 1; color: var(--text); text-decoration: none; font-weight: 600;
+  background: var(--surface-2); border: 1px solid var(--line);
+  transition: background 0.13s var(--ease);
+}
+a.cal-day.has:hover { background: var(--chip-hover); }
+a.cal-day.latest { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent); }
+a.cal-day.sel { background: var(--accent); color: #fff; border-color: transparent; }
+.cal-hint { margin: 10px 2px 0; font-size: 11px; color: var(--faint); }
+.idea-form.idea-row { flex-direction: row; }
+@media (max-width: 700px) { .idea-form.idea-row { flex-direction: column; } }
+/* Gleiche Kastenhoehe: Titelzeile auf feste 2 Zeilen normiert */
+.vcard .vcard-title {
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden; min-height: 2.6em;
+}
+/* Kopfzeile bricht nie um: Titel klemmt auf 2 Zeilen, Aktionen bleiben rechts */
+.vcard-head { flex-wrap: nowrap; align-items: flex-start; gap: 14px; }
+.vcard-headline { min-width: 0; flex: 1; }
+.vcard-actions { flex: 0 0 auto; }
+.vcard-meta { min-height: 24px; align-items: center; }
+
+/* ---------- Sidebar komplett fest: verdichtet, kein Eigen-Scroll ---------- */
+/* Ziel: alle Eintraege passen auch auf 13"-Hoehen in den festen Rahmen.
+   overflow bleibt als Notanker fuer extrem niedrige Fenster erhalten. */
+.sidebar { padding: 16px 16px 14px; }
+.nav { margin-top: 8px; }
+.nav-group { margin-bottom: 12px; }
+.nav-group-label { margin-bottom: 4px; }
+.nav a, .nav-soon { padding: 8px 12px; font-size: 14.5px; }
+.side-foot { padding-top: 10px; gap: 8px; }
+.brand { margin-bottom: 2px; }
+
+/* ---------- Profil: passt auf eine Bildschirmseite ------------------------ */
+
+/* Abschnitt „Verbindung & API-Keys" direkt anschliessen statt 64px Abstand */
+
+/* ---------- Einstellungen: Luecken schliessen ----------------------------- */
+.main:has(.settings-layout) { padding-top: 24px; }
+.main:has(.settings-layout) .page-head { margin-bottom: 6px; }
+.settings-layout { margin-top: 12px; gap: clamp(22px, 2.5vw, 40px); }
+.pane-head { margin-bottom: 18px; }
+.pane-head h2 { font-size: 19px; margin-bottom: 6px; }
+.pane-form .field-label { margin-top: 12px; }
+.settings-panes { padding-top: 0; }
+
+/* ============================================================================
+   Feinschliff (hell): Wissen-Subnav ohne rote
+   Klammer, flache Status-Anzeigen, postmakr-Brand, Karten-Platzhalter.
+   ============================================================================ */
+
+/* Wissen-Unternavigation: wie die Haupt-Sidebar — graue Pill statt roter
+   Border-Klammer + Tint. */
+.subnav a {
+  border-left: none !important; border-radius: 9px;
+  padding: 8px 12px; font-size: 13.5px; color: var(--sub);
+}
+.subnav a:hover { background: var(--surface-2); color: var(--text); }
+.subnav a.on {
+  color: var(--text); background: var(--chip-hover); font-weight: 600;
+  border-left: none;
+}
+
+/* Status flach: kleiner Farbpunkt + Text, keine umrandete Kapsel mehr. */
+.status-badge, .status-badge.s-zur_produktion, .status-badge.s-offen, .status-badge.s-erledigt {
+  border: none; background: transparent; padding: 0 0 0 13px; border-radius: 0;
+  position: relative; color: var(--sub); font-weight: 700;
+}
+.status-badge::before {
+  content: ""; position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+  width: 7px; height: 7px; border-radius: 50%; background: var(--faint);
+}
+.status-badge.s-zur_produktion { color: var(--red-deep); }
+.status-badge.s-zur_produktion::before { background: var(--accent); }
+.status-badge.s-erledigt { color: #1d7a3e; }
+.status-badge.s-erledigt::before { background: #1d7a3e; }
+
+/* Sidebar-Brand: postmakr-Wortmarke mit Papierflieger statt Workspace+Chip */
+.brand { border: none; background: transparent; box-shadow: none; padding: 6px 12px 2px; }
+.brand .pm-mark {
+  display: inline-flex; align-items: center; gap: 2px;
+  font-size: 19px; font-weight: 700; letter-spacing: -0.02em; color: #6b6b6b;
+}
+.brand .pm-mark .plane { width: 15px; height: 15px; margin-top: 1px; fill: none; stroke: #1a1a1a; }
+.brand .pm-ws { display: block; margin-top: 1px; font-size: 11.5px; color: var(--faint); }
+
+/* Beitragskarten ohne Vorschaubild: gebrandeter postmakr-Platzhalter */
+.thumb .noimg {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 7px; width: 100%; height: 100%;
+  background:
+    radial-gradient(80% 60% at 50% 30%, #fafafa, #efefef);
+  color: #9a9a9a; font-size: 12px;
+}
+.noimg .pm-mini { display: inline-flex; align-items: center; gap: 2px;
+  font-size: 15px; font-weight: 700; letter-spacing: -0.02em; color: #b3b3b3; }
+.noimg .pm-mini .plane { width: 12px; height: 12px; margin-top: 1px; fill: none; stroke: #b3b3b3; stroke-width: 2.1; }
+
+/* Themenspeicher: Gruppen-Überschriften + klickbare Karten */
+.speicher-group-h {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--faint); margin: 26px 0 10px;
+}
+.speicher-group-h:first-of-type { margin-top: 8px; }
+a.topic { display: block; text-decoration: none; color: inherit; cursor: pointer;
+  transition: box-shadow 0.15s var(--ease), transform 0.15s var(--ease); }
+a.topic:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+
+/* Entwürfe: Warteschlange aus dem Themenspeicher */
+.queue-strip { margin: 8px 0 26px; }
+.queue-strip .speicher-grid { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+/* Klickbare Themenspeicher-Karten (zur Produktion → Entwuerfe) */
+.topic[data-href] { cursor: pointer; transition: box-shadow 0.15s var(--ease), transform 0.15s var(--ease); }
+.topic[data-href]:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+
+/* Themenspeicher: einheitliche Feld- und Kartengroessen */
+.idea-form.idea-row .text-input,
+.idea-form.idea-row .btn { height: 46px; box-sizing: border-box; }
+.idea-form.idea-row .text-input { flex: 1 1 0; }
+.idea-form.idea-row #idea-titel { flex: 1 1 0; }
+.speicher-grid { align-items: stretch; }
+.speicher-grid .topic { display: flex; flex-direction: column; }
+.speicher-grid .topic .topic-foot { margin-top: auto; padding-top: 10px; }
+
+/* ============================================================================
+   Feinschliff: Pillen raus (flache Meta-Typo),
+   ruhige Ueberschriften statt Caps-Eyebrows, Hilfe-Popover statt Erklaertexte,
+   Sidebar fuellt die volle Hoehe gleichmaessig.
+   ============================================================================ */
+
+/* --- Sidebar: Gruppen ruecken KOMPAKT zusammen — keine
+   verteilte Restluft mehr zwischen den Gruppen. Faellt eine Gruppe weg,
+   schliesst die Liste einfach auf; was an Hoehe uebrig bleibt, sammelt
+   sich unauffaellig vor der Fusszeile. ------------------------------------ */
+.sidebar > .nav {
+  flex: 1 1 auto;
+  margin-top: clamp(4px, 1vh, 10px);
+  justify-content: flex-start;
+}
+.sidebar > .nav .nav-group { margin-bottom: clamp(6px, 2.2vh, 22px); }
+.sidebar > .nav .nav-group:last-child { margin-bottom: 0; }
+.sidebar > .nav .nav-group-label { margin-bottom: clamp(2px, 0.9vh, 11px); }
+/* Stufenlos statt Media-Query-Stufen: Abstaende und Polster
+   haengen an der Fensterhoehe, sodass die Spalte bei JEDER Hoehe gefuellt
+   ist — ohne Scrollen, ohne abgeschnittene Eintraege, ohne Riesenluecke
+   vor der Fusszeile. Die Koeffizienten sind so gewaehlt, dass alles ab
+   ca. 620px Fensterhoehe hineinpasst und nach oben grosszuegig mitwaechst. */
+.nav a, .nav-soon { padding: clamp(3px, 1.05vh, 14px) 12px; font-size: clamp(14px, 1.9vh, 15.5px); }
+.foot-nav a { padding: clamp(3px, 0.85vh, 11px) 12px; }
+.sidebar { padding: clamp(10px, 1.8vh, 20px) 16px clamp(10px, 1.6vh, 18px); }
+.brand { margin-bottom: clamp(0px, 0.6vh, 6px); }
+.side-foot { padding-top: clamp(6px, 1.2vh, 14px); gap: clamp(4px, 1.1vh, 12px); }
+
+/* --- Meta-Angaben flach: stiller Text statt umrandeter Kapseln ------------ */
+.badge, .count, .format-head .count {
+  border: none; background: transparent; box-shadow: none;
+  padding: 0; border-radius: 0; min-width: 0;
+}
+.badge {
+  font-family: var(--font); font-size: 11px; font-weight: 650;
+  letter-spacing: 0.07em; text-transform: uppercase; color: var(--faint);
+}
+.badge.draft { background: transparent; border: none; color: var(--red-deep); }
+.count { font-size: 13px; font-weight: 650; color: var(--faint); }
+.format-head .count { font-size: 14px; }
+h1.page .count { font-size: 16px; }
+/* Meta-Angaben im Kartenkopf trennt nur der Abstand — keine Punkt-Trenner. */
+
+/* Status ohne Farbpunkt: nur noch stiller farbiger Text (z. B. im Radar). */
+.status-badge, .status-badge.s-zur_produktion, .status-badge.s-offen, .status-badge.s-erledigt { padding: 0; }
+.status-badge::before { display: none; }
+
+/* Status-Kapseln in gruppierten Listen sind doppelt (die Gruppen-Ueberschrift
+   sagt es schon) — komplett raus, inklusive Farbpunkt. Der Loesch-Knopf
+   wandert in die Kartenecke. */
+.topic .status-badge { display: none; }
+.topic { position: relative; }
+.topic .topic-top { position: absolute; top: 8px; right: 8px; margin: 0; z-index: 2; }
+.topic .topic-title { padding-right: 30px; }
+
+/* --- Eyebrows: nur noch als stille Meta-Zeile (Detail/Editor/Medien) ------ */
+.main .eyebrow {
+  color: var(--faint); text-transform: none; letter-spacing: 0;
+  font-size: 13.5px; font-weight: 500;
+}
+
+/* ---------- Hinweis auf kleinen Bildschirmen ----------------------------- */
+.mobile-device-note { display: none; }
+@media (max-width: 820px) {
+  .shell { display: none; }
+  .mobile-device-note {
+    min-height: 100vh; min-height: 100dvh;
+    display: grid; place-items: center;
+    padding: 28px; background: var(--bg);
+  }
+  .mobile-device-card {
+    width: min(100%, 430px); padding: 34px 28px;
+    border: 1px solid var(--line); border-radius: 16px;
+    background: var(--surface); box-shadow: var(--shadow);
+    text-align: center;
+  }
+  .mobile-device-card .pm-mark {
+    display: inline-flex; align-items: center; gap: 2px;
+    color: #6b6b6b; font-size: 20px; font-weight: 700;
+  }
+  .mobile-device-card .plane { width: 16px; height: 16px; stroke: #1a1a1a; }
+  .mobile-device-card h1 {
+    margin: 22px 0 10px; color: var(--text);
+    font-size: 25px; line-height: 1.15; letter-spacing: -0.03em;
+  }
+  .mobile-device-card p { margin: 0; color: var(--sub); font-size: 15px; line-height: 1.55; }
+}
+
+/* --- Gruppen-Ueberschriften: normaler Satz statt Caps-Spationierung ------- */
+.speicher-group-h {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 15.5px; font-weight: 650; letter-spacing: -0.01em;
+  text-transform: none; color: var(--text); margin: 30px 0 12px;
+}
+.speicher-group-h .count { font-size: 13.5px; }
+
+/* --- Themen-Kaertchen per Ziehen zwischen den Gruppen verschieben --------- */
+.topic { touch-action: pan-y; }
+.topic-dragging {
+  position: fixed; margin: 0; box-shadow: var(--shadow-md); opacity: 0.97;
+  cursor: grabbing; transition: none; z-index: 1000;
+}
+#speicher-list.topic-drag-active .speicher-group-h { display: flex !important; }
+#speicher-list.topic-drag-active .speicher-grid { min-height: 64px; }
+.speicher-grid.drag-over {
+  outline: 2px dashed var(--accent); outline-offset: -2px;
+  background: var(--surface-2); border-radius: 10px;
+}
+
+/* --- Seitentitel-Zeile: Titel + Hilfe-Knopf statt Eyebrow + Erklaertext --- */
+.page-title-row { display: flex; align-items: center; gap: 12px; margin: 0 0 var(--sp-5); }
+.page-title-row h1.page { margin: 0; }
+.page-head .page-title-row { margin-bottom: 0; }
+
+/* --- Hilfe-Popover: kleines ?, Erklaerung auf Klick ----------------------- */
+.help-pop { position: relative; display: inline-flex; flex: 0 0 auto; }
+.help-pop summary {
+  list-style: none; cursor: pointer; user-select: none;
+  width: 25px; height: 25px; border-radius: 50%;
+  border: 1px solid var(--line-strong); background: var(--surface);
+  color: var(--sub); font-size: 13px; font-weight: 650; line-height: 1;
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: background 0.15s var(--ease), color 0.15s var(--ease), border-color 0.15s var(--ease);
+}
+.help-pop summary::-webkit-details-marker { display: none; }
+.help-pop summary:hover { background: var(--surface-2); color: var(--text); }
+.help-pop[open] summary { background: var(--text); border-color: var(--text); color: var(--surface); }
+.help-card {
+  position: absolute; top: calc(100% + 10px); left: 0; z-index: 60;
+  width: min(340px, 74vw);
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--radius); box-shadow: var(--shadow-md);
+  padding: 12px 15px;
+  font-size: 13.5px; font-weight: 400; line-height: 1.55; color: var(--sub);
+  text-transform: none; letter-spacing: 0;
+}
+.help-card code {
+  background: var(--surface-2); border-radius: 5px; padding: 1px 5px;
+  font-size: 12px; font-family: var(--mono); color: var(--text);
+}
+
+/* „Bearbeiten" auf Beitragskarten: weisse Hover-Pille oeffnet ein kleines
+   Menue mit den zwei Zielen (Video-Editor / Beitrags-Editor). */
+.card { position: relative; }
+.card-edit {
+  display: inline-flex;
+  background: rgba(255, 255, 255, 0.95); border: 1px solid var(--line-strong);
+  color: var(--text); font-size: 12px; font-weight: 600; line-height: 1;
+  padding: 7px 13px; border-radius: 999px; box-shadow: var(--shadow-sm);
+  transition: background 0.15s var(--ease), box-shadow 0.15s var(--ease);
+}
+.card-edit:hover { background: #ffffff; box-shadow: var(--shadow-md); }
+
+/* Bearbeiten-Menue (Karten + Detailseite) */
+.edit-menu { position: relative; display: inline-flex; }
+.edit-menu > summary { list-style: none; cursor: pointer; user-select: none; }
+.edit-menu > summary::-webkit-details-marker { display: none; }
+.edit-menu-list {
+  position: absolute; top: calc(100% + 6px); right: 0; z-index: 60;
+  min-width: 165px; padding: 5px;
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: 10px; box-shadow: var(--shadow-md);
+  display: flex; flex-direction: column; gap: 1px;
+}
+.edit-menu-item, .neu-menu-item {
+  display: block; padding: 8px 11px; border-radius: 7px;
+  font-size: 13px; font-weight: 600; color: var(--text);
+  cursor: pointer; white-space: nowrap;
+}
+.edit-menu-item:hover, .neu-menu-item:hover { background: var(--surface-2); }
+
+/* „Neuer Beitrag" rechts oben in der Titelzeile + Titel-Dialog */
+.page-title-row .title-actions { margin-left: auto; flex: 0 0 auto; }
+.neu-dialog {
+  border: 1px solid var(--line); border-radius: 14px; padding: 0;
+  background: var(--surface); color: var(--text);
+  box-shadow: var(--shadow-md); width: min(420px, calc(100vw - 32px));
+}
+.neu-dialog::backdrop { background: rgba(16, 18, 22, 0.35); }
+.neu-dialog form { padding: 22px; display: flex; flex-direction: column; gap: 8px; }
+.neu-dialog h2 { margin: 0; font-size: 17px; font-weight: 700; }
+.neu-dialog .neu-sub { margin: 0 0 6px; font-size: 13px; color: var(--sub); }
+.neu-dialog label { font-size: 12px; font-weight: 600; color: var(--sub); }
+.neu-dialog input {
+  width: 100%; padding: 9px 11px; font: inherit; font-size: 14px;
+  color: var(--text); background: var(--surface-2);
+  border: 1px solid var(--line); border-radius: 9px;
+}
+.neu-dialog input:focus { outline: none; border-color: var(--link); }
+.neu-dialog .neu-fehler { margin: 4px 0 0; font-size: 12px; color: var(--red); }
+.neu-dialog .neu-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+
+/* Auf Karten uebernimmt der Menue-Wrapper Position + Hover-Einblendung */
+.card .edit-menu {
+  position: absolute; top: 10px; right: 10px; z-index: 3;
+  opacity: 0; pointer-events: none; transition: opacity 0.15s var(--ease);
+}
+.card:hover .edit-menu, .card .edit-menu[open] { opacity: 1; pointer-events: auto; }
+
+/* Detailseite: Aktionen rechts oben nebeneinander */
+.detail-head-actions { display: flex; gap: 10px; align-items: center; flex: 0 0 auto; }
+
+/* Ausgabeformat-Tags (MP4/GIF/PNG): kleine ruhige Kapseln, seit dem
+   Karten-Umbau im Kartenfuss links neben der Viral-Prognose. */
+.card-foot .ftypes { display: inline-flex; gap: 4px; flex-wrap: wrap; }
+.ftype {
+  font-family: var(--mono); font-size: 9px; font-weight: 600; letter-spacing: 0.05em;
+  padding: 2px 6px; border-radius: 5px;
+  background: var(--surface-2); border: 1px solid var(--line); color: var(--sub);
+}
+
+/* Segmented Control "Beitrag | Video Editor | Motion Design" — gleiche
+   Pillen-Optik wie WorkspaceModeTabs im React-Studio (studio/apps/web/src/
+   components/WorkspaceModeTabs.tsx), damit der Wechsel zwischen altem
+   Slide-Editor und React-Studio konsistent aussieht. */
+.workspace-tabs {
+  display: inline-flex; align-items: center; gap: 0;
+  border-radius: 9px; padding: 3px;
+  background: var(--surface-2); border: 1px solid var(--line);
+}
+.workspace-tab {
+  display: inline-flex; align-items: center;
+  border-radius: 7px; padding: 7px 16px;
+  font-size: 13px; font-weight: 500; line-height: 1;
+  color: var(--sub); text-decoration: none;
+  transition: color 0.15s var(--ease), background 0.15s var(--ease), box-shadow 0.15s var(--ease);
+}
+.workspace-tab:hover { color: var(--text); }
+.workspace-tab.is-active {
+  background: var(--surface); color: var(--text); font-weight: 600;
+  box-shadow: var(--shadow-sm);
+}
+
+:root {
+  --mk-green: #2fbf8f;
+  --mk-blue: #4f8fd9;
+  --mk-violet: #8a63d2;
+  --mk-pink: #d95fa6;
+  --ui-accent: #0a0a0a;
+}
+
+/* ============================================================================
+   Format-Katalog: dieselbe Zeilensprache wie die uebrigen Listen, Status als
+   kleines farbiges Signal statt grauem Fliesstext.
+   ============================================================================ */
+/* Die Status-Spalte hat eine feste Breite und der Umschalt-Knopf ein festes
+   Mindestmass, sonst tanzen Kapsel und Knoepfe von Zeile zu Zeile, weil
+   „aktiv"/„inaktiv" und „Aktivieren"/„Deaktivieren" verschieden lang sind. */
+.settings-pane .fmt-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 76px auto;
+  align-items: center;
+  gap: 16px;
+  padding: 13px 2px;
+}
+.settings-pane .fmt-row.off { opacity: 1; }
+.fmt-row .fmt-main { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
+.fmt-row .fmt-name {
+  font-size: 14.5px; font-weight: 600; color: var(--text);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.fmt-row.off .fmt-name { color: var(--sub); }
+.fmt-row .fmt-file {
+  font-family: var(--mono); font-size: 11.5px; color: var(--faint);
+  flex: 0 0 auto; opacity: 0.85;
+}
+/* Status-Kapsel: gruen aus der Website-Familie wenn aktiv, sonst neutral. */
+.fmt-row .fmt-flag {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 3px 10px 3px 8px; border-radius: 999px;
+  font-size: 11.5px; font-weight: 600; line-height: 1.5;
+  background: color-mix(in srgb, var(--mk-green) 14%, var(--surface));
+  color: color-mix(in srgb, var(--mk-green) 62%, #10322a);
+  border: 1px solid color-mix(in srgb, var(--mk-green) 30%, transparent);
+}
+.fmt-row .fmt-dot {
+  width: 6px; height: 6px; border-radius: 50%; flex: 0 0 auto;
+  background: var(--mk-green);
+}
+.fmt-row.off .fmt-flag {
+  background: var(--surface-2);
+  color: var(--faint);
+  border-color: var(--line);
+}
+.fmt-row.off .fmt-dot { background: var(--faint); }
+.fmt-row .fmt-actions { display: flex; gap: 6px; margin-left: 0; }
+.fmt-row .fmt-toggle { min-width: 108px; justify-content: center; }
+/* Anlege-Zeile buendig unter der Liste, gleiche Kante wie die Zeilen. */
+.settings-pane .fmt-add-row { margin-top: 20px; max-width: 520px; padding-left: 2px; }
+
+/* ============================================================================
+   Feeds: Quellen-Verwaltung. Zeilensprache wie der Format-Katalog, die
+   Ressort-Kapsel traegt die Farbe aus der Website-Familie.
+   ============================================================================ */
+.src-manage { display: flex; flex-direction: column; }
+/* Feste Ressort-Spalte, damit die Kapseln untereinander stehen und der
+   Entfernen-Knopf in jeder Zeile dieselbe Kante hat, auch wenn eine Quelle
+   gar kein Ressort traegt. */
+.settings-pane .src-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 112px auto;
+  align-items: center;
+  gap: 16px;
+  padding: 13px 2px;
+  border-bottom: 1px solid var(--line);
+}
+.settings-pane .src-row:first-child { border-top: 1px solid var(--line); }
+.src-row .src-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.src-row .src-name { font-size: 14.5px; font-weight: 600; color: var(--text); }
+.src-row .src-url {
+  font-family: var(--mono); font-size: 11.5px; color: var(--faint);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+/* Ressort-Kapsel: vier Toene aus dem Farbband der Website, serverseitig stabil
+   je Ressort vergeben (ressort_tint in blueprints/workspace.py). */
+.src-row .src-ressort {
+  display: inline-flex; align-items: center;
+  justify-self: end; max-width: 100%;
+  padding: 3px 11px; border-radius: 999px;
+  font-size: 11.5px; font-weight: 600; line-height: 1.5;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  background: color-mix(in srgb, var(--mk-tint, var(--mk-blue)) 13%, var(--surface));
+  color: color-mix(in srgb, var(--mk-tint, var(--mk-blue)) 58%, #1b1b2c);
+  border: 1px solid color-mix(in srgb, var(--mk-tint, var(--mk-blue)) 28%, transparent);
+}
+/* Quelle ohne Ressort: die Zelle bleibt leer stehen, damit das Raster haelt. */
+.src-row .src-ressort.is-leer { background: none; border: none; padding: 0; }
+.src-row .src-ressort[data-tint="0"] { --mk-tint: var(--mk-green); }
+.src-row .src-ressort[data-tint="1"] { --mk-tint: var(--mk-blue); }
+.src-row .src-ressort[data-tint="2"] { --mk-tint: var(--mk-violet); }
+.src-row .src-ressort[data-tint="3"] { --mk-tint: var(--mk-pink); }
+.src-row .src-actions { display: flex; gap: 6px; }
+/* Zwei-Klick-Bestaetigung: der scharfe Zustand faerbt sich rot.
+   Feste Warnfarbe statt Workspace-Akzent, damit die Nachfrage auf jedem
+   Workspace gleich deutlich liest. */
+.src-row .src-del.is-scharf,
+.src-row .src-del.is-scharf:hover {
+  border-color: #b3261e;
+  color: #b3261e;
+  background: #fdf1f0;
+}
+
+.src-add { margin-top: 26px; padding-top: 22px; border-top: 1px solid var(--line); max-width: 560px; }
+.src-add-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; }
+.src-add-feld { display: flex; flex-direction: column; }
+.src-add-feld .field-label { margin-top: 0; }
+.src-add .field-label { display: block; margin-top: 16px; }
+.src-add-grid .field-label { margin-top: 0; }
+.src-add .text-input { width: 100%; }
+/* Unterhalb von 820px zeigt das Dashboard ohnehin den Bildschirm-Hinweis, der
+   enge Bereich liegt also zwischen 821px und dem 900px-Umbruch der
+   Einstellungen. Dort ruecken Aktionen unter die Zeile. */
+@media (max-width: 900px) {
+  .src-add-grid { grid-template-columns: 1fr; }
+  .settings-pane .src-row, .settings-pane .fmt-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    row-gap: 10px;
+  }
+  .settings-pane .src-row .src-actions, .settings-pane .fmt-row .fmt-actions {
+    grid-column: 1 / -1; justify-content: flex-start;
+  }
+  .src-row .src-ressort { justify-self: end; }
+}
+
+/* Der YAML-Aufklapper ist der Experten-Weg und bleibt betont ruhig. */
+.src-yaml-box { margin-top: 30px; max-width: 100%; }
+/* YAML-Zeilen sind lang, deshalb darf das Feld hier die volle Breite nutzen. */
+.src-yaml-box .pane-form { max-width: none; }
+.src-yaml-box .feeds-textarea { font-family: var(--mono); font-size: 12.5px; }
+.src-yaml-box .field-hint { margin-top: 0; margin-bottom: 12px; }

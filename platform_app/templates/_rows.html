@@ -1,0 +1,75 @@
+{% from "_card.html" import post_card %}
+
+{# Format-Sektionen: klappbar, Kopf anklicken oeffnet/schliesst die Zeile.
+   Standard: erste Sektion offen; der Zustand merkt sich pro Seite in
+   localStorage, damit man beim Wiederkommen sein Format direkt sieht. #}
+{% macro format_rows(sections, layout='row', show_state=True) %}
+  <div class="format-list" id="format-list">
+  {% for sec in sections %}
+    <section class="format-sec collapsible" data-format="{{ sec.label }}">
+      <button class="format-head" type="button" aria-expanded="false">
+        <svg class="fold-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
+        <h2>{{ sec.label }}</h2>
+        <span class="count">{{ sec.posts | length }}</span>
+      </button>
+      <div class="{{ 'card-grid' if layout == 'grid' else 'row-scroll' }}">
+        {% for post in sec.posts %}{{ post_card(post, show_state=show_state) }}{% endfor %}
+      </div>
+    </section>
+  {% endfor %}
+  </div>
+  <script>
+  (function () {
+    const KEY = 'postmakr-open-formats:' + location.pathname;
+    const list = document.getElementById('format-list');
+    const secs = Array.from(list.querySelectorAll('.format-sec.collapsible'));
+    let open;
+    try { open = JSON.parse(localStorage.getItem(KEY)); } catch (e) { open = null; }
+    if (Array.isArray(open)) open = open.filter(f => secs.some(s => s.dataset.format === f));
+    // Kein (gueltiger) gemerkter Zustand: erste Sektion oeffnen.
+    if (!Array.isArray(open) || !open.length) open = secs.length ? [secs[0].dataset.format] : [];
+    function apply() {
+      secs.forEach(sec => {
+        const on = open.includes(sec.dataset.format);
+        sec.classList.toggle('open', on);
+        sec.querySelector('.format-head').setAttribute('aria-expanded', on ? 'true' : 'false');
+      });
+    }
+    list.addEventListener('click', e => {
+      const head = e.target.closest('.format-head');
+      if (!head) return;
+      const fmt = head.closest('.format-sec').dataset.format;
+      open = open.includes(fmt) ? open.filter(f => f !== fmt) : [...open, fmt];
+      localStorage.setItem(KEY, JSON.stringify(open));
+      apply();
+    });
+    apply();
+  })();
+  </script>
+{% endmacro %}
+
+{# Quellmaterial-Galerie: Kontextbilder und O-Ton-Clips aller Beitraege #}
+{% macro material_gallery(material) %}
+  {% if material %}
+    <section class="format-sec material-sec">
+      <div class="format-head">
+        <h2>Material &amp; Kontext</h2>
+        <span class="count">{{ material | length }}</span>
+      </div>
+      <p class="page-sub" style="margin-top:-6px;">Kontextbilder und Clips, die in den Beiträgen verwendet werden.</p>
+      <div class="row-scroll">
+        {% for m in material %}
+          <a class="mat-item" href="{{ url_for('detail', kind=m.kind, slug=m.slug) }}" title="{{ m.thema }}">
+            {% if m.type == 'image' %}
+              <img src="{{ url_for('asset', kind=m.kind, slug=m.slug, filename=m.name) }}" alt="{{ m.name }}" loading="lazy">
+            {% else %}
+              <video muted preload="metadata" src="{{ url_for('asset', kind=m.kind, slug=m.slug, filename=m.name) }}"></video>
+            {% endif %}
+            <span class="mat-name">{{ m.name }}</span>
+            <span class="mat-post">{{ m.thema }}</span>
+          </a>
+        {% endfor %}
+      </div>
+    </section>
+  {% endif %}
+{% endmacro %}

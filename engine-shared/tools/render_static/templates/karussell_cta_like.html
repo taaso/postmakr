@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="de"><head><meta charset="UTF-8"><style>
+/* Karussell: LIKE-CTA (letzter Slide, Belohnung)
+   Logo oben links. Anton-Versal-Frage oben links. Freigestelltes Politiker-Foto
+   (mit Meme-Element) unten links. Rechts ironische Pointe mit rot geboxtem "Like" + rotes Herz.
+   KEINE Quellenzeile. */
+@import url('https://fonts.googleapis.com/css2?family=Anton&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;}
+body{width:1080px;height:1350px;overflow:hidden;background:radial-gradient(circle at 50% 0%, var(--grund-hell,#1f232a) 0%, var(--grund,#121417) 65%);font-family:'Inter',sans-serif;color:#fff;position:relative;padding:48px 56px;}
+img.logoimg{height:58px;position:relative;z-index:3;}
+/* INHALT: Anton-Versal-Frage */
+h1{position:absolute;left:56px;top:250px;font-family:'Anton',sans-serif;font-weight:400;font-size:84px;text-transform:uppercase;letter-spacing:1px;line-height:1.12;text-align:left;z-index:3;}
+/* INHALT: CTA-Pointe mit rot geboxtem "Like" */
+.cta{position:absolute;left:400px;right:20px;top:520px;font-size:40px;font-weight:700;line-height:1.5;text-align:center;z-index:3;}
+.cta .redbox{background:var(--akzent,#E02020);padding:2px 16px 8px;font-weight:800;border-radius:4px;}
+.heart{position:absolute;left:640px;top:800px;width:100px;height:100px;z-index:3;}
+/* INHALT: Freisteller-Foto unten links (relativer Pfad) */
+.freisteller{position:absolute;left:-12px;bottom:0;width:505px;z-index:2;}
+</style></head><body>
+<img class="logoimg" src="LOGO_B64">
+<h1>Hat euch dieser<br>Post gefallen?</h1>
+<div class="cta">Dann lasst gerne<br>ein <span class="redbox">Like</span><br>da.</div>
+<svg class="heart" viewBox="0 0 24 24" fill="none"><path d="M12 21s-7.5-4.9-10-9.2C.6 9.2 2 5.5 5.5 4.6 7.7 4 9.9 5 12 7.4 14.1 5 16.3 4 18.5 4.6 22 5.5 23.4 9.2 22 11.8 19.5 16.1 12 21 12 21Z" style="fill:var(--akzent,#E02020)"/></svg>
+<img class="freisteller" src="assets/freisteller.png" alt="">
+</body></html>

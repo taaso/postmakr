@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="de"><head><meta charset="UTF-8"><style>
+@import url('https://fonts.googleapis.com/css2?family=Anton&family=Archivo+Black&family=Caveat:wght@700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;}
+body{
+  width:1080px;height:1350px;overflow:hidden;position:relative;
+  background:radial-gradient(circle at 50% 0%, var(--grund-hell,#1f232a) 0%, var(--grund,#121417) 65%);
+  font-family:'Inter',sans-serif;color:#fff;
+}
+.redbox{background:var(--akzent,#E02020);color:#fff;display:inline-block;border-radius:4px;}
+
+/* Logo — IMMER als <img class="logoimg" src="LOGO_B64">, nie nachbauen */
+img.logoimg{position:absolute;left:36px;top:72px;height:58px;}
+
+/* Kicker: Anton-Versal-Name, zentriert */
+.kicker{position:absolute;top:156px;left:0;width:1080px;text-align:center;
+  font-family:'Anton',sans-serif;font-size:56px;letter-spacing:6px;text-transform:uppercase;}
+
+/* Riesen-Jahreszahlen: 2024 weiss / vs. grau / 2026 weiss auf rotem Kasten,
+   als Block horizontal zentriert, rote Box eng um die Kontrast-Jahreszahl */
+.years{position:absolute;top:258px;left:0;width:1080px;
+  display:flex;justify-content:center;align-items:center;gap:10px;
+  font-family:'Anton',sans-serif;line-height:1;}
+.years .yr{font-size:136px;letter-spacing:1px;}
+.years .vs{font-size:48px;color:rgba(255,255,255,0.42);padding:0 4px;
+  align-self:flex-end;margin-bottom:18px;}
+.years .yr.box{background:var(--akzent,#E02020);border-radius:6px;padding:6px 16px 14px;}
+
+/* Datums-Label-Boxen: links dunkelgrau, rechts rot */
+.datebar{position:absolute;top:470px;left:0;width:1080px;
+  font-family:'Anton',sans-serif;font-size:26px;letter-spacing:1px;text-transform:uppercase;}
+.datebox{position:absolute;top:0;padding:10px 20px 12px;border-radius:5px;transform:translateX(-50%);}
+.datebox.left{left:290px;background:#2e2e2e;color:#fff;}
+.datebox.right{left:786px;background:var(--akzent,#E02020);color:#fff;}
+
+/* Linke Spalte: Beleg-Slot (Tweet-Screenshot ODER Zitatkasten) */
+.beleg{position:absolute;left:44px;top:560px;width:482px;}
+.beleg img{width:100%;display:block;border-radius:12px;}
+/* Zitatkasten-Variante (statt Screenshot) */
+.quotebox{background:#0d0d0f;border:1px solid rgba(255,255,255,0.12);border-radius:12px;
+  padding:30px 32px;font-size:26px;line-height:1.5;color:rgba(255,255,255,0.92);}
+.quotebox .src{margin-top:18px;font-size:19px;color:rgba(255,255,255,0.45);}
+
+/* Freisteller-Slot (Politiker), ueberlappt unten links den Beleg */
+.freisteller{position:absolute;left:0;bottom:0;width:612px;z-index:3;}
+.freisteller img{width:100%;display:block;}
+
+/* Rechte Spalte: Riesen-Statistik + Bold-Text + Quellenzeile.
+   Beginnt rechts neben der linken Beleg-Spalte (kein Ueberlappen); Statistik-Oberkante
+   auf Hoehe der Beleg-Oberkante, Claim + Quellenzeile darunter zentriert. */
+.stat{position:absolute;top:558px;left:544px;width:492px;text-align:center;z-index:5;}
+.stat .big{font-family:'Anton',sans-serif;color:var(--akzent,#E02020);font-size:240px;line-height:1;letter-spacing:6px;}
+.stat .big .pct{font-size:0.42em;vertical-align:baseline;}
+.stat .claim{font-weight:800;font-size:28px;line-height:1.4;margin-top:40px;padding:0 6px;}
+.stat .claim .redbox{padding:2px 12px 5px;}
+.stat .src{margin-top:22px;font-size:20px;line-height:1.45;color:rgba(255,255,255,0.42);}
+
+/* Weiter-Hinweis unten rechts (Blinker-Animation wie base.css) */
+.swipe{position:absolute;right:52px;bottom:34px;text-align:right;
+  font-weight:800;font-size:40px;letter-spacing:0;}
+.swipe .arrow{display:block;margin-top:8px;font-size:36px;line-height:1;}
+.next{font-weight:700;font-size:26px;letter-spacing:2px;white-space:nowrap;}
+.next .ch{opacity:0.25;display:inline-block;animation:sweep 1.5s linear infinite;}
+.next .ch:nth-child(1){animation-delay:0s;}
+.next .ch:nth-child(2){animation-delay:0.15s;}
+.next .ch:nth-child(3){animation-delay:0.3s;}
+@keyframes sweep{0%{opacity:0.25;}10%{opacity:1;}55%{opacity:1;}65%{opacity:0.25;}100%{opacity:0.25;}}
+</style></head><body>
+
+<!-- LOGO: nie veraendern, Platzhalter LOGO_B64 wird vom Renderer ersetzt -->
+<img class="logoimg" src="LOGO_B64">
+
+<!-- INHALT: Name oder Thema, Anton-Versal -->
+<div class="kicker">NAME ODER THEMA</div>
+
+<!-- INHALT: Jahreszahlen der Gegenueberstellung -->
+<div class="years">
+  <span class="yr">2024</span>
+  <span class="vs">vs.</span>
+  <span class="yr box">2026</span>
+</div>
+
+<!-- INHALT: Datums-Labels (links = Zeitpunkt Beleg, rechts = Zeitpunkt Kontrast) -->
+<div class="datebar">
+  <span class="datebox left">JANUAR 2024</span>
+  <span class="datebox right">APRIL 2026</span>
+</div>
+
+<!-- INHALT: Beleg links. Entweder Tweet-/Post-Screenshot als <img>, ODER .quotebox.
+     <div class="beleg"><img src="assets/tweet.png"></div>
+     Alternativ Zitatkasten:
+     <div class="beleg"><div class="quotebox">„Zitat ..."<div class="src">Quelle, Datum</div></div></div> -->
+<div class="beleg"><!-- Beleg-Screenshot oder Zitatkasten hier --></div>
+
+<!-- INHALT: Freigestellte Person, ueberlappt unten links -->
+<div class="freisteller"><!-- <img src="assets/freisteller.png"> --></div>
+
+<!-- INHALT: Kontrast rechts. Riesen-Statistik + Aussage mit einer roten Keyword-Box + Quellenzeile -->
+<div class="stat">
+  <div class="big">83<span class="pct">%</span></div>
+  <div class="claim">sagen in einer Umfrage <span class="redbox">das Gegenteil</span> von dem, was vor zwei Jahren versprochen wurde.</div>
+  <div class="src">Umfrage, Zeitraum, Zahl der Befragten</div>
+</div>
+
+<!-- INHALT: Weiter-Hinweis (nur wenn weitere Slides folgen) -->
+<div class="swipe next">weiter <span class="ch">›</span><span class="ch">›</span><span class="ch">›</span></div>
+
+</body></html>

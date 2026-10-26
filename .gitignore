@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+.DS_Store
+.venv/
+/daten/
+*.log
+.pytest_cache/
+.claude/

@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b0b0b">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  {% include "_app_kopf.html" %}
+  <title>{{ reel.titel if reel else 'Trial Reels' }} | postmakr</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='mobil.css') }}?v=20261017b">
+  <link rel="stylesheet" href="{{ url_for('static', filename='mobil-trial.css') }}?v=20261018a">
+</head>
+{% set ICO = {
+  'uebersicht': '<rect x="3" y="3" width="7" height="7" rx="1.6"/><rect x="14" y="3" width="7" height="7" rx="1.6"/><rect x="3" y="14" width="7" height="7" rx="1.6"/><rect x="14" y="14" width="7" height="7" rx="1.6"/>',
+  'entwuerfe': '<path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4Z"/>',
+  'plan': '<rect x="3" y="4.5" width="18" height="16.5" rx="2.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/><path d="M7.5 13.5h3M7.5 17h6"/>',
+  'trial': '<rect x="3" y="4" width="5" height="16" rx="1.5"/><rect x="9.5" y="4" width="5" height="16" rx="1.5"/><rect x="16" y="4" width="5" height="16" rx="1.5"/>',
+  'switch': '<path d="M8 3 4 7l4 4"/><path d="M4 7h16"/><path d="m16 21 4-4-4-4"/><path d="M20 17H4"/>',
+  'zurueck': '<path d="m15 18-6-6 6-6"/>'
+} %}
+{% macro ico(name) -%}
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{{ ICO[name]|safe }}</svg>
+{%- endmacro %}
+<body class="t-seite">
+  <header class="m-kopf">
+    {% if reel %}
+    <a class="m-wechsel" href="{{ url_for('mobil_trial') }}" aria-label="Zurück zu Trial Reels">{{ ico('zurueck') }}</a>
+    <div class="m-titel">
+      <span class="m-ws">{{ reel.titel }}</span>
+      <span class="m-unter">{{ reel.laenge ~ ' s, ' if reel.laenge }}{{ reel.status_label }}</span>
+    </div>
+    {% else %}
+    <a class="m-wechsel" href="{{ url_for('platform.auswahl') }}" aria-label="Workspace wechseln">{{ ico('switch') }}</a>
+    <div class="m-titel">
+      <span class="m-ws">{{ brand.name }}</span>
+      <span class="m-unter">Trial Reels, {{ reels|length }}</span>
+    </div>
+    {% endif %}
+    <span class="m-marke">postmakr</span>
+  </header>
+
+  {% if not reel %}
+  <main class="t-liste-gruppen">
+    {% for gruppe in kategorien %}
+    <h2 class="t-gruppe-kopf">{{ gruppe.name }} <span>{{ gruppe.reels|length }}</span></h2>
+    <div class="t-liste">
+      {% for r in gruppe.reels %}
+      {% set erste = namespace(clip=None, nr=None) %}
+      {% for v in r.versionen if not erste.clip %}{% for c in v.clips if c.video and not erste.clip %}{% set erste.clip = c %}{% set erste.nr = v.nr %}{% endfor %}{% endfor %}
+      <a class="t-karte" href="{{ url_for('mobil_trial', slug=r.slug) }}">
+        <span class="t-karte-bild">
+          {% if erste.clip %}
+            <video muted playsinline preload="metadata" src="{{ url_for('trial_reel_datei', slug=r.slug, nr=erste.nr, name=erste.clip.name, stand=erste.clip.stand) }}#t=0.5"></video>
+          {% else %}
+            <span class="t-minis">{% for v in r.versionen %}<i class="{{ 'voll' if v.clips }}"></i>{% endfor %}</span>
+          {% endif %}
+          {% if r.laenge %}<span class="t-laenge">{{ r.laenge }} s</span>{% endif %}
+        </span>
+        <span class="t-karte-info">
+          <span class="m-pille t-st-{{ r.status }}">{{ r.status_label }}</span>
+          <span class="t-karte-titel">{{ r.titel }}</span>
+          <span class="t-karte-sub">{{ r.mit_material }} von 3 Versionen mit Material</span>
+        </span>
+      </a>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="m-nichts">
+      <p class="m-nichts-gross">Noch keine Trial Reels</p>
+      <p>Deine KI legt sie mit Hook, O-Ton und Aufnahmeplan für dich an.</p>
+    </div>
+    {% endfor %}
+  </main>
+  {% else %}
+  <main class="t-reel">
+    <div class="t-versionen-halter">
+    <nav class="t-versionen" role="tablist" aria-label="Version">
+      {% for v in reel.versionen %}
+      <button type="button" role="tab" data-zeige-version="{{ v.nr }}" aria-selected="{{ 'true' if v.nr == version_start else 'false' }}">
+        <b>{{ v.nr }}</b><span>{{ v.name }}</span>{% if v.clips %}<i class="t-haken" aria-label="hat Material"></i>{% endif %}
+      </button>
+      {% endfor %}
+    </nav>
+    </div>
+
+    {% for v in reel.versionen %}
+    <section class="t-version" data-version="{{ v.nr }}" {{ '' if v.nr == version_start else 'hidden' }}
+             data-hochladen="{{ url_for('trial_reel_hochladen', slug=reel.slug, nr=v.nr) }}"
+             data-loeschen-url="{{ url_for('trial_reel_clip_loeschen', slug=reel.slug, nr=v.nr) }}"
+             data-datei-url="{{ url_for('trial_reel_datei', slug=reel.slug, nr=v.nr, name='NAME') }}">
+      <div class="t-buehne">
+        {% set erstes = (v.clips | selectattr('video') | first) or (v.clips | first) %}
+        {% if erstes and erstes.video %}
+          <video controls playsinline preload="metadata" src="{{ url_for('trial_reel_datei', slug=reel.slug, nr=v.nr, name=erstes.name, stand=erstes.stand) }}"></video>
+        {% elif erstes %}
+          <img src="{{ url_for('trial_reel_datei', slug=reel.slug, nr=v.nr, name=erstes.name, stand=erstes.stand) }}" alt="">
+        {% else %}
+          <div class="t-plan">
+            {% if v.hook %}<p class="t-plan-hook">{{ v.hook }}</p>{% endif %}
+            {% if v.aufnahmen %}
+            <p class="t-plan-label">Aufnehmen</p>
+            <ol>{% for a in v.aufnahmen %}<li>{% if a.titel %}<b>{{ a.titel }}:</b> {% endif %}{{ a.anweisung }}</li>{% endfor %}</ol>
+            {% endif %}
+          </div>
+        {% endif %}
+      </div>
+
+      {% if v.notiz %}<p class="t-notiz">{{ v.notiz }}</p>{% endif %}
+
+      {% if v.clips %}
+      <ul class="t-clips">
+        {% for c in v.clips %}
+        <li>
+          <button type="button" class="t-clip-name" data-zeigen="{{ c.name }}" data-video="{{ '1' if c.video else '0' }}" data-stand="{{ c.stand }}">{{ c.name }}</button>
+          <span class="t-clip-mb">{{ c.mb }} MB</span>
+          <button type="button" class="t-sichern" data-sichern="{{ c.name }}" data-stand="{{ c.stand }}">Sichern</button>
+          <button type="button" class="t-clip-weg" data-loeschen="{{ c.name }}" aria-label="Clip {{ c.name }} löschen">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+          </button>
+        </li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+
+      <div class="t-aktionen">
+        <button type="button" class="t-knopf t-knopf-haupt" data-aufnehmen="{{ v.nr }}">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7" fill="currentColor"/></svg>
+          Aufnehmen mit Teleprompter
+        </button>
+        <div class="t-knopf-reihe">
+          <label class="t-knopf">
+            <input type="file" accept="video/*" capture="user" data-datei-input hidden>
+            Kamera-App
+          </label>
+          <label class="t-knopf">
+            <input type="file" accept="video/*,image/*" multiple data-datei-input hidden>
+            Aus Mediathek
+          </label>
+        </div>
+        <div class="t-balken" data-balken hidden><i></i></div>
+      </div>
+
+      {# Texte lassen sich am Handy nachträglich ändern; O-Ton und Hook gelten danach sofort im Teleprompter. #}
+      {% for feld, titel in [('hook', 'Hook'), ('oton', 'O-Ton'), ('caption', 'Caption'), ('skript', 'Skript')] if v[feld] or feld in ('hook', 'oton') %}
+      <div class="t-text" data-feld="{{ feld }}" data-nr="{{ v.nr }}">
+        <div class="t-text-kopf">
+          <h2>{{ titel }}</h2>
+          <div class="t-text-knoepfe">
+            <button type="button" class="t-kopieren" data-bearbeiten>Ändern</button>
+            <button type="button" class="t-kopieren" data-kopieren>Kopieren</button>
+          </div>
+        </div>
+        <p class="t-text-inhalt">{{ v[feld] }}</p>
+      </div>
+      {% endfor %}
+    </section>
+    {% endfor %}
+  </main>
+
+  <!-- Aufnahme im Vollbild: Kamera, Teleprompter, Modi Video/Foto/Doppelt,
+       Einstellungen hinter dem Zahnrad -->
+  <section class="r" id="rec" hidden aria-label="Aufnahme">
+    <video class="r-live" id="r-live" playsinline muted autoplay></video>
+    <video class="r-pip" id="r-pip" playsinline muted autoplay hidden></video>
+    <div class="r-raster" id="r-raster" hidden aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+    <div class="r-ringlicht" id="r-ringlicht" hidden aria-hidden="true"></div>
+    <video class="r-review" id="r-review" playsinline loop hidden></video>
+    <video class="r-review-pip" id="r-review-pip" playsinline loop muted hidden></video>
+    <img class="r-foto" id="r-foto" alt="" hidden>
+
+    <div class="r-tp" id="r-tp" aria-live="off">
+      <div class="r-tp-fenster" id="r-tp-fenster"><div class="r-tp-text" id="r-tp-text"></div></div>
+      <div class="r-tp-ecke" id="r-tp-ecke" role="button" aria-label="Teleprompter-Größe ändern"></div>
+    </div>
+
+    <div class="r-countdown" id="r-countdown" hidden></div>
+    <div class="r-zeit" id="r-zeit" hidden>0:00</div>
+    <div class="r-hinweis" id="r-hinweis" hidden></div>
+
+    <div class="r-oben-links">
+      <button type="button" class="r-rund r-klein" id="r-einst" aria-label="Kamera-Einstellungen">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/></svg>
+      </button>
+      <span class="r-aufloesung" id="r-aufloesung"></span>
+    </div>
+
+    <button type="button" class="r-zu" id="r-zu" aria-label="Aufnahme schließen">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+    </button>
+
+    <div class="r-unten" id="r-unten">
+      <div class="r-regler" id="r-regler">
+        <label>Tempo <input type="range" id="r-tempo" min="15" max="140" step="5"></label>
+        <label>Schrift <input type="range" id="r-groesse" min="20" max="46" step="2"></label>
+      </div>
+      <div class="r-zoom" id="r-zoom-zeile" hidden>
+        <label>Zoom <input type="range" id="r-zoom"></label>
+      </div>
+      <nav class="r-modi" id="r-modi" aria-label="Aufnahmeart">
+        <button type="button" data-modus="video" aria-pressed="true">Video</button>
+        <button type="button" data-modus="doppelt" aria-pressed="false">Doppelt</button>
+        <button type="button" data-modus="foto" aria-pressed="false">Foto</button>
+      </nav>
+      <div class="r-knoepfe" id="r-live-knoepfe">
+        <button type="button" class="r-rund" id="r-kamera" aria-label="Kamera wechseln">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h3l2-2h6l2 2h3v12H4Z"/><path d="m10 13-2-2-2 2M14 13l2 2 2-2"/><path d="M8 11v1a4 4 0 0 0 7 2.5M16 15v-1a4 4 0 0 0-7-2.5"/></svg>
+        </button>
+        <button type="button" class="r-ausloeser" id="r-ausloeser" aria-label="Aufnahme starten"><i></i></button>
+        <button type="button" class="r-rund" id="r-tp-an" aria-label="Teleprompter ein oder aus" aria-pressed="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 7h14M5 12h14M5 17h9"/></svg>
+        </button>
+      </div>
+      <div class="r-knoepfe" id="r-review-knoepfe" hidden>
+        <button type="button" class="r-pille" id="r-nochmal">Nochmal</button>
+        <button type="button" class="r-pille r-pille-an" id="r-verwenden">Verwenden</button>
+      </div>
+      <div class="t-balken r-balken" id="r-balken" hidden><i></i></div>
+    </div>
+
+    <!-- Einstellungen -->
+    <section class="r-panel" id="r-panel" hidden aria-label="Kamera-Einstellungen">
+      <div class="r-panel-kopf">
+        <h2>Kamera</h2>
+        <button type="button" class="r-pille-klein" id="r-panel-zu">Fertig</button>
+      </div>
+      <div class="r-zeile"><span>Auflösung</span><div class="r-wahl" data-einst="res"><button data-wert="720">720p</button><button data-wert="1080">1080p</button><button data-wert="4k">4K</button></div></div>
+      <div class="r-zeile"><span>Bildrate</span><div class="r-wahl" data-einst="fps"><button data-wert="30">30</button><button data-wert="60">60</button></div></div>
+      <div class="r-zeile"><span>Countdown</span><div class="r-wahl" data-einst="countdown"><button data-wert="0">aus</button><button data-wert="3">3 s</button><button data-wert="5">5 s</button><button data-wert="10">10 s</button></div></div>
+      <div class="r-zeile"><span>Teleprompter</span><div class="r-wahl" data-einst="tpPos"><button data-wert="oben">oben</button><button data-wert="mitte">Mitte</button></div></div>
+      <div class="r-zeile"><span>Teleprompter-Feld</span><button type="button" class="r-pille-klein r-pille-dunkel" id="r-tp-reset">zurücksetzen</button></div>
+      <div class="r-zeile"><span>Frontkamera spiegeln</span><div class="r-wahl" data-einst="spiegel"><button data-wert="an">an</button><button data-wert="aus">aus</button></div></div>
+      <div class="r-zeile"><span>Ringlicht</span><div class="r-wahl" data-einst="ring"><button data-wert="aus">aus</button><button data-wert="weich">weich</button><button data-wert="stark">stark</button></div></div>
+      <div class="r-zeile"><span>Raster</span><div class="r-wahl" data-einst="raster"><button data-wert="an">an</button><button data-wert="aus">aus</button></div></div>
+      <div class="r-zeile" id="r-mikro-zeile" hidden><span>Mikrofon</span><select class="r-select" id="r-mikro"></select></div>
+      <div class="r-zeile"><span>Sprachaufbereitung</span><div class="r-wahl" data-einst="aufbereitung"><button data-wert="an">an</button><button data-wert="aus">aus</button></div></div>
+      <div class="r-zeile" id="r-licht-zeile" hidden><span>Licht</span><div class="r-wahl" data-einst="licht"><button data-wert="an">an</button><button data-wert="aus">aus</button></div></div>
+      <p class="r-panel-hinweis">Sprachaufbereitung ist die Telefon-Verarbeitung des iPhones (Echo, Lautstärke, Rauschen). Der Dateiname merkt sich, ob sie an oder aus war.</p>
+      <p class="r-panel-hinweis">Tipp für den Ton: AirPods und andere Bluetooth-Kopfhörer klingen im Browser oft wie am Telefon. Am besten das iPhone-Mikrofon oder ein angestecktes Mikro nehmen.</p>
+      <p class="r-panel-hinweis">Doppelt nimmt Front- und Rückkamera gleichzeitig auf, wenn dein Gerät das im Browser kann. Sonst nacheinander: erst du mit Teleprompter, danach automatisch die Rückkamera.</p>
+    </section>
+  </section>
+  {% endif %}
+
+  <nav class="m-leiste" aria-label="Bereiche">
+    <a href="{{ url_for('mobil', reiter='plan') }}">{{ ico('plan') }}<span>Plan</span></a>
+    <a href="{{ url_for('mobil', reiter='uebersicht') }}">{{ ico('uebersicht') }}<span>Übersicht</span></a>
+    <a href="{{ url_for('mobil', reiter='entwuerfe') }}">{{ ico('entwuerfe') }}<span>Entwürfe</span>{% if anzahl_entwuerfe %}<b class="m-zahl">{{ anzahl_entwuerfe }}</b>{% endif %}</a>
+    <a href="{{ url_for('mobil_trial') }}" class="an">{{ ico('trial') }}<span>Trial</span></a>
+  </nav>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  {% if reel %}
+  <script>
+  window.TRIAL = {
+    slug: {{ reel.slug | tojson }},
+    speichern: {{ url_for('trial_reel_speichern', slug=reel.slug) | tojson }},
+    otons: {{ reel.versionen | map(attribute='oton') | list | tojson }},
+    hooks: {{ reel.versionen | map(attribute='hook') | list | tojson }}
+  };
+  </script>
+  <script src="{{ url_for('static', filename='mobil-trial.js') }}?v=20261021a"></script>
+  {% endif %}
+</body>
+</html>

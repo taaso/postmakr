@@ -1,0 +1,317 @@
+{% extends "base.html" %}
+{% from "_help.html" import help %}
+{% block content %}
+  <div class="page-title-row">
+    <h1 class="page">Themenspeicher <span class="count" id="speicher-count">{{ backlog|length }}</span></h1>
+    {{ help('Gemerkte Radar-Vorschläge und eigene Ideen. Von hier schickst du ein Thema zur Produktion, es taucht danach bei den Entwürfen auf.') }}
+  </div>
+
+  <form class="idea-form idea-row" id="idea-form">
+    <input class="text-input" name="titel" id="idea-titel" type="text" placeholder="Eigene Idee festhalten, Titel" required>
+    <input class="text-input" name="notiz" id="idea-notiz" type="text" placeholder="Notiz (optional)">
+    <button class="btn" type="submit">Idee speichern</button>
+  </form>
+
+  {% macro topic_card(item) %}
+    <article class="topic" data-id="{{ item.id }}"
+             {% if item.status == 'zur_produktion' %}data-href="{{ url_for('entwuerfe') }}" title="Zur Produktions-Warteschlange (Entwürfe)"{% endif %}>
+      <div class="topic-top">
+        <span class="status-badge s-{{ item.status }}" data-status="{{ item.status }}">
+          {{ {'offen':'offen','zur_produktion':'zur Produktion','erledigt':'erledigt'}[item.status] }}
+        </span>
+        <button class="icon-btn del" title="Thema löschen" aria-label="Thema löschen">×</button>
+      </div>
+      <div class="topic-title">{{ item.titel }}</div>
+      {% if item.notiz %}<div class="topic-note">{{ item.notiz }}</div>{% endif %}
+      <div class="topic-foot">
+        <span class="typ-tag">{{ 'Scan' if item.typ == 'scan' else 'Eigen' }}</span>
+        <span class="topic-date">{{ item.datum | datum_de }}</span>
+      </div>
+    </article>
+  {% endmacro %}
+
+  {% set prod = backlog | selectattr('status', 'equalto', 'zur_produktion') | list %}
+  {% set offen = backlog | rejectattr('status', 'equalto', 'zur_produktion') | rejectattr('status', 'equalto', 'erledigt') | list %}
+  {% set done = backlog | selectattr('status', 'equalto', 'erledigt') | list %}
+
+  <div id="speicher-list">
+    <h2 class="speicher-group-h" id="grp-prod-h" {% if not prod %}style="display:none"{% endif %}>Zur Produktion <span class="count">{{ prod|length }}</span></h2>
+    <div class="speicher-grid" id="grp-prod" data-drop-status="zur_produktion">{% for item in prod %}{{ topic_card(item) }}{% endfor %}</div>
+
+    <h2 class="speicher-group-h" id="grp-offen-h" {% if not offen %}style="display:none"{% endif %}>Offen <span class="count">{{ offen|length }}</span></h2>
+    <div class="speicher-grid" id="grp-offen" data-drop-status="offen">{% for item in offen %}{{ topic_card(item) }}{% endfor %}</div>
+
+    {# Erledigte Themen (Beitrag ist produziert und freigegeben) werden hier
+       bewusst NICHT mehr angezeigt, sie leben als Beitrag in der Übersicht. #}
+
+    <div class="speicher-empty" id="speicher-empty" {% if backlog %}style="display:none"{% endif %}>
+      Noch keine Themen gespeichert. Merke dir im <a href="{{ url_for('scan') }}">Radar</a> einen Vorschlag
+      oder halte oben eine eigene Idee fest.
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const URLS = {
+  add: '{{ url_for("backlog_add") }}',
+  del: '{{ url_for("backlog_delete") }}',
+  status: '{{ url_for("backlog_status") }}',
+  entwuerfe: '{{ url_for("entwuerfe") }}',
+};
+const STATUS_LABEL = { offen: 'offen', zur_produktion: 'zur Produktion', erledigt: 'erledigt' };
+
+function post(url, data) {
+  return fetch(url, { method: 'POST', body: new URLSearchParams(data) }).then(r => r.json());
+}
+let toastTimer;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 3200);
+}
+function escapeHtml(s) {
+  return (s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function topicNode(entry) {
+  const art = document.createElement('article');
+  art.className = 'topic';
+  art.dataset.id = entry.id;
+  art.innerHTML = `
+    <div class="topic-top">
+      <span class="status-badge s-${entry.status}" data-status="${entry.status}">${STATUS_LABEL[entry.status]}</span>
+      <button class="icon-btn del" title="Thema löschen" aria-label="Thema löschen">×</button>
+    </div>
+    <div class="topic-title">${escapeHtml(entry.titel)}</div>
+    ${entry.notiz ? `<div class="topic-note">${escapeHtml(entry.notiz)}</div>` : ''}
+    <div class="topic-foot">
+      <span class="typ-tag">${entry.typ === 'scan' ? 'Scan' : 'Eigen'}</span>
+      <span class="topic-date">${entry.datum}</span>
+    </div>`;
+  return art;
+}
+function updateCount() {
+  document.getElementById('speicher-count').textContent =
+    document.querySelectorAll('#speicher-list .topic').length;
+}
+
+// ---------- Kärtchen per Ziehen zwischen den Gruppen verschieben ----------
+function groupEls(status) {
+  if (status === 'zur_produktion') return { grid: document.getElementById('grp-prod'), h: document.getElementById('grp-prod-h') };
+  if (status === 'offen') return { grid: document.getElementById('grp-offen'), h: document.getElementById('grp-offen-h') };
+  return null;
+}
+function refreshGroup(status) {
+  const g = groupEls(status);
+  if (!g || !g.grid || !g.h) return;
+  const n = g.grid.children.length;
+  g.h.querySelector('.count').textContent = n;
+  g.h.style.display = n ? '' : 'none';
+}
+function applyStatus(card, status) {
+  const badge = card.querySelector('.status-badge');
+  badge.className = 'status-badge s-' + status;
+  badge.dataset.status = status;
+  badge.textContent = STATUS_LABEL[status];
+  if (status === 'zur_produktion') {
+    card.dataset.href = URLS.entwuerfe;
+    card.title = 'Zur Produktions-Warteschlange (Entwürfe)';
+  } else {
+    delete card.dataset.href;
+    card.removeAttribute('title');
+  }
+}
+
+const speicherList = document.getElementById('speicher-list');
+const HOLD_MS = 150;
+const CANCEL_TOLERANCE = 10;
+const START_TOLERANCE = 4;
+let dragState = null;
+
+function onPointerDown(e) {
+  if (e.button !== undefined && e.button !== 0) return;
+  if (e.target.closest('.del')) return;
+  const card = e.target.closest('.topic');
+  if (!card) return;
+  dragState = {
+    card,
+    pointerId: e.pointerId,
+    startX: e.clientX,
+    startY: e.clientY,
+    origParent: card.parentElement,
+    origNext: card.nextElementSibling,
+    origStatus: card.querySelector('.status-badge').dataset.status,
+    dragging: false,
+    armed: false,
+    hoverGrid: null,
+    offsetX: 0,
+    offsetY: 0,
+    holdTimer: setTimeout(() => { if (dragState) dragState.armed = true; }, HOLD_MS),
+  };
+  document.addEventListener('pointermove', onPointerMove);
+  document.addEventListener('pointerup', onPointerUp);
+  document.addEventListener('pointercancel', onPointerUp);
+}
+
+function beginDrag() {
+  const state = dragState;
+  const { card } = state;
+  const rect = card.getBoundingClientRect();
+  state.dragging = true;
+  state.offsetX = state.startX - rect.left;
+  state.offsetY = state.startY - rect.top;
+  card.style.width = rect.width + 'px';
+  card.style.height = rect.height + 'px';
+  card.style.left = rect.left + 'px';
+  card.style.top = rect.top + 'px';
+  card.style.touchAction = 'none';
+  card.classList.add('topic-dragging');
+  speicherList.classList.add('topic-drag-active');
+}
+
+function updateDragPosition(e) {
+  const state = dragState;
+  const { card } = state;
+  card.style.left = (e.clientX - state.offsetX) + 'px';
+  card.style.top = (e.clientY - state.offsetY) + 'px';
+  card.style.pointerEvents = 'none';
+  const under = document.elementFromPoint(e.clientX, e.clientY);
+  card.style.pointerEvents = '';
+  const grid = under ? under.closest('.speicher-grid[data-drop-status]') : null;
+  if (grid !== state.hoverGrid) {
+    if (state.hoverGrid) state.hoverGrid.classList.remove('drag-over');
+    if (grid) grid.classList.add('drag-over');
+    state.hoverGrid = grid;
+  }
+}
+
+function onPointerMove(e) {
+  const state = dragState;
+  if (!state || e.pointerId !== state.pointerId) return;
+  const dx = e.clientX - state.startX;
+  const dy = e.clientY - state.startY;
+  if (!state.dragging) {
+    if (!state.armed) {
+      // Vor der Halte-Schwelle zaehlt Bewegung als Wisch/Scroll, kein Ziehen.
+      if (Math.hypot(dx, dy) > CANCEL_TOLERANCE) {
+        clearTimeout(state.holdTimer);
+        dragState = null;
+        document.removeEventListener('pointermove', onPointerMove);
+        document.removeEventListener('pointerup', onPointerUp);
+        document.removeEventListener('pointercancel', onPointerUp);
+      }
+      return;
+    }
+    if (Math.hypot(dx, dy) < START_TOLERANCE) return;
+    beginDrag();
+  }
+  e.preventDefault();
+  updateDragPosition(e);
+}
+
+function finishDragVisuals(state) {
+  const { card } = state;
+  card.classList.remove('topic-dragging');
+  card.style.width = '';
+  card.style.height = '';
+  card.style.left = '';
+  card.style.top = '';
+  card.style.touchAction = '';
+  speicherList.classList.remove('topic-drag-active');
+  if (state.hoverGrid) state.hoverGrid.classList.remove('drag-over');
+}
+
+function onPointerUp(e) {
+  const state = dragState;
+  if (!state || e.pointerId !== state.pointerId) return;
+  dragState = null;
+  clearTimeout(state.holdTimer);
+  document.removeEventListener('pointermove', onPointerMove);
+  document.removeEventListener('pointerup', onPointerUp);
+  document.removeEventListener('pointercancel', onPointerUp);
+  if (!state.dragging) return; // war kein Ziehen, normaler Klick greift wie gewohnt
+
+  finishDragVisuals(state);
+  state.card.dataset.justDragged = '1';
+
+  const targetGrid = state.hoverGrid;
+  const targetStatus = targetGrid ? targetGrid.dataset.dropStatus : null;
+  if (!targetGrid || targetStatus === state.origStatus) {
+    return; // zurueck an den Ausgangsort, keine Anfrage noetig
+  }
+
+  const { card } = state;
+  targetGrid.prepend(card);
+  applyStatus(card, targetStatus);
+  refreshGroup(state.origStatus);
+  refreshGroup(targetStatus);
+
+  post(URLS.status, { id: card.dataset.id, status: targetStatus }).then(d => {
+    if (!d.ok) revertDrag(state, targetStatus, d.error);
+  }).catch(() => revertDrag(state, targetStatus));
+}
+
+function revertDrag(state, targetStatus, error) {
+  const { card } = state;
+  if (state.origNext) state.origParent.insertBefore(card, state.origNext);
+  else state.origParent.appendChild(card);
+  applyStatus(card, state.origStatus);
+  refreshGroup(state.origStatus);
+  refreshGroup(targetStatus);
+  toast(error || 'Verschieben fehlgeschlagen');
+}
+
+speicherList.addEventListener('pointerdown', onPointerDown);
+
+document.getElementById('speicher-list').addEventListener('click', function (e) {
+  const draggedCard = e.target.closest('.topic');
+  if (draggedCard && draggedCard.dataset.justDragged) {
+    delete draggedCard.dataset.justDragged;
+    e.preventDefault();
+    return;
+  }
+  const del = e.target.closest('.del');
+  if (del) {
+    e.preventDefault();
+    const topic = del.closest('.topic');
+    const topicStatus = topic.querySelector('.status-badge').dataset.status;
+    post(URLS.del, { id: topic.dataset.id }).then(d => {
+      if (d.ok) {
+        topic.remove();
+        refreshGroup(topicStatus);
+        updateCount();
+        if (!document.querySelectorAll('#speicher-list .topic').length) {
+          document.getElementById('speicher-empty').style.display = '';
+        }
+      } else { toast(d.error || 'Fehler beim Löschen'); }
+    });
+    return;
+  }
+  // Klick auf eine „zur Produktion"-Karte fuehrt zur Warteschlange (Entwuerfe)
+  const card = e.target.closest('.topic[data-href]');
+  if (card) window.location = card.dataset.href;
+});
+
+document.getElementById('idea-form').addEventListener('submit', function (e) {
+  e.preventDefault();
+  const titel = document.getElementById('idea-titel').value.trim();
+  if (!titel) return;
+  const notiz = document.getElementById('idea-notiz').value.trim();
+  post(URLS.add, { titel, notiz, typ: 'eigene' }).then(d => {
+    if (d.ok) {
+      document.getElementById('speicher-empty').style.display = 'none';
+      document.getElementById('grp-offen').prepend(topicNode(d.entry));
+      refreshGroup('offen');
+      updateCount();
+      this.reset();
+      toast('Idee im Themenspeicher gespeichert');
+    } else { toast(d.error || 'Fehler'); }
+  });
+});
+</script>
+{% endblock %}

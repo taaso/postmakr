@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% from "_help.html" import help %}
+{% block content %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='kalender.css') }}?v=20261024">
+  <link rel="stylesheet" href="{{ url_for('static', filename='trial-reels.css') }}?v=20261024a">
+
+  <div class="page-title-row">
+    <h1 class="page">Trial Reels</h1>
+    {{ help('Jedes Trial Reel hat drei Versionen. Öffne eins, dann siehst du, was du für welche Version aufnehmen musst, und lädst dein Material direkt in die passende Fläche.') }}
+    <nav class="ansicht-umschalter" aria-label="Trial Reels filtern">
+      <a href="{{ url_for('trial_reels') }}" aria-current="{{ 'page' if tab == 'alle' else 'false' }}">Alle <span class="count">{{ anzahl.alle }}</span></a>
+      {% for key, name in status_namen.items() if anzahl[key] %}
+      <a href="{{ url_for('trial_reels', tab=key) }}" aria-current="{{ 'page' if tab == key else 'false' }}">{{ name }} <span class="count">{{ anzahl[key] }}</span></a>
+      {% endfor %}
+    </nav>
+  </div>
+
+  {% if reels %}
+  {% for gruppe in kategorien %}
+  <section class="tr-gruppe">
+    <h2 class="tr-gruppe-kopf">{{ gruppe.name }} <span class="count">{{ gruppe.reels|length }}</span></h2>
+    <div class="tr-grid">
+    {% for r in gruppe.reels %}
+    {% set erste = namespace(clip=None, nr=None) %}
+    {% for v in r.versionen if not erste.clip %}{% for c in v.clips if c.video and not erste.clip %}{% set erste.clip = c %}{% set erste.nr = v.nr %}{% endfor %}{% endfor %}
+    <a class="tr-karte" href="{{ url_for('trial_reel', slug=r.slug) }}">
+      <span class="tr-karte-bild">
+        {% if erste.clip %}
+          <video muted playsinline preload="metadata" src="{{ url_for('trial_reel_datei', slug=r.slug, nr=erste.nr, name=erste.clip.name, stand=erste.clip.stand) }}#t=0.5"></video>
+        {% else %}
+          <span class="tr-karte-leer">
+            {% for v in r.versionen %}<span class="tr-mini {{ 'voll' if v.clips else '' }}"></span>{% endfor %}
+          </span>
+        {% endif %}
+        {% if r.laenge %}<span class="tr-laenge">{{ r.laenge }} s</span>{% endif %}
+      </span>
+      <span class="tr-karte-text">
+        <span class="tr-kopf">
+          <span class="tr-status tr-status-{{ r.status }}">{{ r.status_label }}</span>
+          {% if r.datum %}<span class="tr-datum">{{ r.datum | datum_de }}</span>{% endif %}
+        </span>
+        <span class="tr-titel" title="{{ r.titel }}">{{ r.titel }}</span>
+        <span class="tr-fortschritt">{{ r.mit_material }} von 3 Versionen gedreht</span>
+      </span>
+    </a>
+    {% endfor %}
+    </div>
+  </section>
+  {% endfor %}
+  {% else %}
+    <div class="empty">
+      <div class="big">{{ 'Noch keine Trial Reels' if tab == 'alle' else 'Hier ist gerade nichts' }}</div>
+      <p>Neue Trial Reels legt deine KI für dich an, mit Hook, Skript und Aufnahmeplan für alle drei Versionen.</p>
+    </div>
+  {% endif %}
+{% endblock %}

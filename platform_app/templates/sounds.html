@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+{% from "_help.html" import help %}
+{% block content %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='kalender.css') }}?v=20261024">
+  <link rel="stylesheet" href="{{ url_for('static', filename='sounds.css') }}?v=20261024c">
+
+  <div class="page-title-row">
+    <h1 class="page">Sounds</h1>
+    {{ help('Deine Soundeffekte für Reels, nach Thema sortiert. Klick auf einen Sound, um ihn anzuhören. Die Suche versteht Bedeutung auf Deutsch und Englisch, probier zum Beispiel „Gänsehaut“ oder „Schadenfreude“. „Ähnliche“ zeigt Sounds, die ähnlich klingen. Wenn du deiner KI sagst, welche Nummer an welche Stelle soll, landet genau dieser Sound im Schnitt.') }}
+    <button type="button" class="btn snd-hoch-knopf" id="snd-hoch-auf">Sound hochladen</button>
+  </div>
+
+  <dialog class="snd-hoch" id="snd-hoch">
+    <form id="snd-hoch-form" method="dialog">
+      <h2>Sound hochladen</h2>
+      <label>Datei <span>MP3, WAV, M4A oder OGG, höchstens zwei Minuten</span>
+        <input type="file" name="datei" accept=".mp3,.wav,.m4a,.ogg,audio/*" required></label>
+      <label>Name <input type="text" name="name" maxlength="80" placeholder="Zum Beispiel: Mein Jingle"></label>
+      <label>Thema
+        <select name="thema"><option value="">Ohne Thema</option>{% for t in alle_themen %}<option>{{ t }}</option>{% endfor %}</select></label>
+      <label>Passt zu <input type="text" name="passt_zu" maxlength="160" placeholder="Wofür setzt du ihn ein? Hilft der Suche und deiner KI."></label>
+      <label>Schlagworte <input type="text" name="schlagworte" maxlength="200" placeholder="Mit Komma getrennt"></label>
+      <p class="snd-hoch-fehler" id="snd-hoch-fehler" hidden></p>
+      <div class="snd-hoch-knoepfe">
+        <button type="button" class="btn ghost" id="snd-hoch-zu">Abbrechen</button>
+        <button type="submit" class="btn">Hochladen</button>
+      </div>
+    </form>
+  </dialog>
+
+  {% set bibliothek_leer = not anzahl.alle %}
+  {% if not bibliothek_leer %}
+  <form class="snd-suche" method="get" action="{{ url_for('sounds') }}" role="search">
+    {% if tab != 'alle' %}<input type="hidden" name="thema" value="{{ tab }}">{% endif %}
+    <input type="search" name="q" value="{{ frage }}" placeholder="Wonach suchst du? Zum Beispiel: Gänsehaut, Schadenfreude, Geld, awkward silence" aria-label="Sounds durchsuchen">
+    {% if frage or basis %}<a class="snd-suche-weg" href="{{ url_for('sounds', thema=tab if tab != 'alle' else None) }}">Suche löschen</a>{% endif %}
+  </form>
+
+  <nav class="ansicht-umschalter snd-themen" aria-label="Sounds nach Thema">
+    <a href="{{ url_for('sounds', q=frage or None) }}" aria-current="{{ 'page' if tab == 'alle' else 'false' }}">Alle Themen <span class="count">{{ anzahl.alle }}</span></a>
+    {% for t in themen %}
+    <a href="{{ url_for('sounds', thema=t, q=frage or None) }}" aria-current="{{ 'page' if tab == t else 'false' }}">{{ t }} <span class="count">{{ anzahl[t] }}</span></a>
+    {% endfor %}
+  </nav>
+  {% endif %}
+
+  {% macro zeile(s) %}
+    {% set src = url_for('sound_datei', nr=s.nr, stand=s.stand) %}
+    <li class="snd" data-src="{{ src }}" data-nr="{{ s.nr }}" title="{{ s.schlagworte|join(', ') }}">
+      <button type="button" class="snd-spielen" aria-label="{{ s.name }} abspielen">
+        <svg class="an" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z"/></svg>
+        <svg class="aus" viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="6" width="3.5" height="12" rx="1"/><rect x="13.5" y="6" width="3.5" height="12" rx="1"/></svg>
+      </button>
+      <span class="snd-nr">#{{ '%02d' % s.nr }}</span>
+      <span class="snd-text">
+        <span class="snd-name">{{ s.name }}</span>
+        {% if s.passt_zu or s.beschreibung %}<span class="snd-info">{{ s.passt_zu or s.beschreibung }}</span>{% endif %}
+      </span>
+      <span class="snd-kat"{% if gruende.get(s.nr) %} title="Treffer über {{ gruende[s.nr] }}"{% endif %}>{{ s.stimmung or s.kategorie }}</span>
+      <a class="snd-aehnlich" href="{{ url_for('sounds', aehnlich=s.nr) }}" title="Sounds, die ähnlich klingen">Ähnliche</a>
+      <span class="snd-dauer">{{ '%.1f' % s.dauer }} s</span>
+      <span class="snd-aktionen">
+        <button type="button" class="snd-icon" data-aktion="loeschen" title="Sound löschen" aria-label="Löschen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></button>
+      </span>
+      <span class="snd-balken" aria-hidden="true"><i></i></span>
+    </li>
+  {% endmacro %}
+
+  {% if basis %}
+    <p class="snd-treffer">Klingt ähnlich wie <strong>#{{ '%02d' % basis.nr }} {{ basis.name }}</strong>, die ähnlichsten zuerst.</p>
+    <ol class="snd-liste">{{ zeile(basis) }}</ol>
+    <h2 class="snd-unterkopf">Ähnliche Sounds</h2>
+    <ol class="snd-liste">{% for s in sounds %}{{ zeile(s) }}{% endfor %}</ol>
+  {% elif sounds and gruppen %}
+    {% for t, teil in gruppen %}
+    <section class="snd-gruppe">
+      <h2>{{ t }} <span class="count">{{ teil|length }}</span></h2>
+      <ol class="snd-liste">{% for s in teil %}{{ zeile(s) }}{% endfor %}</ol>
+    </section>
+    {% endfor %}
+  {% elif sounds %}
+    <p class="snd-treffer">{{ sounds|length }} Treffer für „{{ frage }}“, die besten zuerst.</p>
+    <ol class="snd-liste">{% for s in sounds %}{{ zeile(s) }}{% endfor %}</ol>
+  {% elif frage %}
+    <div class="empty">
+      <div class="big">Nichts gefunden</div>
+      <p>Für „{{ frage }}“ passt kein Sound. Versuch ein anderes Wort, etwa eine Stimmung wie „peinlich“ oder „episch“.</p>
+    </div>
+  {% elif bibliothek_leer %}
+    <section class="snd-leer" aria-labelledby="snd-leer-titel">
+      <svg class="snd-leer-welle" viewBox="0 0 240 64" aria-hidden="true">
+        {% for i in range(24) %}{% set h = [10, 22, 36, 50, 30, 44, 18, 56, 40, 26, 48, 14][i % 12] %}<rect x="{{ i * 10 + 2 }}" y="{{ (64 - h) / 2 }}" width="5" height="{{ h }}" rx="2.5"/>{% endfor %}
+      </svg>
+      <h2 id="snd-leer-titel">Deine Sound-Bibliothek ist noch leer.</h2>
+      <p>Lade Soundeffekte, Jingles oder kurze Musik hoch. Jeder Sound bekommt eine feste Nummer, damit deine KI ihn im Schnitt genau an die richtige Stelle setzt.</p>
+      <button type="button" class="btn" id="snd-hoch-leer">Ersten Sound hochladen</button>
+      <p class="snd-leer-klein">MP3, WAV, M4A oder OGG, höchstens zwei Minuten. Deine KI kann über den MCP-Server auch selbst Sounds ablegen.</p>
+    </section>
+  {% else %}
+    <div class="empty">
+      <div class="big">Hier ist gerade nichts</div>
+      <p>Unter diesem Thema gibt es keine Sounds. Wechsel oben auf Alle Themen.</p>
+    </div>
+  {% endif %}
+
+  <script>
+  (function () {
+    var ton = new Audio(), aktiv = null;
+    function stopp() {
+      ton.pause();
+      if (aktiv) aktiv.classList.remove('spielt');
+      aktiv = null;
+    }
+    document.querySelectorAll('.snd').forEach(function (zeile) {
+      zeile.addEventListener('click', function (ev) {
+        if (ev.target.closest('a, .snd-aktionen')) return;
+        if (aktiv === zeile) { stopp(); return; }
+        stopp();
+        aktiv = zeile; zeile.classList.add('spielt');
+        ton.src = zeile.dataset.src; ton.currentTime = 0;
+        ton.play().catch(stopp);
+      });
+    });
+    ton.addEventListener('ended', stopp);
+
+    // Loeschen ohne Neuladen der ganzen Liste
+    document.querySelectorAll('.snd-icon').forEach(function (knopf) {
+      knopf.addEventListener('click', function () {
+        var zeile = knopf.closest('.snd'), nr = zeile.dataset.nr;
+        if (knopf.dataset.sicher !== '1') {
+          knopf.dataset.sicher = '1'; knopf.classList.add('sicher'); knopf.title = 'Nochmal klicken zum Löschen';
+          setTimeout(function () { knopf.dataset.sicher = ''; knopf.classList.remove('sicher'); }, 3000);
+          return;
+        }
+        fetch('{{ url_for('sounds') }}/' + nr + '/loeschen', {
+          method: 'POST', headers: {'Content-Type': 'application/json'}, body: '{}'
+        }).then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
+          if (!d) return;
+          if (aktiv === zeile) stopp();
+          zeile.classList.add('snd-raus');
+          setTimeout(function () { zeile.remove(); }, 250);
+        });
+      });
+    });
+
+    var dlg = document.getElementById('snd-hoch'), form = document.getElementById('snd-hoch-form'), fehler = document.getElementById('snd-hoch-fehler');
+    document.getElementById('snd-hoch-auf').addEventListener('click', function () { fehler.hidden = true; dlg.showModal(); });
+    var leerKnopf = document.getElementById('snd-hoch-leer');
+    if (leerKnopf) leerKnopf.addEventListener('click', function () { fehler.hidden = true; dlg.showModal(); });
+    document.getElementById('snd-hoch-zu').addEventListener('click', function () { dlg.close(); });
+    form.addEventListener('submit', function (ev) {
+      ev.preventDefault();
+      var knopf = form.querySelector('button[type=submit]');
+      knopf.disabled = true; knopf.textContent = 'Lädt hoch …'; fehler.hidden = true;
+      fetch('{{ url_for('sound_hochladen') }}', {method: 'POST', body: new FormData(form)})
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          if (d.ok) { window.location = '{{ url_for('sounds') }}'; return; }
+          fehler.textContent = d.error || 'Das hat nicht geklappt.'; fehler.hidden = false;
+        })
+        .catch(function () { fehler.textContent = 'Das hat nicht geklappt.'; fehler.hidden = false; })
+        .finally(function () { knopf.disabled = false; knopf.textContent = 'Hochladen'; });
+    });
+    ton.addEventListener('timeupdate', function () {
+      if (!aktiv || !ton.duration) return;
+      aktiv.querySelector('.snd-balken i').style.width = (ton.currentTime / ton.duration * 100) + '%';
+    });
+  })();
+  </script>
+{% endblock %}

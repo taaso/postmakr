@@ -1,0 +1,144 @@
+/* ============================================================================
+   Materiallager (Bereich der Seitenleiste)
+   Uebersicht als Regale mit Kartenraster und Suche, Detailseite mit Vorschau,
+   Feldern, Kontaktbogen, Transkript und Verwendung.
+   ============================================================================ */
+
+.lg-bestand { font-size: 13px; color: var(--sub); margin-left: auto; }
+.lg-platz { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--sub); white-space: nowrap; }
+.lg-platz-balken { width: 72px; height: 6px; border-radius: 999px; background: rgba(0, 0, 0, .08); overflow: hidden; }
+.lg-platz-balken span { display: block; height: 100%; border-radius: inherit; background: currentColor; }
+.lg-platz-knapp { color: #b45309; }
+.lg-platz-voll { color: #c0262d; font-weight: 600; }
+.lg-hochladen-knopf { margin-left: 4px; }
+
+/* ---------- Suche ---------------------------------------------------------- */
+.lg-suche { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: -10px 0 28px; }
+.lg-suche input[type="search"] {
+  flex: 1 1 360px; min-width: 0; height: 42px; padding: 0 16px;
+  border: 1px solid var(--line-strong); border-radius: 999px; background: var(--surface);
+  font: inherit; font-size: 14px; color: var(--text);
+}
+.lg-suche input[type="search"]:focus { outline: none; border-color: var(--text); }
+.lg-suche select {
+  height: 42px; padding: 0 12px; border: 1px solid var(--line); border-radius: 999px;
+  background: var(--surface); font: inherit; font-size: 13px; color: var(--text);
+}
+.lg-check { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--sub); }
+.lg-trefferzahl { margin: 0 0 14px; font-size: 14px; color: var(--sub); }
+
+/* ---------- Upload --------------------------------------------------------- */
+.lg-upload { display: flex; align-items: center; gap: 12px; margin: 0 0 20px; font-size: 13px; color: var(--sub); }
+.lg-balken { flex: 1; max-width: 320px; height: 6px; border-radius: 3px; background: var(--surface-2); overflow: hidden; }
+.lg-balken span { display: block; height: 100%; width: 0; background: var(--text); transition: width 0.2s; }
+.lg-ablage {
+  position: fixed; inset: 16px; z-index: 50; display: flex; align-items: center; justify-content: center;
+  border: 2px dashed var(--text); border-radius: 20px; background: rgba(255, 255, 255, 0.92);
+  font-size: 20px; font-weight: 600; pointer-events: none;
+}
+
+/* ---------- Karten --------------------------------------------------------- */
+.lg-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 16px; }
+.lg-karte {
+  display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--surface); overflow: hidden; color: inherit; text-decoration: none;
+  transition: border-color 0.15s;
+}
+.lg-karte:hover { border-color: var(--line-strong); }
+.lg-bild { position: relative; display: block; aspect-ratio: 4 / 5; background: var(--surface-2); overflow: hidden; }
+.lg-bild img, .lg-bild video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+.lg-bild video { opacity: 0; transition: opacity 0.15s; }
+.lg-bild video.an { opacity: 1; }
+.lg-dauer, .lg-herkunft, .lg-arbeit {
+  position: absolute; padding: 3px 9px; border-radius: 999px; font-size: 11.5px; font-weight: 600;
+  background: rgba(10, 10, 10, 0.72); color: #fff;
+}
+.lg-dauer { right: 8px; bottom: 8px; }
+.lg-herkunft { left: 8px; top: 8px; }
+.lg-herkunft-fremd { background: #b4231b; }
+.lg-herkunft-ki { background: #5b3cc4; }
+.lg-arbeit { left: 8px; bottom: 8px; background: #fff4d6; color: #8a5a00; }
+.lg-fehler { background: #fde2e1; color: #b4231b; }
+.lg-text { display: flex; flex-direction: column; gap: 5px; padding: 10px 12px 12px; }
+.lg-titel { font-size: 14px; font-weight: 600; line-height: 1.3; word-break: break-word; }
+.lg-info, .lg-stelle { font-size: 12.5px; color: var(--sub); line-height: 1.4; }
+.lg-stelle b { color: var(--text); font-weight: 600; margin-right: 4px; }
+.lg-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.lg-chip { padding: 2px 8px; border-radius: 999px; background: var(--surface-2); font-size: 11px; color: var(--sub); }
+.lg-chip-benutzt { background: #e3f6e8; color: #17703a; }
+
+/* ---------- Detail --------------------------------------------------------- */
+.lg-zurueck { font-size: 14px; color: var(--sub); text-decoration: none; }
+.lg-zurueck:hover { color: var(--text); }
+.lg-detail { display: grid; grid-template-columns: minmax(260px, 380px) 1fr; gap: 32px; align-items: start; }
+.lg-spieler { background: #000; border-radius: var(--radius); overflow: hidden; aspect-ratio: 9 / 16; }
+.lg-spieler.quer { aspect-ratio: 16 / 9; }
+.lg-spieler video, .lg-spieler img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.lg-spieler-leer { display: flex; height: 100%; align-items: center; justify-content: center; color: #aaa; font-size: 14px; }
+.lg-felder { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.lg-felder label { display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; font-weight: 600; color: var(--sub); }
+.lg-felder input, .lg-felder select, .lg-felder textarea {
+  font: inherit; font-size: 14px; font-weight: 400; color: var(--text);
+  border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px; background: var(--surface);
+}
+.lg-felder input:focus, .lg-felder textarea:focus, .lg-felder select:focus { outline: none; border-color: var(--text); }
+.lg-titel-feld { font-size: 22px !important; font-weight: 700 !important; border-color: transparent !important; padding-left: 0 !important; }
+.lg-titel-feld:focus { border-color: var(--line) !important; padding-left: 12px !important; }
+.lg-zeile { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.lg-hinweis { font-weight: 400; color: var(--faint); font-size: 12px; }
+.lg-auto { align-items: center; }
+.lg-gespeichert { margin: 0; font-size: 12.5px; color: #17703a; }
+.lg-daten { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px 18px; margin: 4px 0 0; }
+.lg-daten dt { font-size: 11.5px; color: var(--faint); }
+.lg-daten dd { margin: 2px 0 0; font-size: 13.5px; }
+.lg-daten a { color: inherit; }
+.lg-fehlertext { color: #b4231b; font-size: 13px; }
+
+.lg-abschnitt { margin-top: 36px; }
+.lg-abschnitt h2 { font-size: 17px; font-weight: 700; margin: 0 0 12px; }
+.lg-bogen { position: relative; max-width: 960px; }
+.lg-bogen img { width: 100%; display: block; border-radius: 10px; }
+.lg-bogen-felder { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(var(--spalten), 1fr); }
+.lg-bogen-felder button { border: 0; background: transparent; cursor: pointer; position: relative; padding: 0; }
+.lg-bogen-felder button:hover { outline: 2px solid #fff; outline-offset: -2px; }
+.lg-bogen-felder span {
+  position: absolute; left: 6px; top: 6px; padding: 1px 6px; border-radius: 6px;
+  background: rgba(10, 10, 10, 0.7); color: #fff; font-size: 11px; font-weight: 600;
+}
+/* Szenenleiste: ein Standbild je Szene aus szenen.jpg (Kacheln nebeneinander) */
+.lg-szenen { display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 8px; max-width: 960px; scrollbar-width: thin; }
+.lg-szene {
+  flex: 0 0 auto; display: flex; flex-direction: column; gap: 4px; width: calc(96px * var(--kachel) + 24px); min-width: 74px;
+  padding: 0; border: 0; background: transparent; cursor: pointer; text-align: left; font: inherit; color: var(--text);
+}
+.lg-szene-bild {
+  display: block; width: 100%; aspect-ratio: var(--kachel); border-radius: 8px; background-color: var(--surface-2);
+  background-repeat: no-repeat; outline: 2px solid transparent; outline-offset: -2px; transition: outline-color 0.15s;
+}
+.lg-szene:hover .lg-szene-bild { outline-color: var(--line-strong); }
+.lg-szene.an .lg-szene-bild { outline-color: var(--text); }
+.lg-szene-zeit { font-size: 12px; font-weight: 600; }
+.lg-szene-text { font-size: 11.5px; color: var(--sub); line-height: 1.3; }
+.lg-stelle-hinweis { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 12px; font-size: 14px; }
+.lg-hinweis-text { margin: 0 0 12px; font-size: 14px; color: var(--sub); }
+.lg-weitere { font-size: 12px; color: var(--faint); line-height: 1.4; }
+.lg-ausschnitt { display: inline-block; margin-left: 6px; padding: 1px 8px; border-radius: 999px; background: var(--surface-2); font-size: 12px; color: var(--sub); }
+.lg-verwendung a { color: inherit; }
+
+.lg-liste { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; max-width: 780px; }
+.lg-liste li { font-size: 14px; line-height: 1.5; }
+.lg-liste button, .lg-verwendung button {
+  border: 0; background: var(--surface-2); border-radius: 6px; padding: 1px 7px; margin-right: 6px;
+  font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; color: var(--text);
+}
+.lg-verwendung { list-style: none; margin: 0 0 10px; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 14px; }
+.lg-verwendung-neu { display: flex; flex-wrap: wrap; gap: 8px; }
+.lg-verwendung-neu select { height: 36px; border: 1px solid var(--line); border-radius: 999px; padding: 0 12px; font: inherit; font-size: 13px; background: var(--surface); }
+.lg-aktionen { display: flex; gap: 8px; }
+.lg-loeschen { color: #b4231b !important; }
+
+@media (max-width: 760px) {
+  .lg-detail { grid-template-columns: 1fr; }
+  .lg-spieler { max-width: 360px; }
+  .lg-zeile { grid-template-columns: 1fr; }
+}

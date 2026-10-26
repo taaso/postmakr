@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<style>
+/* Karussell: FOTO-COVER (Hook-Slide)
+   Bild oben ~60 %, dunkles Panel unten. Inter-800-Headline Mixed Case mit
+   GENAU EINER roten Keyword-Box und rotem "›" am Ende. Kein Logo (Foto-Cover-Ausnahme).
+   Platzhalter LOGO_B64 nur falls Logo gewünscht — Standard-Foto-Cover ohne. */
+
+*{margin:0;padding:0;box-sizing:border-box;}
+body{width:1080px;height:1350px;overflow:hidden;background:var(--grund,#121417);font-family:'Inter',sans-serif;color:#fff;}
+
+.photo{position:relative;width:1080px;height:820px;}                 /* ~60 % Bildhöhe */
+.photo img.bg{width:100%;height:100%;object-fit:cover;display:block;filter:brightness(0.92) saturate(0.97);}
+.photo .fade{position:absolute;left:0;right:0;bottom:0;height:260px;background:linear-gradient(to bottom, color-mix(in srgb,var(--grund,#121417) 0%,transparent) 0%, color-mix(in srgb,var(--grund,#121417) 55%,transparent) 55%, var(--grund,#121417) 100%);}
+.photo .top-shade{position:absolute;left:0;right:0;top:0;height:200px;background:linear-gradient(to bottom, rgba(0,0,0,0.25), rgba(0,0,0,0));}
+.credit{position:absolute;top:56px;right:26px;font-size:20px;color:rgba(255,255,255,0.6);writing-mode:vertical-rl;letter-spacing:1px;}
+
+.panel{position:relative;width:1080px;height:530px;background:radial-gradient(circle at 50% -10%, var(--grund-hell,#1f232a) 0%, var(--grund,#121417) 70%);padding:44px 64px 52px;display:flex;flex-direction:column;}
+.kicker{font-size:36px;font-weight:700;color:#fff;letter-spacing:0.3px;margin-bottom:26px;}
+.headline{font-family:'Inter',sans-serif;font-weight:800;font-size:72px;line-height:1.22;letter-spacing:-1px;color:#fff;}
+.headline .hl{background:var(--akzent,#E02020);color:#fff;padding:0 16px 4px;display:inline-block;border-radius:4px;line-height:1;}
+.headline .arrow{color:var(--akzent,#E02020);}
+
+.footer{margin-top:auto;display:flex;justify-content:space-between;align-items:flex-end;}
+.footer .src{font-size:22px;color:rgba(255,255,255,0.45);line-height:1.5;}
+.footer .src b{color:rgba(255,255,255,0.75);font-weight:700;}
+.footer .next{font-size:30px;font-weight:700;color:rgba(255,255,255,0.75);letter-spacing:2px;}
+.next .ch{opacity:0.25;display:inline-block;animation:sweep 1.5s linear infinite;}
+.next .ch:nth-child(1){animation-delay:0s;}
+.next .ch:nth-child(2){animation-delay:0.15s;}
+.next .ch:nth-child(3){animation-delay:0.3s;}
+@keyframes sweep{0%{opacity:0.25;}10%{opacity:1;}55%{opacity:1;}65%{opacity:0.25;}100%{opacity:0.25;}}
+</style>
+</head>
+<body>
+<div class="photo">
+  <!-- INHALT: Cover-Foto (Thema-Bild, relativer Pfad oder URL) -->
+  <img class="bg" src="assets/cover.jpg" alt="">
+  <div class="top-shade"></div>
+  <div class="fade"></div>
+  <!-- INHALT: Foto-Credit (Pflicht bei freien Lizenzen) -->
+  <div class="credit">Foto: Rechteinhaber, Lizenz</div>
+</div>
+<div class="panel">
+  <!-- INHALT: Kicker (Einordnung, weiß) -->
+  <div class="kicker">Neue Studie zum Thema</div>
+  <!-- INHALT: Headline Mixed Case, GENAU EINE .hl-Redbox, .arrow "›" am Ende -->
+  <div class="headline">Hier steht die <span class="hl">Zuspitzung</span><br>deines Beitrags<br>in drei Zeilen <span class="arrow">›</span></div>
+  <div class="footer">
+    <!-- INHALT: Quellenzeile, Markenname fett -->
+    <div class="src">Quelle: Name der Quelle, Jahr<br><b>Deine Marke</b></div>
+    <div class="next">weiter <span class="ch">›</span><span class="ch">›</span><span class="ch">›</span></div>
+  </div>
+</div>
+</body>
+</html>

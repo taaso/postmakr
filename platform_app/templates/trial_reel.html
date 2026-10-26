@@ -1,0 +1,272 @@
+{% extends "base.html" %}
+{% block content %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='kalender.css') }}?v=20261024">
+  <link rel="stylesheet" href="{{ url_for('static', filename='trial-reels.css') }}?v=20261018a">
+
+  {% macro clip_liste(v) %}
+    <ul class="tr-clips" data-clips>
+      {% for c in v.clips %}
+      <li>
+        <button type="button" class="tr-clip-name" data-zeigen="{{ c.name }}" data-video="{{ '1' if c.video else '0' }}" title="In der Fläche zeigen">{{ c.name }}</button>
+        <span class="tr-clip-mb">{{ c.mb }} MB</span>
+        <button type="button" class="tr-clip-weg" data-loeschen="{{ c.name }}" title="Clip löschen" aria-label="Clip {{ c.name }} löschen">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+        </button>
+      </li>
+      {% endfor %}
+    </ul>
+  {% endmacro %}
+
+  <div class="page-title-row tr-titelzeile">
+    <a class="back-arrow" href="{{ url_for('trial_reels') }}" aria-label="Zurück zu Trial Reels">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m11 18-6-6 6-6"/></svg>
+    </a>
+    <h1 class="page">{{ reel.titel }}</h1>
+  </div>
+
+  <div class="tr-leiste">
+    <nav class="ansicht-umschalter" aria-label="Länge">
+      {% for l in laengen %}
+      <button type="button" data-laenge="{{ l }}" aria-pressed="{{ 'true' if reel.laenge == l else 'false' }}">{{ l }} s</button>
+      {% endfor %}
+    </nav>
+    <nav class="ansicht-umschalter" aria-label="Status">
+      {% for key, name in status_namen.items() %}
+      <button type="button" data-status="{{ key }}" aria-pressed="{{ 'true' if reel.status == key else 'false' }}">{{ name }}</button>
+      {% endfor %}
+    </nav>
+    <label class="tr-kategorie">
+      <span>Kategorie</span>
+      <input type="text" list="tr-kategorien" data-kategorie value="{{ reel.kategorie if reel.kategorie != 'Ohne Kategorie' else '' }}" placeholder="z. B. Produkt">
+      <datalist id="tr-kategorien">{% for k in alle_kategorien %}<option value="{{ k }}">{% endfor %}</datalist>
+    </label>
+    <span class="tr-meldung" id="tr-meldung" role="status"></span>
+  </div>
+
+  {% if reel.idee %}<p class="tr-idee">{{ reel.idee }}</p>{% endif %}
+
+  <section class="tr-versionen">
+    {% for v in reel.versionen %}
+    <article class="tr-version {{ 'hat-material' if v.clips else '' }}" data-version="{{ v.nr }}"
+             data-hochladen="{{ url_for('trial_reel_hochladen', slug=reel.slug, nr=v.nr) }}"
+             data-loeschen-url="{{ url_for('trial_reel_clip_loeschen', slug=reel.slug, nr=v.nr) }}"
+             data-datei-url="{{ url_for('trial_reel_datei', slug=reel.slug, nr=v.nr, name='NAME') }}">
+      <header class="tr-version-kopf">
+        <span class="tr-version-nr">{{ v.nr }}</span>
+        <span class="tr-version-name">{{ v.name }}</span>
+      </header>
+
+      <div class="tr-buehne" data-buehne>
+        {% set erstes = (v.clips | selectattr('video') | first) or (v.clips | first) %}
+        {% if erstes %}
+          {% if erstes.video %}
+            <video controls playsinline preload="metadata" src="{{ url_for('trial_reel_datei', slug=reel.slug, nr=v.nr, name=erstes.name, stand=erstes.stand) }}"></video>
+          {% else %}
+            <img src="{{ url_for('trial_reel_datei', slug=reel.slug, nr=v.nr, name=erstes.name, stand=erstes.stand) }}" alt="">
+          {% endif %}
+        {% else %}
+          <div class="tr-leer">
+            {% if v.hook %}<p class="tr-leer-hook">{{ v.hook }}</p>{% endif %}
+            {% if v.aufnahmen %}
+            <p class="tr-leer-label">Aufnehmen</p>
+            <ol class="tr-leer-plan">
+              {% for a in v.aufnahmen %}<li>{% if a.titel %}<b>{{ a.titel }}:</b> {% endif %}{{ a.anweisung }}</li>{% endfor %}
+            </ol>
+            {% endif %}
+            <p class="tr-leer-drop">Clips hierher ziehen</p>
+          </div>
+        {% endif %}
+      </div>
+
+      {# Alle drei Spalten teilen sich ein Zeilenraster (subgrid), deshalb hat
+         jede Version genau dieselben Bloecke, auch wenn einer leer ist. #}
+      <div class="tr-mitte">
+        {% if v.hook or v.aufnahmen %}
+        <details class="tr-plan-klein">
+          <summary>Hook und Aufnahmeplan</summary>
+          {% if v.hook %}<p class="tr-plan-hook">{{ v.hook }}</p>{% endif %}
+          <ol>{% for a in v.aufnahmen %}<li>{% if a.titel %}<b>{{ a.titel }}:</b> {% endif %}{{ a.anweisung }}</li>{% endfor %}</ol>
+        </details>
+        {% endif %}
+        {% if v.notiz %}<p class="tr-notiz">{{ v.notiz }}</p>{% endif %}
+        {{ clip_liste(v) }}
+      </div>
+
+      <div class="tr-hoch">
+        <label class="tr-upload">
+          <input type="file" multiple accept="video/*,image/*" data-datei-input hidden>
+          <span>Clips hochladen</span>
+        </label>
+        <div class="tr-fortschritt-balken" data-balken hidden><span></span></div>
+      </div>
+
+      {% for feld, titel in [('hook', 'Hook'), ('oton', 'O-Ton'), ('caption', 'Caption'), ('skript', 'Skript')] %}
+      <div class="tr-textblock">
+        <div class="tr-textkopf">
+          <h2>{{ titel }}</h2>
+          <button type="button" class="tr-kopieren" data-kopieren="v{{ v.nr }}.{{ feld }}">Kopieren</button>
+        </div>
+        <textarea data-feld="v{{ v.nr }}.{{ feld }}" rows="{{ 2 if feld == 'hook' else 5 }}" placeholder="Noch leer">{{ v[feld] }}</textarea>
+      </div>
+      {% endfor %}
+    </article>
+    {% endfor %}
+  </section>
+
+
+  <script>
+  (function () {
+    var SPEICHERN = {{ url_for('trial_reel_speichern', slug=reel.slug) | tojson }};
+    var meldung = document.getElementById('tr-meldung');
+    var meldungTimer;
+    function melden(text, fehler) {
+      meldung.textContent = text;
+      meldung.classList.toggle('fehler', !!fehler);
+      clearTimeout(meldungTimer);
+      meldungTimer = setTimeout(function () { meldung.textContent = ''; }, fehler ? 6000 : 2200);
+    }
+    function speichern(daten) {
+      return fetch(SPEICHERN, { method: 'POST', body: new URLSearchParams(daten) })
+        .then(function (r) { return r.json(); })
+        .then(function (j) { if (!j.ok) throw new Error(j.error || 'Fehler'); melden('Gespeichert'); })
+        .catch(function (e) { melden(e.message, true); });
+    }
+
+    // Laenge und Status als Pillen.
+    document.querySelectorAll('[data-laenge], [data-status]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var art = btn.dataset.laenge ? 'laenge' : 'status';
+        btn.parentElement.querySelectorAll('button').forEach(function (b) { b.setAttribute('aria-pressed', b === btn ? 'true' : 'false'); });
+        var d = {}; d[art] = btn.dataset[art]; speichern(d);
+      });
+    });
+
+    // Kategorie: speichern bei Aenderung (Auswahl aus der Liste oder neu getippt).
+    var kat = document.querySelector('[data-kategorie]');
+    var katStand = kat.value;
+    kat.addEventListener('change', function () {
+      var wert = kat.value.trim();
+      if (wert === katStand) return;
+      katStand = wert;
+      speichern({ kategorie: wert });
+    });
+
+    // Texte: speichern beim Verlassen des Feldes, wenn sich etwas geaendert hat.
+    document.querySelectorAll('textarea[data-feld]').forEach(function (ta) {
+      function hoehe() { ta.style.minHeight = 'auto'; ta.style.minHeight = (ta.scrollHeight + 2) + 'px'; }
+      hoehe();
+      var stand = ta.value;
+      ta.addEventListener('input', hoehe);
+      ta.addEventListener('blur', function () {
+        if (ta.value === stand) return;
+        stand = ta.value;
+        var d = {}; d[ta.dataset.feld] = ta.value; speichern(d);
+      });
+    });
+    document.querySelectorAll('[data-kopieren]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var ta = document.querySelector('textarea[data-feld="' + btn.dataset.kopieren + '"]');
+        navigator.clipboard.writeText(ta.value).then(function () {
+          btn.textContent = 'Kopiert'; setTimeout(function () { btn.textContent = 'Kopieren'; }, 1500);
+        });
+      });
+    });
+
+    // Versionen: Hochladen (Knopf oder Ziehen), Clip zeigen, Clip loeschen.
+    document.querySelectorAll('.tr-version').forEach(function (karte) {
+      var input = karte.querySelector('[data-datei-input]');
+      var balken = karte.querySelector('[data-balken]');
+      var buehne = karte.querySelector('[data-buehne]');
+      var liste = karte.querySelector('[data-clips]');
+
+      function dateiUrl(name) { return karte.dataset.dateiUrl.replace('NAME', encodeURIComponent(name)); }
+      function zeigen(name, istVideo) {
+        buehne.innerHTML = '';
+        var el = document.createElement(istVideo ? 'video' : 'img');
+        if (istVideo) { el.controls = true; el.playsInline = true; el.preload = 'metadata'; }
+        el.src = dateiUrl(name);
+        buehne.appendChild(el);
+        markieren(name);
+      }
+      function markieren(name) {
+        liste.querySelectorAll('[data-zeigen]').forEach(function (b) { b.setAttribute('aria-current', b.dataset.zeigen === name ? 'true' : 'false'); });
+      }
+      function listeNeu(clips) {
+        liste.innerHTML = '';
+        clips.forEach(function (c) {
+          var li = document.createElement('li');
+          li.innerHTML = '<button type="button" class="tr-clip-name"></button><span class="tr-clip-mb"></span>' +
+            '<button type="button" class="tr-clip-weg" title="Clip löschen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>';
+          var n = li.querySelector('.tr-clip-name');
+          n.textContent = c.name; n.dataset.zeigen = c.name; n.dataset.video = c.video ? '1' : '0';
+          li.querySelector('.tr-clip-mb').textContent = c.mb + ' MB';
+          var weg = li.querySelector('.tr-clip-weg');
+          weg.dataset.loeschen = c.name; weg.setAttribute('aria-label', 'Clip ' + c.name + ' löschen');
+          liste.appendChild(li);
+        });
+        karte.classList.toggle('hat-material', clips.length > 0);
+        if (clips.length) {
+          var erstes = clips.filter(function (c) { return c.video; })[0] || clips[0];
+          if (!buehne.querySelector('video, img')) zeigen(erstes.name, erstes.video);
+        } else {
+          location.reload();
+        }
+      }
+
+      function hochladen(dateien) {
+        if (!dateien || !dateien.length) return;
+        var fd = new FormData();
+        Array.prototype.forEach.call(dateien, function (f) { fd.append('dateien', f); });
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', karte.dataset.hochladen);
+        balken.hidden = false; balken.firstElementChild.style.width = '0%';
+        xhr.upload.onprogress = function (e) {
+          if (e.lengthComputable) balken.firstElementChild.style.width = Math.round(e.loaded / e.total * 100) + '%';
+        };
+        xhr.onload = function () {
+          balken.hidden = true;
+          var j; try { j = JSON.parse(xhr.responseText); } catch (e) { j = { ok: false, error: 'Upload fehlgeschlagen (' + xhr.status + ')' }; }
+          if (!j.ok) { melden(j.error, true); return; }
+          melden('Hochgeladen'); listeNeu(j.clips);
+        };
+        xhr.onerror = function () { balken.hidden = true; melden('Upload abgebrochen, Verbindung prüfen.', true); };
+        xhr.send(fd);
+      }
+
+      input.addEventListener('change', function () { hochladen(input.files); input.value = ''; });
+      ['dragenter', 'dragover'].forEach(function (t) {
+        karte.addEventListener(t, function (e) { e.preventDefault(); karte.classList.add('zieht'); });
+      });
+      ['dragleave', 'drop'].forEach(function (t) {
+        karte.addEventListener(t, function (e) { e.preventDefault(); if (t === 'drop' || !karte.contains(e.relatedTarget)) karte.classList.remove('zieht'); });
+      });
+      karte.addEventListener('drop', function (e) { hochladen(e.dataTransfer.files); });
+
+      var start = buehne.querySelector('video, img');
+      if (start) { var m = (start.getAttribute('src') || '').match(/datei\/([^?]+)/); if (m) markieren(decodeURIComponent(m[1])); }
+
+      liste.addEventListener('click', function (e) {
+        var z = e.target.closest('[data-zeigen]');
+        if (z) { zeigen(z.dataset.zeigen, z.dataset.video === '1'); var v = buehne.querySelector('video'); if (v) v.play().catch(function () {}); return; }
+        var w = e.target.closest('[data-loeschen]');
+        if (!w) return;
+        // Zweistufig statt Browser-Dialog: erster Klick fragt, zweiter loescht.
+        if (!w.classList.contains('sicher')) {
+          w.classList.add('sicher'); w.title = 'Nochmal klicken zum Löschen';
+          setTimeout(function () { w.classList.remove('sicher'); w.title = 'Clip löschen'; }, 2500);
+          return;
+        }
+        fetch(karte.dataset.loeschenUrl, { method: 'POST', body: new URLSearchParams({ name: w.dataset.loeschen }) })
+          .then(function (r) { return r.json(); })
+          .then(function (j) {
+            if (!j.ok) throw new Error(j.error || 'Fehler');
+            var buehnenSrc = (buehne.querySelector('video, img') || {}).src || '';
+            if (buehnenSrc.indexOf(encodeURIComponent(w.dataset.loeschen)) !== -1) buehne.innerHTML = '';
+            listeNeu(j.clips);
+          })
+          .catch(function (err) { melden(err.message, true); });
+      });
+    });
+  })();
+  </script>
+{% endblock %}

@@ -1,0 +1,9 @@
+{# Logo und Web-App-Angaben fuer jede Seite mit eigenem <head>. Als Web-App
+   gestartet laeuft postmakr ohne Browserleisten im Vollbild. #}
+<link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='img/favicon.svg') }}">
+<link rel="apple-touch-icon" href="{{ url_for('static', filename='img/app-icon-180.png') }}">
+<link rel="manifest" href="{{ url_for('static', filename='img/manifest.json') }}">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="postmakr">
+<meta name="application-name" content="postmakr">

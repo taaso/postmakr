@@ -1,0 +1,71 @@
+# brand.yaml: Vorlage fuer einen neuen Workspace.
+# Diese Datei liegt im Workspace-Root (neben archive/, drafts/, scan/, context/).
+# Sie steuert Branding und die Konfiguration der Engine: Alles, was sonst in
+# Code oder Prompts hart codiert waere (Radar-Kriterien, Formate, CTA, Sprachen,
+# Kanaele, aktive Bereiche) ist hier editierbar, entweder direkt in dieser
+# Datei oder ueber die Einstellungen im Dashboard.
+#
+# Fehlende Felder bekommen beim Laden (Workspace.load) sinnvolle Defaults:
+# leere Kriterien-/Formate-/Ressorts-Listen bedeuten "noch nichts konfiguriert"
+# (Seiten zeigen dann einen Empty-State mit Hinweis auf die Einstellungen).
+# Fehlende Bereiche gelten als an, nur der Radar ist ohne Eintrag aus.
+
+# -- Branding ------------------------------------------------------------
+name: Mein Workspace          # Anzeigename, taucht in Titel/Sidebar/User-Agent auf
+accent: "#E02020"             # Akzentfarbe (Hex) fuer Dashboard und Slides
+# Weitere Farben fuer die Slide-Vorlagen (Hex). Der Renderer setzt sie als
+# CSS-Variablen (--akzent aus accent, dazu --grund, --grund-hell, --flaeche,
+# --balken, --neutral). Leer lassen heisst: neutrale Standardfarben.
+farben:
+  grund: ""                   # Hintergrund der Slides, z.B. "#121417"
+  grund_hell: ""              # hellerer Verlauf oben, z.B. "#1f232a"
+  flaeche: ""                 # Kacheln und leere Punkte, z.B. "#262a31"
+  balken: ""                  # Diagramm-Balken, z.B. "#3a4049"
+  neutral: ""                 # neutrale Werte (enthalten, fehlte), z.B. "#5f6670"
+website: ""                   # Deine Website, die KI nutzt sie als Quelle fuer Marke und Links
+
+# -- Radar-Kriterien -------------------------------------------------------
+# Kriterien, nach denen der Radar (Scan) Themen bewertet. Nur noetig, wenn du
+# den Radar nutzt. gewicht: 1 bis 5 (5 = wichtigstes Kriterium).
+viralitaet:
+  kriterien: []
+    # - name: "Betrifft meine Zielgruppe direkt"
+    #   beschreibung: "Das Thema veraendert etwas im Alltag meiner Leute."
+    #   gewicht: 5
+    # - name: "Ueberraschende Zahl"
+    #   beschreibung: "Eine Zahl, die dem Bauchgefuehl widerspricht."
+    #   gewicht: 3
+
+# -- Themenfelder / Feeds ---------------------------------------------------
+# Ressorts sind eine reine Referenz-Liste (Gruppierung fuer den Scan); die
+# eigentlichen Feeds/Quellen stehen strukturiert in scan/sources.yaml (Feld
+# "ressort" je Quelle). Leer lassen, bis Themenfelder feststehen.
+ressorts: []
+  # - politik
+  # - wirtschaft
+  # - tech
+
+# -- Format-Katalog ----------------------------------------------------------
+# Aktiver Format-Katalog (Teilmenge der Format-Specs in context/formats/*.md).
+# Leer = alle vorhandenen Format-Specs sind aktiv (kein Filter).
+formate: []
+  # - karussell
+  # - animiertes-karussell
+  # - sharepic
+  # - motion-graphic
+  # - text-over-video
+
+# -- Ausspielung --------------------------------------------------------
+cta_standard: ""               # Standard-Call-to-Action fuer Captions (z.B. "Folgen fuer mehr")
+sprachen: [de]                 # Sprachen, in denen produziert wird
+kanaele: [instagram, tiktok]    # Kanaele fuer die Planung im Kalender (gepostet wird von Hand)
+
+# -- Bereiche der Seitenleiste -------------------------------------------
+# Auch in den Einstellungen unter Allgemein schaltbar. Abgeschaltete Bereiche
+# verschwinden aus der Seitenleiste.
+module:
+  trial_reels: true
+  sounds: true
+  lager: true
+  medien: true
+  scan: false

@@ -1,0 +1,16 @@
+#!/bin/sh
+# Startbefehl fuer postmakr lokal. Nutzt die eingerichtete Python-Umgebung
+# (.venv, angelegt von "./postmakr installieren"), sonst das System-Python.
+#   ./postmakr start [--handy]     Dashboard starten
+#   ./postmakr mcp                 MCP-Server fuer Claude starten
+#   ./postmakr installieren        Python-Umgebung einrichten
+HIER="$(cd "$(dirname "$0")" && pwd)"
+if [ -x "$HIER/.venv/bin/python" ]; then
+  PY="$HIER/.venv/bin/python"
+elif command -v python3 >/dev/null 2>&1; then
+  PY="python3"
+else
+  echo "Python 3 fehlt. Installiere Python 3.10 oder neuer von python.org." >&2
+  exit 1
+fi
+exec "$PY" "$HIER/postmakr.py" "$@"

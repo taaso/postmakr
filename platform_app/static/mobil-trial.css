@@ -1,0 +1,293 @@
+/* Trial Reels in der Handy-Ansicht: Liste, ein Reel mit drei
+   Versionen und die Aufnahme mit Teleprompter. Baut auf mobil.css auf. */
+
+/* --- Liste ---------------------------------------------------------------- */
+.t-liste-gruppen { padding: 0 8px calc(var(--unten) + 100px); }
+.t-gruppe-kopf { margin: 14px 4px 10px; font-size: 18px; font-weight: 750; letter-spacing: -0.01em; }
+.t-gruppe-kopf span { margin-left: 4px; font-size: 13px; font-weight: 650; color: var(--leise); }
+.t-liste { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.t-karte { display: flex; flex-direction: column; gap: 8px; }
+.t-karte-bild {
+  position: relative; display: block; aspect-ratio: 9 / 16;
+  border-radius: 14px; overflow: hidden; background: var(--flaeche);
+}
+.t-karte-bild video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.t-minis { position: absolute; inset: 0; display: flex; gap: 5px; align-items: center; justify-content: center; padding: 14px; }
+.t-minis i { flex: 1; max-width: 34px; aspect-ratio: 9 / 16; border: 1.5px dashed #3a3a3a; border-radius: 5px; }
+.t-minis i.voll { border-style: solid; border-color: #fff; background: #fff; }
+.t-laenge {
+  position: absolute; top: 8px; right: 8px; padding: 2px 8px; border-radius: 999px;
+  background: rgba(0, 0, 0, 0.6); font-size: 11.5px; font-weight: 700;
+}
+.t-karte-info { display: flex; flex-direction: column; gap: 4px; padding: 0 2px 6px; align-items: flex-start; }
+.t-karte-titel { font-size: 14.5px; font-weight: 650; line-height: 1.3; }
+.t-karte-sub { font-size: 12px; color: var(--sub); }
+.t-st-entwurf::before { background: var(--gelb); }
+.t-st-bereit::before { background: var(--blau); }
+.t-st-im_test { background: rgba(255, 214, 10, 0.2); }
+.t-st-gewinner { background: rgba(52, 199, 89, 0.24); }
+.t-st-raus { color: var(--leise); }
+
+/* --- Ein Reel --------------------------------------------------------------- */
+.t-reel { padding: 2px 14px calc(var(--unten) + 130px); }
+/* Kopf und Versionsleiste deckend, damit beim Scrollen nichts durchscheint.
+   Die Leiste klebt direkt unter dem Kopf (65 px plus Notch). */
+.t-seite .m-kopf { background: var(--bg); -webkit-backdrop-filter: none; backdrop-filter: none; }
+.t-versionen-halter {
+  position: sticky; top: calc(var(--oben) + 65px); z-index: 4;
+  margin: -1px -14px 12px; padding: 1px 14px 10px; background: var(--bg);
+}
+.t-versionen {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px;
+  padding: 4px; border-radius: 999px; background: var(--pille);
+}
+.t-versionen button {
+  position: relative; display: flex; align-items: center; justify-content: center; gap: 6px;
+  height: 40px; border-radius: 999px; color: var(--sub); font-size: 13.5px; font-weight: 600;
+  min-width: 0;
+}
+.t-versionen button span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.t-versionen button b {
+  display: inline-grid; place-items: center; flex: none;
+  width: 20px; height: 20px; border-radius: 50%; background: #333; color: #fff; font-size: 11.5px;
+}
+.t-versionen button[aria-selected="true"] { background: var(--pille-an); color: #fff; }
+.t-versionen button:focus { outline: none; }
+.t-versionen button:focus-visible { box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.35); }
+.t-versionen button[aria-selected="true"] b { background: #fff; color: #000; }
+.t-haken { width: 7px; height: 7px; border-radius: 50%; background: var(--gruen); flex: none; }
+
+/* Volle Breite wie die Knoepfe darunter. Hochkant nur, wenn ein Video
+   drin ist; der Aufnahmeplan nimmt sich so viel Hoehe, wie er braucht. */
+.t-buehne { width: 100%; border-radius: 18px; overflow: hidden; background: var(--flaeche); }
+.t-buehne:has(video, img) { aspect-ratio: 9 / 16; }
+.t-buehne video, .t-buehne img { width: 100%; height: 100%; object-fit: contain; display: block; background: #000; }
+.t-plan { padding: 20px 18px 22px; border: 1.5px dashed #333; border-radius: 18px; }
+.t-plan-hook { margin: 0 0 14px; font-size: 19px; font-weight: 750; line-height: 1.28; letter-spacing: -0.01em; }
+.t-plan-label { margin: 0 0 8px; font-size: 11px; font-weight: 750; letter-spacing: 0.1em; text-transform: uppercase; color: var(--leise); }
+.t-plan ol { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 9px; font-size: 14px; line-height: 1.45; color: #ddd; }
+.t-notiz { margin: 12px 2px 0; font-size: 13px; color: var(--sub); }
+
+.t-clips { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.t-clips li { display: flex; align-items: center; gap: 10px; padding: 8px 6px 8px 12px; border-radius: 12px; background: var(--flaeche); font-size: 13.5px; }
+.t-clip-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; font: inherit; color: inherit; background: none; border: 0; padding: 0; }
+.t-clip-name::before { content: "▶"; font-size: 9px; margin-right: 7px; opacity: .45; }
+.t-clip-name[aria-current="true"] { font-weight: 650; }
+.t-clip-name[aria-current="true"]::before { opacity: 1; }
+.t-sichern { flex: 0 0 auto; height: 32px; padding: 0 12px; border-radius: 10px; border: 0; background: #fff; color: #111; font: 600 13px/1 inherit; font-family: inherit; }
+.t-sichern.bereit { background: #34c759; color: #fff; }
+.t-sichern:disabled { opacity: .6; }
+.t-clip-mb { color: var(--leise); font-size: 12px; }
+.t-clip-weg { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 10px; color: var(--sub); }
+.t-clip-weg svg { width: 16px; height: 16px; }
+.t-clip-weg.sicher { background: #ff453a; color: #fff; }
+
+.t-aktionen { display: flex; flex-direction: column; gap: 8px; margin: 14px 0 6px; }
+.t-knopf, .t-kopieren, .t-clip-weg { outline: none; }
+.t-knopf {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  height: 48px; border-radius: 999px; background: var(--pille);
+  font-size: 15px; font-weight: 650; cursor: pointer;
+}
+.t-knopf-haupt { height: 56px; background: #fff; color: #000; font-size: 16px; }
+.t-knopf-haupt svg { width: 18px; height: 18px; color: #ff3b30; }
+.t-knopf-reihe { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.t-balken { height: 5px; border-radius: 5px; background: var(--pille); overflow: hidden; }
+.t-balken i { display: block; height: 100%; width: 0; background: #fff; transition: width 0.2s; }
+
+.t-text { margin-top: 16px; padding: 14px 16px; border-radius: 16px; background: var(--flaeche); }
+.t-text-kopf { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.t-text-kopf h2 { margin: 0; font-size: 14px; font-weight: 750; color: var(--sub); letter-spacing: 0.01em; }
+.t-kopieren { padding: 5px 12px; border-radius: 999px; background: var(--pille-an); font-size: 13px; font-weight: 650; }
+.t-text-inhalt { margin: 0; white-space: pre-wrap; font-size: 15px; line-height: 1.5; }
+.t-text-inhalt:empty::before { content: "Noch leer"; color: var(--sub); }
+.t-text-knoepfe { display: flex; gap: 6px; }
+.t-text-feld { display: block; width: 100%; min-height: 96px; padding: 10px 12px; border: 0; border-radius: 12px; background: var(--pille); color: inherit; font: inherit; font-size: 16px; line-height: 1.5; resize: none; }
+
+/* --- Aufnahme ---------------------------------------------------------------- */
+.r { position: fixed; inset: 0; z-index: 50; background: #000; overflow: hidden; }
+.r-live, .r-review { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; background: #000; }
+/* Ganzes Kamerabild zeigen, genau das wird aufgenommen. Mit cover wurde es
+   auf dem schmalen iPhone-Bildschirm stark beschnitten. */
+.r-live { object-fit: contain; }
+.r-live.spiegel, .r-review.spiegel { transform: scaleX(-1); }
+.r-aufloesung {
+  position: absolute; top: calc(var(--oben) + 18px); left: 14px; z-index: 2;
+  padding: 3px 8px; border-radius: 999px; background: rgba(0,0,0,0.5);
+  font-size: 11px; font-weight: 650; color: #ddd; font-variant-numeric: tabular-nums;
+}
+.r.laeuft .r-aufloesung { display: none; }
+.r-review { object-fit: contain; }
+
+/* Teleprompter: oben, nah an der Frontkamera, damit der Blick nicht wandert. */
+.r-tp {
+  position: absolute; left: 0; right: 0; top: 0; height: 38%;
+  padding: calc(var(--oben) + 54px) 22px 0; overflow: hidden;
+  background: linear-gradient(180deg, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.62) 70%, rgba(0,0,0,0) 100%);
+  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 calc(var(--oben) + 54px), #000 78%, transparent 100%);
+  mask-image: linear-gradient(180deg, transparent 0, #000 calc(var(--oben) + 54px), #000 78%, transparent 100%);
+}
+.r-tp.aus { display: none; }
+.r-tp-text {
+  white-space: pre-wrap; font-weight: 700; line-height: 1.32; letter-spacing: -0.005em;
+  text-align: center; color: #fff; will-change: transform;
+}
+.r-tp-text .r-tp-hook { color: var(--gelb); }
+.r-tp.pause::after {
+  content: "Pause, tippen zum Weiterlaufen"; position: absolute; left: 0; right: 0; bottom: 14px;
+  text-align: center; font-size: 12.5px; font-weight: 650; color: var(--gelb);
+}
+
+.r-countdown {
+  position: absolute; inset: 0; display: grid; place-items: center;
+  font-size: 128px; font-weight: 800; color: #fff; text-shadow: 0 4px 30px rgba(0,0,0,0.6);
+}
+.r-zeit {
+  position: absolute; top: calc(var(--oben) + 16px); left: 50%; transform: translateX(-50%);
+  padding: 4px 12px; border-radius: 999px; background: #ff3b30; color: #fff;
+  font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums;
+}
+.r-zu {
+  position: absolute; top: calc(var(--oben) + 10px); right: 12px; z-index: 2;
+  width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center;
+  background: rgba(0,0,0,0.5); color: #fff;
+}
+.r-zu svg { width: 20px; height: 20px; }
+
+.r-unten {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  padding: 18px 20px calc(var(--unten) + 22px);
+  background: linear-gradient(0deg, rgba(0,0,0,0.7), rgba(0,0,0,0));
+  display: flex; flex-direction: column; gap: 16px;
+}
+.r-regler { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.r-regler label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 650; color: #ddd; }
+.r-regler input { width: 100%; accent-color: #fff; }
+.r.laeuft .r-regler { visibility: hidden; }
+.r-knoepfe { display: flex; align-items: center; justify-content: space-between; }
+.r-rund { width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center; background: rgba(255,255,255,0.16); color: #fff; }
+.r-rund svg { width: 22px; height: 22px; }
+.r-rund[aria-pressed="false"] { opacity: 0.45; }
+.r.laeuft .r-rund { visibility: hidden; }
+.r-ausloeser {
+  width: 78px; height: 78px; border-radius: 50%; border: 4px solid #fff;
+  display: grid; place-items: center;
+}
+.r-ausloeser i { width: 60px; height: 60px; border-radius: 50%; background: #ff3b30; transition: all 0.18s ease; }
+.r.laeuft .r-ausloeser i { width: 30px; height: 30px; border-radius: 8px; }
+#r-review-knoepfe { gap: 10px; }
+.r-pille { flex: 1; height: 52px; border-radius: 999px; background: rgba(255,255,255,0.18); color: #fff; font-size: 16px; font-weight: 700; }
+.r-pille-an { background: #fff; color: #000; }
+.r-balken { height: 6px; }
+
+/* --- Aufnahme: Modi, Einstellungen, Doppelt, Foto, Ringlicht -------------- */
+.r-pip {
+  position: absolute; z-index: 1; right: 12px; top: calc(var(--oben) + 64px);
+  width: 28%; aspect-ratio: 9 / 16; object-fit: cover; border-radius: 14px;
+  border: 2px solid rgba(255,255,255,0.8); background: #000;
+}
+.r-pip.spiegel { transform: scaleX(-1); }
+.r-review-pip {
+  position: absolute; z-index: 1; right: 12px; top: calc(var(--oben) + 64px);
+  width: 30%; aspect-ratio: 9 / 16; object-fit: cover; border-radius: 14px;
+  border: 2px solid rgba(255,255,255,0.8); background: #000;
+}
+.r-foto { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #000; }
+
+.r-raster { position: absolute; inset: 0; pointer-events: none; }
+.r-raster i { position: absolute; background: rgba(255,255,255,0.35); }
+.r-raster i:nth-child(1) { left: 33.33%; top: 0; bottom: 0; width: 1px; }
+.r-raster i:nth-child(2) { left: 66.66%; top: 0; bottom: 0; width: 1px; }
+.r-raster i:nth-child(3) { top: 33.33%; left: 0; right: 0; height: 1px; }
+.r-raster i:nth-child(4) { top: 66.66%; left: 0; right: 0; height: 1px; }
+
+.r-ringlicht {
+  position: absolute; inset: 0; pointer-events: none; z-index: 1;
+  border: 34px solid #fff8ee; border-radius: 0;
+  box-shadow: inset 0 0 40px 18px rgba(255, 248, 238, 0.85);
+}
+.r-ringlicht.stark { border-width: 64px; box-shadow: inset 0 0 70px 30px rgba(255, 248, 238, 0.95); }
+
+.r-oben-links { position: absolute; z-index: 3; top: calc(var(--oben) + 10px); left: 12px; display: flex; align-items: center; gap: 8px; }
+.r-oben-links .r-aufloesung { position: static; }
+.r-klein { width: 40px; height: 40px; background: rgba(0,0,0,0.5); }
+.r-klein svg { width: 20px; height: 20px; }
+.r.laeuft .r-oben-links { visibility: hidden; }
+
+.r-hinweis {
+  position: absolute; z-index: 3; left: 16px; right: 16px; top: 46%;
+  padding: 12px 16px; border-radius: 16px; background: rgba(0,0,0,0.7);
+  font-size: 15px; font-weight: 650; text-align: center; line-height: 1.35;
+}
+.r-tp.mitte { top: 22%; padding-top: 12px; }
+
+.r-zoom label { display: flex; align-items: center; gap: 10px; font-size: 12px; font-weight: 650; color: #ddd; }
+.r-zoom input { flex: 1; accent-color: #fff; }
+.r.laeuft .r-zoom { visibility: visible; }
+
+.r-modi { display: flex; justify-content: center; gap: 4px; }
+.r-modi button {
+  padding: 7px 14px; border-radius: 999px; font-size: 13px; font-weight: 700;
+  letter-spacing: 0.04em; text-transform: uppercase; color: rgba(255,255,255,0.7);
+}
+.r-modi button[aria-pressed="true"] { background: rgba(255,255,255,0.18); color: var(--gelb); }
+.r.laeuft .r-modi { visibility: hidden; }
+.r-ausloeser.foto i { background: #fff; }
+
+.r-panel {
+  position: absolute; z-index: 5; left: 0; right: 0; bottom: 0; max-height: 78%;
+  overflow-y: auto; padding: 16px 18px calc(var(--unten) + 20px);
+  border-radius: 22px 22px 0 0; background: rgba(22, 22, 22, 0.97);
+  -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
+}
+.r-panel-kopf { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.r-panel-kopf h2 { margin: 0; font-size: 18px; font-weight: 750; }
+.r-pille-klein { padding: 7px 14px; border-radius: 999px; background: #fff; color: #000; font-size: 14px; font-weight: 700; }
+.r-zeile { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 11px 0; border-bottom: 1px solid #262626; }
+.r-zeile > span { font-size: 14.5px; font-weight: 600; }
+.r-wahl { display: flex; gap: 3px; padding: 3px; border-radius: 999px; background: #2a2a2a; flex: none; }
+.r-wahl button { padding: 6px 11px; border-radius: 999px; font-size: 13px; font-weight: 650; color: var(--sub); }
+.r-wahl button[aria-pressed="true"] { background: #fff; color: #000; }
+.r-panel-hinweis { margin: 14px 0 0; font-size: 12.5px; color: var(--sub); line-height: 1.45; }
+.r-tp, .r-unten, .r-zu, .r-zeit, .r-countdown { z-index: 2; }
+/* Lesbar auch auf hellem Ringlicht. */
+.r-regler label, .r-zoom label, .r-modi button, .r-tp-text { text-shadow: 0 1px 6px rgba(0,0,0,0.75); }
+.r-select { max-width: 55%; padding: 7px 10px; border-radius: 12px; border: 0; background: #2a2a2a; color: #fff; font: inherit; font-size: 13.5px; }
+
+/* Teleprompter als frei verschiebbares Feld */
+.r-tp.frei {
+  padding: 12px 16px 26px; border-radius: 18px;
+  background: rgba(0, 0, 0, 0.55);
+  -webkit-mask-image: linear-gradient(180deg, #000 0, #000 80%, transparent 100%);
+  mask-image: linear-gradient(180deg, #000 0, #000 80%, transparent 100%);
+}
+.r-tp-griff {
+  position: absolute; left: 50%; bottom: 0; transform: translateX(-50%);
+  width: 90px; height: 26px; display: grid; place-items: center;
+  touch-action: none; cursor: grab; z-index: 3;
+}
+.r-tp-griff i { width: 46px; height: 5px; border-radius: 5px; background: rgba(255,255,255,0.85); box-shadow: 0 1px 4px rgba(0,0,0,0.6); }
+.r-tp-ecke {
+  position: absolute; right: 0; bottom: 0; width: 30px; height: 30px; z-index: 3;
+  touch-action: none; cursor: nwse-resize;
+  background: linear-gradient(135deg, transparent 50%, rgba(255,255,255,0.85) 50%, rgba(255,255,255,0.85) 60%, transparent 60%, transparent 72%, rgba(255,255,255,0.85) 72%, rgba(255,255,255,0.85) 82%, transparent 82%);
+  border-bottom-right-radius: 14px;
+}
+.r.laeuft .r-tp-griff, .r.laeuft .r-tp-ecke { display: none; }
+/* Die Maske des freien Feldes darf Griff und Ecke nicht ausblenden. */
+.r-tp.frei { -webkit-mask-image: none; mask-image: none; }
+.r-pille-dunkel { background: #2a2a2a; color: #fff; }
+
+/* Maske nur auf dem Textfenster, Griff und Ecke bleiben immer sichtbar. */
+.r-tp { -webkit-mask-image: none !important; mask-image: none !important; display: flex; flex-direction: column; }
+.r-tp-fenster {
+  flex: 1; min-height: 0; overflow: hidden;
+  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 6%, #000 78%, transparent 100%);
+  mask-image: linear-gradient(180deg, transparent 0, #000 6%, #000 78%, transparent 100%);
+}
+.r-tp:not(.frei) { padding-bottom: 28px; }
+
+/* Ganzes Feld ist Anfasser: verschieben vor der Aufnahme, Text scrollen waehrend. */
+.r-tp { touch-action: none; cursor: grab; }
+.r-tp:active { cursor: grabbing; }
+.r-tp:not(.frei) { padding-bottom: 12px; }

@@ -1,0 +1,30 @@
+# MCP-Server von postmakr fuer den eigenen Rechner (mcp_server/).
+# Installieren, am besten in ein venv:
+#   python3 -m venv .venv && . .venv/bin/activate
+#   pip install -r requirements-mcp.txt
+#   python3 -m playwright install chromium   # einmalig, fuer render_slide
+# ffmpeg muss zusaetzlich auf dem System sein (Animationen, Ausschnitte aus dem
+# Lager, Hoercheck), auf dem Mac etwa mit: brew install ffmpeg
+
+# -- Grundausstattung ----------------------------------------------------
+fastmcp==3.4.4          # MCP-Server (stdio und HTTP), bringt mcp, starlette, httpx mit
+uvicorn==0.51.0         # nur fuer den HTTP-Modus (--http)
+playwright==1.61.0      # Slide-Rendering ueber engine-shared/tools/render_static/render.py
+feedparser==6.0.12      # scan/fetch_news.py (RSS)
+PyYAML==6.0.3           # brand.yaml, meta.yaml, sounds.yaml und so weiter
+numpy>=1.26             # Such-Index und Hoercheck
+
+# -- Modelle (optional) ---------------------------------------------------
+# Ohne diesen Block laufen alle Tools trotzdem: die Suche nach Sounds und
+# Material nutzt dann nur Stichworte, der Hoercheck misst Soll-Liste und
+# Lautheit ohne Modelle. Die Tools sagen dazu, was fehlt.
+# Beim ersten Gebrauch laden die Modelle einmalig aus dem Netz (einige GB,
+# Ablage unter HF_HOME bzw. EARSHOT_HOME).
+torch>=2.2
+transformers>=4.44
+sentence-transformers>=3
+sentencepiece>=0.2      # Tokenizer des mehrsprachigen Bildmodells
+protobuf>=4
+Pillow>=10              # Standbilder fuer die Bildsuche im Lager
+faster-whisper>=1.1     # Wortzeiten fuer den Hoercheck und engine-shared/tools/transcribe.py
+earshot @ https://github.com/Leonxlnx/earshot/archive/591fa3e028032e6dce56620a20e932e35667e8d8.tar.gz

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="de"><head><meta charset="UTF-8"><style>
+@import url('https://fonts.googleapis.com/css2?family=Anton&family=Archivo+Black&family=Caveat:wght@700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;}
+body{
+  width:1080px;height:1350px;overflow:hidden;position:relative;
+  background:var(--grund,#121417);font-family:'Inter',sans-serif;color:#fff;
+}
+.redbox{background:var(--akzent,#E02020);color:#fff;display:inline-block;border-radius:4px;}
+
+/* Vollbild-Foto-Slot (Meme-Still) */
+.photo{position:absolute;top:0;left:0;width:1080px;height:1020px;overflow:hidden;background:#1f1d1b;}
+.photo img{width:100%;height:100%;object-fit:cover;display:block;}
+
+/* Logo — nie veraendern, Platzhalter LOGO_B64 wird vom Renderer ersetzt */
+img.logoimg{position:absolute;left:36px;top:72px;height:56px;z-index:2;}
+
+/* Unterer dunkler Balken: Mixed-Case-Dank + rote Keyword-Box */
+.ctabar{position:absolute;left:0;bottom:0;width:1080px;height:331px;background:#1f1d1b;
+  display:flex;flex-direction:column;justify-content:center;align-items:center;
+  text-align:center;font-weight:800;font-size:66px;line-height:1.16;letter-spacing:-1px;}
+.ctabar .redbox{padding:2px 14px 8px;}
+</style></head><body>
+
+<!-- INHALT: Vollbild-Foto/Still mit Meme-Qualitaet -->
+<div class="photo"><!-- <img src="assets/foto.png"> --></div>
+
+<!-- LOGO -->
+<img class="logoimg" src="LOGO_B64">
+
+<!-- INHALT: Mixed-Case-Dank, genau eine rote Keyword-Box -->
+<div class="ctabar">
+  <div>Danke, dass du auch</div>
+  <div><span class="redbox">Infoposts</span> einen Like gibst!</div>
+</div>
+
+</body></html>

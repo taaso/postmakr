@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="de"><head><meta charset="UTF-8"><style>
+/* Karussell: ERKLÄR-SLIDE (Einordnung)
+   Anton-Versal-Headline mit Redbox auf dem Einstieg ("DREI GRÜNDE,").
+   Drei Icon-Blöcke: roter Kreis + weißes SVG-Icon, fetter Subheader, Fließtext mit
+   fetten Zahlen, rote Daten-Pill mit flagcdn-Flaggen. Unten rot gestrichelte "Wichtig:"-Box. */
+@import url('https://fonts.googleapis.com/css2?family=Anton&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;}
+body{width:1080px;height:1350px;overflow:hidden;background:radial-gradient(circle at 50% 0%, var(--grund-hell,#1f232a) 0%, var(--grund,#121417) 65%);font-family:'Inter',sans-serif;color:#fff;padding:48px 56px 40px;display:flex;flex-direction:column;}
+.head{display:flex;justify-content:space-between;align-items:center;margin-bottom:28px;}
+img.logoimg{height:58px;}
+h1{font-family:'Anton',sans-serif;font-weight:400;font-size:54px;letter-spacing:1px;text-transform:uppercase;line-height:1.12;margin-bottom:20px;}
+h1 .redbox{background:var(--akzent,#E02020);padding:2px 16px 7px;display:inline-block;}
+.items{flex:1;display:flex;flex-direction:column;justify-content:space-evenly;}
+.item{display:flex;gap:34px;align-items:flex-start;}
+.icon{flex:none;width:88px;height:88px;background:var(--akzent,#E02020);border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 22px color-mix(in srgb,var(--akzent,#E02020) 35%,transparent);}
+.icon svg{width:48px;height:48px;}
+.item h2{font-size:32px;font-weight:800;margin-bottom:9px;}
+.item p{font-size:24px;line-height:1.5;color:rgba(255,255,255,0.78);}
+.item p b{color:#fff;}
+/* rote Daten-Pill (mit flagcdn-Flaggen) */
+.pill{display:inline-block;margin-top:14px;background:var(--akzent,#E02020);color:#fff;font-weight:800;font-size:22px;padding:7px 14px;border-radius:4px;}
+.pill img{height:22px;vertical-align:-3px;border-radius:2px;}
+.note{margin-top:24px;border:3px dashed var(--akzent,#E02020);border-radius:6px;padding:16px 24px;font-size:23px;color:rgba(255,255,255,0.8);text-align:center;line-height:1.45;}
+.note b{color:#fff;}
+.footer{margin-top:20px;display:flex;justify-content:space-between;align-items:center;font-size:20px;color:rgba(255,255,255,0.45);white-space:nowrap;gap:20px;}
+.footer b{color:rgba(255,255,255,0.75);}
+.footer .next{font-weight:700;font-size:26px;color:rgba(255,255,255,0.75);letter-spacing:2px;}
+.next .ch{opacity:0.25;display:inline-block;animation:sweep 1.5s linear infinite;}
+.next .ch:nth-child(1){animation-delay:0s;}
+.next .ch:nth-child(2){animation-delay:0.15s;}
+.next .ch:nth-child(3){animation-delay:0.3s;}
+@keyframes sweep{0%{opacity:0.25;}10%{opacity:1;}55%{opacity:1;}65%{opacity:0.25;}100%{opacity:0.25;}}
+</style></head><body>
+<div class="head"><img class="logoimg" src="LOGO_B64"><div></div></div>
+<!-- INHALT: Headline, Redbox = Einstieg ("DREI GRÜNDE,") -->
+<h1><span class="redbox">Drei Gründe,</span> warum sich dieses Thema lohnt:</h1>
+<div class="items">
+  <!-- INHALT: Block 1 — Icon (weißes SVG), Subheader, Text mit <b>Zahlen</b>, optionale .pill -->
+  <div class="item"><div class="icon"><svg viewBox="0 0 24 24" fill="none"><path d="M3 11 L12 3 l9 8" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M5.5 10 V21 h5 v-6 h3 v6 h5 V10" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+  <div><h2>Erster Grund</h2><p>Ein bis zwei Sätze Einordnung mit einer <b>fetten Zahl</b>, die hängen bleibt. Kurz halten, eine Aussage pro Block.<br><span class="pill">Kennzahl: <img src="https://flagcdn.com/w40/eu.png"> 42 % gegenüber 58 %</span></p></div></div>
+  <!-- INHALT: Block 2 -->
+  <div class="item"><div class="icon"><svg viewBox="0 0 24 24" fill="none"><path d="M4 20 h16 M6 20 V13 M10 20 V9 M14 20 V6 M18 20 V3" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/></svg></div>
+  <div><h2>Zweiter Grund</h2><p>Hier steht der zweite Gedanke. Mit <b>Fettung</b> für das eine Wort, das man beim Überfliegen sehen soll.<br><span class="pill">Vergleich: Wert A 0,75 und Wert B 0,58</span></p></div></div>
+  <!-- INHALT: Block 3 (ohne Pill) -->
+  <div class="item"><div class="icon"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3 C12 3 5 5.5 5 6 v6 c0 4.5 3.5 7.5 7 9 3.5 -1.5 7 -4.5 7 -9 V6 c0 -0.5 -7 -3 -7 -3 Z" stroke="#fff" stroke-width="2.2" stroke-linejoin="round"/></svg></div>
+  <div><h2>Dritter Grund</h2><p>Der dritte Block kommt ohne Daten-Pill aus und schließt den Gedanken mit einer <b>klaren Aussage</b> ab.</p></div></div>
+</div>
+<!-- INHALT: rot gestrichelte "Wichtig:"-Box (ehrliche Einordnung) -->
+<div class="note"><b>Wichtig:</b> Hier steht die ehrliche Einordnung, was die Zahlen aussagen und was nicht.</div>
+<div class="footer"><span>Quellen: Quelle A, Quelle B <b>Deine Marke</b></span><span class="next">weiter <span class="ch">›</span><span class="ch">›</span><span class="ch">›</span></span></div>
+</body></html>

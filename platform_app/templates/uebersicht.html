@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% from "_help.html" import help %}
+{% from "_neu.html" import neuer_beitrag %}
+{% block content %}
+  {# Eigenes Stylesheet des Kalenders. base.html bleibt unberuehrt, deshalb
+     laedt die Seite es selbst am Anfang ihres Inhalts. #}
+  <link rel="stylesheet" href="{{ url_for('static', filename='kalender.css') }}?v=20261024">
+
+  <div class="page-title-row">
+    <h1 class="page">Übersicht</h1>
+    {{ help('Der Kalender zeigt, wann welcher Beitrag rausgeht. Die Beiträge selbst findest du links unter Beiträge.') }}
+    {% if brand.get('module', {}).get('scan', False) %}{{ neuer_beitrag() }}{% endif %}
+  </div>
+
+  {% include "_kalender.html" %}
+
+  <script>
+  // Die Uebersicht ist nur noch der Kalender: Seite steht
+  // fest, der Kalender nimmt die volle Resthoehe.
+  document.documentElement.classList.add('kalender-aktiv');
+  document.body.classList.add('kalender-aktiv');
+  if (typeof window.kalenderAnzeigen === 'function') window.kalenderAnzeigen(true);
+  </script>
+{% endblock %}

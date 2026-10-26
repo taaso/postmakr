@@ -1,0 +1,1141 @@
+{# ============================================================================
+   Post-Kalender
+   ----------------------------------------------------------------------------
+   Wird in die Uebersicht eingebunden und dort per Segmented Control gegen das
+   Raster getauscht. Monats- und Wochenansicht, Navigation vor/zurueck/heute,
+   Popover je Eintrag mit Status-Umschaltung, Link zum Beitrag und Loeschen.
+   Vanilla-JS wie in den uebrigen Templates, die Daten kommen aus
+   /w/<ws>/api/kalender. Die Kanal-Symbole sind neutrale Anfangsbuchstaben
+   (kanal_symbol in workspace.py). Gepostet wird von Hand, der Kalender
+   erinnert und haelt fest, was schon draussen ist.
+   ============================================================================ #}
+<section class="kalender" id="kalender" hidden
+         data-liste-url="{{ url_for('kalender_api') }}"
+         data-eintrag-url="{{ url_for('kalender_eintrag', eintrag_id='ID-PLATZHALTER') }}"
+         data-auswahl-url="{{ url_for('kalender_auswahl') }}">
+  <div class="kalender-kopf">
+    <div class="kalender-nav">
+      <button type="button" data-kal-nav="-1" aria-label="Zurück" title="Zurück">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+      </button>
+      <button type="button" data-kal-nav="1" aria-label="Vor" title="Vor">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
+      </button>
+    </div>
+    <button type="button" class="kalender-heute" data-kal-heute>Heute</button>
+    <h2 class="kalender-titel" id="kalender-titel">Kalender</h2>
+    {# Kanal-Filter: zeigt immer alle
+       bekannten Kanaele, an fester Position, egal was der sichtbare Monat
+       hergibt. Die Wahl merkt sich der Browser. #}
+    <div class="kalender-filter" id="kalender-filter" role="group" aria-label="Kanal filtern" hidden></div>
+    <div class="ansicht-umschalter" role="group" aria-label="Zeitraum wählen">
+      <button type="button" data-kal-modus="monat" aria-pressed="true">Monat</button>
+      <button type="button" data-kal-modus="woche" aria-pressed="false">Woche</button>
+    </div>
+    <button type="button" class="btn btn-sm kalender-planen" data-kal-planen>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+      Planen
+    </button>
+  </div>
+  <p class="kalender-meldung" id="kalender-meldung" hidden></p>
+  <div class="kalender-wochentage" aria-hidden="true">
+    <span>Mo</span><span>Di</span><span>Mi</span><span>Do</span><span>Fr</span><span>Sa</span><span>So</span>
+  </div>
+  <div class="kalender-raster" id="kalender-raster"></div>
+</section>
+
+{# Selbst planen: Beitrag oder Trial-Clip waehlen, Tag, Uhrzeit
+   und Kanaele setzen. Je Kanal entsteht ein Kalender-Eintrag, genau wie beim
+   Posten-Dialog der Detailseite. #}
+{% set kv = kanal_verzeichnis() %}
+{% set kv_start = kv[0].key if kv else '' %}
+<dialog class="posten-dialog kalender-plan-dialog" id="kp-dialog" aria-labelledby="kp-titel">
+  <h2 id="kp-titel">Beitrag planen</h2>
+  <p class="posten-sub">Wähle, was rausgehen soll, und wann.</p>
+  <div class="kp-kopf">
+    {# Umschalter nur mit Trial-Modul; das Skript blendet ihn erst ein, wenn
+       es auch Clips gibt. #}
+    <div class="ansicht-umschalter kp-quelle" role="group" aria-label="Was planen" id="kp-quelle" hidden>
+      <button type="button" data-kp-quelle="beitraege" aria-pressed="true">Beiträge</button>
+      {% if brand.get('module', {}).get('trial_reels', True) %}<button type="button" data-kp-quelle="trials" aria-pressed="false">Trial Reels</button>{% endif %}
+    </div>
+    <input type="search" class="kp-suche" id="kp-suche" placeholder="Suchen" aria-label="Beitrag suchen" autocomplete="off">
+  </div>
+  <div class="kp-liste" id="kp-liste" role="listbox" aria-label="Beitrag wählen"></div>
+  <div class="kp-clip" id="kp-clip-box" hidden>
+    <label for="kp-clip">Clip</label>
+    <select id="kp-clip"></select>
+  </div>
+  <div class="posten-zeile">
+    <div>
+      <label for="kp-datum">Datum</label>
+      <input type="date" id="kp-datum">
+    </div>
+    <div>
+      <label for="kp-uhrzeit">Uhrzeit</label>
+      <input type="time" id="kp-uhrzeit" value="17:00" step="300">
+    </div>
+  </div>
+  <label id="kp-kanal-label">Kanal</label>
+  <div class="kanal-dd" id="kp-dd">
+    <button type="button" class="kanal-dd-knopf" id="kp-dd-knopf" aria-haspopup="true" aria-expanded="false" aria-labelledby="kp-kanal-label">
+      <span class="kanal-dd-symbole" id="kp-dd-symbole"></span>
+      <span class="kanal-dd-text" id="kp-dd-text">Kanäle wählen</span>
+      <svg class="kanal-dd-pfeil" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+    </button>
+    <div class="kanal-dd-liste" id="kp-dd-liste" hidden>
+      {% for k in kv %}
+      <label class="kanal-dd-option" data-kanal="{{ k.key }}">
+        <input type="checkbox" value="{{ k.key }}" {{ 'checked' if k.key == kv_start else '' }}>
+        <span class="kanal-dd-ico kf-{{ k.key }}">{{ kanal_svg(k.key) | safe }}</span>{{ k.name }}
+      </label>
+      {% endfor %}
+    </div>
+  </div>
+  <label for="kp-notiz">Notiz <span class="kp-optional">(optional)</span></label>
+  <input type="text" class="kp-notiz" id="kp-notiz" maxlength="300" placeholder="z. B. Zahlen vor dem Posten prüfen">
+  <p class="posten-hinweis">postmakr postet nicht selbst. Der Eintrag erinnert dich, nach dem Posten markierst du ihn als gepostet.</p>
+  <p class="posten-meldung" id="kp-meldung" hidden></p>
+  <div class="posten-aktionen">
+    <button type="button" class="btn ghost" id="kp-abbrechen">Abbrechen</button>
+    <button type="button" class="btn" id="kp-speichern">Planen</button>
+  </div>
+</dialog>
+
+<script>
+(function () {
+  var wurzel = document.getElementById('kalender');
+  if (!wurzel) return;
+  var raster = document.getElementById('kalender-raster');
+  var titelEl = document.getElementById('kalender-titel');
+  var meldung = document.getElementById('kalender-meldung');
+  var listeUrl = wurzel.dataset.listeUrl;
+  var eintragUrlVorlage = wurzel.dataset.eintragUrl;
+  var filterLeiste = document.getElementById('kalender-filter');
+  var MODUS_KEY = 'postmakr-kalender-modus';
+  var FILTER_KEY = 'postmakr-kalender-kanal';
+  // Wie viele Karten ein Tag zeigt, haengt an der Hoehe des Fensters: das
+  // Raster fuellt den Bildschirm, also rechnet der Kalender aus, wie viele
+  // Karten in eine Zelle passen. Was nicht mehr ganz
+  // hineinpasst, wird nicht angeschnitten, sondern zur Reihe aus
+  // Mini-Vorschauen. Die Werte spiegeln kalender.css.
+  var MAX_PRO_TAG = 3;      // mehr als drei wird auch auf grossen Schirmen unruhig
+  var KARTE_H = 24;         // Hoehe einer Monatskarte
+  var KARTE_LUFT = 4;       // gap zwischen den Karten
+  var ZELLE_KOPF = 30;      // Tageszahl plus Innenabstand der Zelle
+
+  var MONATE = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli',
+                'August', 'September', 'Oktober', 'November', 'Dezember'];
+
+  // Kanal-Symbole und Namen kommen aus den Kanaelen des Workspace (brand.yaml).
+  var KANAL_SVG = {
+    {% for k in kanal_verzeichnis() %}{{ k.key | tojson }}: {{ kanal_svg(k.key, 'kalender-kanal') | tojson }}{{ ',' if not loop.last }}
+    {% endfor %}
+  };
+  var KANAL_NAME = {{ kanal_namen | tojson }};
+  // Reihenfolge der Filter-Pillen, damit sie nicht je nach Datenlage springen:
+  // die Kanaele des Workspace, dazu alles, was in Eintraegen vorkommt.
+  var KANAL_ORDNUNG = {{ kanal_verzeichnis() | map(attribute='key') | list | tojson }};
+  KANAL_ORDNUNG.sort(function (a, b) {
+    return Object.keys(KANAL_NAME).indexOf(a) - Object.keys(KANAL_NAME).indexOf(b);
+  });
+
+  function kanalSymbol(kanal) {
+    var markup = (KANAL_SVG[kanal] || '').replace('class="kalender-kanal"', 'class="kalender-kanal kanal-ico kanal-' + kanal + '"');
+    if (!markup) return null;
+    var huelle = document.createElement('span');
+    huelle.innerHTML = markup;
+    return huelle.firstElementChild;
+  }
+
+  var modus = 'monat';
+  try {
+    var gemerkt = localStorage.getItem(MODUS_KEY);
+    if (gemerkt === 'woche' || gemerkt === 'monat') modus = gemerkt;
+  } catch (e) { /* privates Fenster: Standard bleibt Monat */ }
+
+  var filter = 'alle';
+  try {
+    var gemerkterFilter = localStorage.getItem(FILTER_KEY);
+    if (gemerkterFilter && KANAL_ORDNUNG.indexOf(gemerkterFilter) >= 0) filter = gemerkterFilter;
+  } catch (e) { /* privates Fenster: dann eben alle Kanaele */ }
+
+  var anker = new Date();
+  anker.setHours(12, 0, 0, 0);
+  var eintraege = [];
+  var geladen = false;
+  var laufendeAnfrage = 0;
+
+  function iso(d) {
+    var m = String(d.getMonth() + 1);
+    var t = String(d.getDate());
+    return d.getFullYear() + '-' + (m.length < 2 ? '0' + m : m) + '-' + (t.length < 2 ? '0' + t : t);
+  }
+  function tageAddieren(d, n) {
+    var neu = new Date(d.getTime());
+    neu.setDate(neu.getDate() + n);
+    return neu;
+  }
+  function wochenStart(d) {
+    var neu = new Date(d.getTime());
+    var wt = (neu.getDay() + 6) % 7;  // Montag = 0
+    neu.setDate(neu.getDate() - wt);
+    neu.setHours(12, 0, 0, 0);
+    return neu;
+  }
+  function zeitraum() {
+    if (modus === 'woche') {
+      var start = wochenStart(anker);
+      return { start: start, tage: 7 };
+    }
+    var erster = new Date(anker.getFullYear(), anker.getMonth(), 1, 12, 0, 0, 0);
+    var letzter = new Date(anker.getFullYear(), anker.getMonth() + 1, 0, 12, 0, 0, 0);
+    var start = wochenStart(erster);
+    var spanne = Math.round((letzter - start) / 86400000) + 1;
+    return { start: start, tage: Math.ceil(spanne / 7) * 7 };
+  }
+  function titelText() {
+    if (modus === 'monat') return MONATE[anker.getMonth()] + ' ' + anker.getFullYear();
+    var start = wochenStart(anker);
+    var ende = tageAddieren(start, 6);
+    if (start.getMonth() === ende.getMonth()) {
+      return start.getDate() + '. bis ' + ende.getDate() + '. ' + MONATE[ende.getMonth()] + ' ' + ende.getFullYear();
+    }
+    return start.getDate() + '. ' + MONATE[start.getMonth()] + ' bis ' +
+           ende.getDate() + '. ' + MONATE[ende.getMonth()] + ' ' + ende.getFullYear();
+  }
+
+  function meldungZeigen(text, fehler) {
+    if (!text) { meldung.hidden = true; meldung.textContent = ''; return; }
+    meldung.hidden = false;
+    meldung.className = 'kalender-meldung' + (fehler ? ' err' : '');
+    meldung.textContent = text;
+  }
+
+  function laden() {
+    var spanne = zeitraum();
+    var von = iso(spanne.start);
+    var bis = iso(tageAddieren(spanne.start, spanne.tage - 1));
+    var meineAnfrage = ++laufendeAnfrage;
+    titelEl.textContent = titelText();
+    fetch(listeUrl + '?von=' + von + '&bis=' + bis, {
+      headers: { Accept: 'application/json' },
+      credentials: 'same-origin'
+    })
+      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+      .then(function (res) {
+        if (meineAnfrage !== laufendeAnfrage) return;
+        if (!res.ok || !res.j.ok) throw new Error((res.j && res.j.fehler) || 'Fehler');
+        eintraege = res.j.eintraege || [];
+        geladen = true;
+        meldungZeigen('');
+        zeichnen();
+      })
+      .catch(function (err) {
+        if (meineAnfrage !== laufendeAnfrage) return;
+        meldungZeigen('Der Kalender konnte nicht geladen werden: ' + err.message, true);
+        eintraege = [];
+        zeichnen();
+      });
+  }
+
+  // Vorschau eines Eintrags als Bild ODER Video: reine Video-Beitraege haben
+  // als Vorschau ihre mp4 (first_preview serverseitig), und die zeigte ein
+  // <img> schlicht gar nicht. <video preload="metadata"> liefert das erste
+  // Standbild; im Popover laeuft die Vorschau stumm in Schleife.
+  function vorschauMedium(url, klasse, bewegt) {
+    var el;
+    if (/\.(mp4|mov|webm)(\?|$)/i.test(url || '')) {
+      el = document.createElement('video');
+      el.muted = true;
+      el.playsInline = true;
+      el.preload = 'metadata';
+      if (bewegt) { el.autoplay = true; el.loop = true; }
+    } else {
+      el = document.createElement('img');
+      el.alt = '';
+      el.loading = 'lazy';
+    }
+    el.src = url;
+    if (klasse) el.className = klasse;
+    return el;
+  }
+
+  function eintragKarte(eintrag) {
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    // Kanal-Faerbung: farbige Kante links, zarte Toenung im
+    // Grund. Ohne bekannten Kanal bleibt die Karte weiss.
+    btn.className = 'kalender-eintrag' + (eintrag.status === 'gepostet' ? ' gepostet' : '') +
+      (eintrag.archiv ? ' archiv' : '') + (eintrag.serie ? ' serie' : '') +
+      (KANAL_NAME[eintrag.kanal] ? ' kal-kanal kal-kanal-' + eintrag.kanal : '');
+    btn.dataset.kalId = eintrag.id;
+    btn.title = eintrag.titel + (eintrag.uhrzeit ? ', ' + eintrag.uhrzeit + ' Uhr' : ' (gepostet)');
+    if (verschiebbar(eintrag)) btn.draggable = true;
+
+    if (eintrag.vorschau_url) {
+      btn.appendChild(vorschauMedium(eintrag.vorschau_url, 'kalender-e-bild', false));
+    }
+
+    var zeit = document.createElement('span');
+    zeit.className = 'kalender-e-zeit';
+    zeit.textContent = eintrag.uhrzeit ? eintrag.uhrzeit + ' Uhr' : 'Gepostet';
+    var titel = document.createElement('span');
+    titel.className = 'kalender-e-titel';
+    titel.textContent = eintrag.titel;
+    var symbol = kanalSymbol(eintrag.kanal);
+
+    if (modus === 'woche') {
+      var kopf = document.createElement('span');
+      kopf.className = 'kalender-e-kopf';
+      kopf.appendChild(zeit);
+      if (symbol) kopf.appendChild(symbol);
+      var textW = document.createElement('span');
+      textW.className = 'kalender-e-text';
+      textW.appendChild(titel);
+      btn.appendChild(kopf);
+      btn.appendChild(textW);
+    } else {
+      var text = document.createElement('span');
+      text.className = 'kalender-e-text';
+      text.appendChild(zeit);
+      text.appendChild(titel);
+      btn.appendChild(text);
+      if (symbol) btn.appendChild(symbol);
+    }
+    return btn;
+  }
+
+  // Volle Tage (mehr als MAX_PRO_TAG Eintraege) zeigen statt Textkarten eine
+  // kompakte Reihe aus Mini-Vorschaubildern, ueberlappend gestapelt wie eine
+  // Personengruppe. So bleibt der Monat auch bei dichten Wochen ohne Scrollen
+  // sichtbar, und ein Klick auf ein Bildchen oeffnet dasselbe Popover wie eine
+  // Karte (kein „+ n weitere" mehr).
+  function stapelReihe(liste) {
+    var reihe = document.createElement('div');
+    reihe.className = 'kalender-stapel';
+    liste.forEach(function (e) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'kalender-stapel-bild' +
+        (e.archiv ? ' archiv' : '') + (e.serie ? ' serie' : '') +
+        (KANAL_NAME[e.kanal] ? ' kal-kanal kal-kanal-' + e.kanal : '');
+      btn.dataset.kalId = e.id;
+      btn.title = e.titel + (e.uhrzeit ? ', ' + e.uhrzeit + ' Uhr' : ' (gepostet)');
+      if (verschiebbar(e)) btn.draggable = true;
+      if (e.vorschau_url) {
+        btn.appendChild(vorschauMedium(e.vorschau_url, '', false));
+      } else {
+        var ersatz = document.createElement('span');
+        ersatz.className = 'kalender-stapel-ersatz';
+        ersatz.textContent = (e.titel || '?').trim().charAt(0).toUpperCase();
+        btn.appendChild(ersatz);
+      }
+      reihe.appendChild(btn);
+    });
+    return reihe;
+  }
+
+  function kartenGrenze(zeilen) {
+    var hoehe = raster.getBoundingClientRect().height;
+    if (!hoehe || !zeilen) return MAX_PRO_TAG;
+    var frei = hoehe / zeilen - ZELLE_KOPF - KARTE_LUFT;
+    var passt = Math.floor((frei + KARTE_LUFT) / (KARTE_H + KARTE_LUFT));
+    return Math.max(1, Math.min(MAX_PRO_TAG, passt));
+  }
+
+  // -- Kanal-Filter ---------------------------------------------------------
+  function sichtbareEintraege() {
+    if (filter === 'alle') return eintraege;
+    return eintraege.filter(function (e) { return e.kanal === filter; });
+  }
+
+  function filterZeichnen() {
+    if (!filterLeiste) return;
+    // Stabile Filterleiste: frueher wurden die Pillen nur
+    // aus den Kanaelen des sichtbaren Monats gebaut, darum sprang die Leiste
+    // beim Blaettern. Jetzt stehen immer alle bekannten Kanaele da, an
+    // gleicher Stelle in gleicher Reihenfolge. Kanaele ohne Eintrag im
+    // sichtbaren Zeitraum wirken nur gedimmt, bleiben aber anklickbar.
+    var vorhanden = {};
+    eintraege.forEach(function (e) {
+      if (!KANAL_NAME[e.kanal]) return;
+      vorhanden[e.kanal] = true;
+      if (KANAL_ORDNUNG.indexOf(e.kanal) < 0) KANAL_ORDNUNG.push(e.kanal);
+    });
+    filterLeiste.innerHTML = '';
+    filterLeiste.hidden = false;
+    [['alle', 'Alle']].concat(KANAL_ORDNUNG.map(function (k) { return [k, KANAL_NAME[k]]; }))
+      .forEach(function (paar) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'kalender-filter-pille' +
+          (paar[0] === 'alle' ? '' : ' kal-kanal kal-kanal-' + paar[0]) +
+          (paar[0] !== 'alle' && !vorhanden[paar[0]] ? ' leer' : '');
+        b.dataset.kalFilter = paar[0];
+        b.setAttribute('aria-pressed', paar[0] === filter ? 'true' : 'false');
+        var symbol = paar[0] === 'alle' ? null : kanalSymbol(paar[0]);
+        if (symbol) b.appendChild(symbol);
+        var text = document.createElement('span');
+        text.textContent = paar[1];
+        b.appendChild(text);
+        filterLeiste.appendChild(b);
+      });
+  }
+
+  if (filterLeiste) {
+    filterLeiste.addEventListener('click', function (e) {
+      var btn = e.target.closest('[data-kal-filter]');
+      if (!btn) return;
+      filter = btn.dataset.kalFilter;
+      try { localStorage.setItem(FILTER_KEY, filter); } catch (err) { /* egal */ }
+      popoverSchliessen();
+      zeichnen();
+    });
+  }
+
+  function zeichnen() {
+    var spanne = zeitraum();
+    raster.className = 'kalender-raster' + (modus === 'woche' ? ' woche' : ' monat');
+    raster.innerHTML = '';
+    filterZeichnen();
+    var gezeigt = sichtbareEintraege();
+    var heute = iso(new Date());
+    var grenze = kartenGrenze(spanne.tage / 7);
+    var nachTag = {};
+    gezeigt.forEach(function (e) {
+      (nachTag[e.datum] = nachTag[e.datum] || []).push(e);
+    });
+
+    for (var i = 0; i < spanne.tage; i++) {
+      var tag = tageAddieren(spanne.start, i);
+      var schluessel = iso(tag);
+      var zelle = document.createElement('div');
+      var klassen = ['kalender-tag'];
+      if (modus === 'monat' && tag.getMonth() !== anker.getMonth()) klassen.push('fremd');
+      if (tag.getDay() === 0 || tag.getDay() === 6) klassen.push('wochenende');
+      if (schluessel === heute) klassen.push('heute');
+      zelle.className = klassen.join(' ');
+      zelle.dataset.kalTag = schluessel;
+
+      var zahl = document.createElement('span');
+      zahl.className = 'kalender-tagzahl';
+      zahl.textContent = String(tag.getDate());
+      zelle.appendChild(zahl);
+      if (planDialog && schluessel >= heute) {
+        var plus = document.createElement('button');
+        plus.type = 'button';
+        plus.className = 'kalender-tag-plus';
+        plus.dataset.kalPlanTag = schluessel;
+        plus.setAttribute('aria-label', 'Am ' + datumKurz(schluessel) + ' planen');
+        plus.title = 'Hier planen';
+        plus.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>';
+        zelle.appendChild(plus);
+      }
+
+      var liste = nachTag[schluessel] || [];
+      if (modus === 'monat' && liste.length > grenze) {
+        zelle.appendChild(stapelReihe(liste));
+      } else {
+        liste.forEach(function (e) { zelle.appendChild(eintragKarte(e)); });
+      }
+      raster.appendChild(zelle);
+    }
+
+    if (!gezeigt.length && geladen && filter !== 'alle') {
+      meldungZeigen('Für ' + (KANAL_NAME[filter] || filter) +
+        ' ist in diesem Zeitraum nichts geplant. Mit „Alle" siehst du wieder alles.', false);
+    } else if (!gezeigt.length && geladen) {
+      meldungZeigen(modus === 'monat'
+        ? 'In diesem Monat ist noch nichts geplant. Mit „Planen" oben rechts oder dem Plus an einem Tag legst du los.'
+        : 'In dieser Woche ist noch nichts geplant. Mit „Planen" oben rechts oder dem Plus an einem Tag legst du los.', false);
+    } else if (gezeigt.length && geladen) {
+      meldungZeigen('');
+    }
+  }
+
+  // -- Popover --------------------------------------------------------------
+  var popover = null;
+  function popoverSchliessen() {
+    if (popover) { popover.remove(); popover = null; }
+  }
+  document.addEventListener('click', function (e) {
+    if (popover && !popover.contains(e.target) && !e.target.closest('[data-kal-id]')) {
+      popoverSchliessen();
+    }
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') popoverSchliessen();
+  });
+  // Beim Ändern der Fenstergroesse aendert sich die Zeilenhoehe und damit,
+  // wie viele Karten in eine Zelle passen. Also neu zeichnen, aber erst,
+  // wenn das Ziehen zur Ruhe gekommen ist.
+  var resizeTimer = null;
+  window.addEventListener('resize', function () {
+    popoverSchliessen();
+    if (wurzel.hidden) return;
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(zeichnen, 120);
+  });
+
+  function eintragUrl(id) {
+    return eintragUrlVorlage.replace('ID-PLATZHALTER', encodeURIComponent(id));
+  }
+
+  // Platziert das Popover am Eintrag: normal darunter, aber wenn der Platz
+  // bis zur Fensterunterkante nicht reicht, klappt es nach OBEN auf (unten
+  // im Monat war es sonst abgeschnitten). Wird auch beim Auf- und
+  // Zuklappen des Plan-Menues neu aufgerufen, weil sich die Hoehe aendert.
+  function popoverPlatzieren(box, ankerEl) {
+    if (!box.parentNode) document.body.appendChild(box);
+    var rechteck = ankerEl.getBoundingClientRect();
+    var breite = box.offsetWidth || 320;
+    var links = Math.min(rechteck.left + window.scrollX,
+      window.scrollX + document.documentElement.clientWidth - breite - 12);
+    box.style.left = Math.max(window.scrollX + 8, links) + 'px';
+    var hoehe = box.offsetHeight;
+    var sicht = document.documentElement.clientHeight;
+    var top = rechteck.bottom + 6;
+    if (top + hoehe > sicht - 8) {
+      if (rechteck.top - hoehe - 6 >= 8) {
+        top = rechteck.top - hoehe - 6;
+      } else {
+        top = Math.max(8, sicht - hoehe - 8);
+      }
+    }
+    box.style.top = (top + window.scrollY) + 'px';
+  }
+
+  function popoverOeffnen(eintrag, ankerEl) {
+    popoverSchliessen();
+    var box = document.createElement('div');
+    box.className = 'kalender-popover';
+    box.setAttribute('role', 'dialog');
+
+    // Kopfzeile: Vorschau des Beitrags links, Titel und Eckdaten rechts.
+    // Das Popover zeigt damit sofort, WELCHER Beitrag gemeint ist, nicht nur
+    // seinen Titel. Klick auf die Vorschau oeffnet den Beitrag.
+    var kopf = document.createElement('div');
+    kopf.className = 'kalender-pop-kopf';
+    var vorschau;
+    if (eintrag.vorschau_url) {
+      vorschau = vorschauMedium(eintrag.vorschau_url, 'kalender-pop-bild', true);
+    } else {
+      vorschau = document.createElement('span');
+      vorschau.className = 'kalender-pop-bild kalender-pop-bild-ersatz';
+      vorschau.textContent = (eintrag.titel || '?').trim().charAt(0).toUpperCase();
+    }
+    if (eintrag.detail_url) {
+      var vorschauLink = document.createElement('a');
+      vorschauLink.className = 'kalender-pop-bildlink';
+      vorschauLink.href = eintrag.detail_url;
+      vorschauLink.title = 'Beitrag öffnen';
+      vorschauLink.appendChild(vorschau);
+      kopf.appendChild(vorschauLink);
+    } else {
+      kopf.appendChild(vorschau);
+    }
+
+    var kopftext = document.createElement('div');
+    kopftext.className = 'kalender-pop-kopftext';
+    var h = document.createElement('h3');
+    h.textContent = eintrag.titel;
+    kopftext.appendChild(h);
+
+    var meta = document.createElement('p');
+    meta.className = 'kalender-pop-meta';
+    var metaSymbol = kanalSymbol(eintrag.kanal);
+    if (metaSymbol) meta.appendChild(metaSymbol);
+    var metaText = document.createElement('span');
+    var d = eintrag.datum.split('-');
+    metaText.textContent = d[2] + '.' + d[1] + '.' + d[0] +
+      (eintrag.uhrzeit ? ', ' + eintrag.uhrzeit + ' Uhr' : ', gepostet (Archiv)') +
+      (eintrag.kanal ? ', ' + (KANAL_NAME[eintrag.kanal] || eintrag.kanal) : '');
+    meta.appendChild(metaText);
+    kopftext.appendChild(meta);
+
+    // Status als Pille im Freiraum neben dem Bild. Bei echten
+    // Eintraegen oeffnet sie das Plan-Menue (Datum/Uhrzeit + Gepostet/Posten),
+    // Archiv-Eintraege zeigen nur eine stille Gepostet-Pille.
+    var gepostet = eintrag.archiv || eintrag.status === 'gepostet';
+    var pille;
+    if (eintrag.archiv) {
+      pille = document.createElement('span');
+      pille.className = 'kalender-pop-pille gepostet statisch';
+      pille.textContent = 'Gepostet';
+    } else {
+      pille = document.createElement('button');
+      pille.type = 'button';
+      pille.className = 'kalender-pop-pille' + (gepostet ? ' gepostet' : '');
+      pille.setAttribute('aria-expanded', 'false');
+      pille.innerHTML = '<span></span>' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
+      pille.firstChild.textContent = gepostet ? 'Gepostet' : 'Geplant';
+    }
+    // Pille und der kleine Termin-speichern-Knopf teilen sich eine Zeile
+    //; der Knopf kommt bei echten Eintraegen weiter unten dazu.
+    var pillenZeile = document.createElement('div');
+    pillenZeile.className = 'kalender-pop-pillen';
+    pillenZeile.appendChild(pille);
+    kopftext.appendChild(pillenZeile);
+    kopf.appendChild(kopftext);
+    box.appendChild(kopf);
+
+    if (eintrag.archiv) {
+      // Archiv-Eintraege sind read-only: nur der Weg zum Beitrag.
+      if (eintrag.detail_url) {
+        var offen = document.createElement('a');
+        offen.className = 'kalender-pop-link';
+        offen.href = eintrag.detail_url;
+        offen.textContent = 'Beitrag öffnen';
+        box.appendChild(offen);
+      }
+      popoverPlatzieren(box, ankerEl);
+      popover = box;
+      return;
+    }
+
+    // Plan-Menue hinter der Pille: Datum + Uhrzeit einstellen, dann entweder
+    // neu einplanen (Posten) oder von Hand als erledigt markieren (Gepostet).
+    var menue = document.createElement('div');
+    menue.className = 'kalender-pop-menue';
+    menue.hidden = true;
+
+    var zeile = document.createElement('div');
+    zeile.className = 'kalender-pop-menue-zeile';
+    var datumFeld = document.createElement('input');
+    datumFeld.type = 'date';
+    datumFeld.value = eintrag.datum || '';
+    datumFeld.setAttribute('aria-label', 'Datum');
+    var zeitFeld = document.createElement('input');
+    zeitFeld.type = 'time';
+    zeitFeld.value = eintrag.uhrzeit || '';
+    zeitFeld.setAttribute('aria-label', 'Uhrzeit');
+    zeile.appendChild(datumFeld);
+    zeile.appendChild(zeitFeld);
+    menue.appendChild(zeile);
+
+    var fehlerEl = document.createElement('p');
+    fehlerEl.className = 'kalender-pop-fehler';
+    fehlerEl.hidden = true;
+
+    var knoepfe = document.createElement('div');
+    knoepfe.className = 'kalender-pop-menue-knoepfe';
+    var alsGepostet = document.createElement('button');
+    alsGepostet.type = 'button';
+    alsGepostet.className = 'kalender-pop-menue-gepostet';
+    alsGepostet.textContent = 'Gepostet';
+    alsGepostet.title = 'Von Hand als erledigt markieren';
+    alsGepostet.addEventListener('click', function () {
+      aendern(eintrag, { status: 'gepostet' }, box);
+    });
+    var posten = document.createElement('button');
+    posten.type = 'button';
+    posten.className = 'kalender-pop-menue-posten';
+    posten.textContent = 'Posten';
+    posten.title = 'Mit diesem Termin einplanen';
+    posten.addEventListener('click', function () {
+      if (!datumFeld.value || !zeitFeld.value) {
+        fehlerEl.hidden = false;
+        fehlerEl.textContent = 'Bitte Datum und Uhrzeit angeben.';
+        return;
+      }
+      aendern(eintrag, {
+        datum: datumFeld.value,
+        uhrzeit: zeitFeld.value,
+        status: 'geplant'
+      }, box);
+    });
+    knoepfe.appendChild(alsGepostet);
+    knoepfe.appendChild(posten);
+    menue.appendChild(knoepfe);
+
+    // Kleiner Save-Knopf neben der Pille: nur den Termin
+    // sichern, der Status bleibt, wie er ist.
+    var speichern = document.createElement('button');
+    speichern.type = 'button';
+    speichern.className = 'kalender-pop-menue-speichern';
+    speichern.textContent = 'Termin speichern';
+    speichern.addEventListener('click', function () {
+      if (!datumFeld.value || !zeitFeld.value) {
+        fehlerEl.hidden = false;
+        fehlerEl.textContent = 'Bitte Datum und Uhrzeit angeben.';
+        return;
+      }
+      aendern(eintrag, { datum: datumFeld.value, uhrzeit: zeitFeld.value }, box);
+    });
+    pillenZeile.appendChild(speichern);
+    box.appendChild(menue);
+    box.appendChild(fehlerEl);
+
+    pille.addEventListener('click', function () {
+      menue.hidden = !menue.hidden;
+      pille.setAttribute('aria-expanded', menue.hidden ? 'false' : 'true');
+      // Das Aufklappen aendert die Hoehe: neu platzieren, damit unten im
+      // Monat nichts abgeschnitten wird.
+      popoverPlatzieren(box, ankerEl);
+      if (!menue.hidden) datumFeld.focus();
+    });
+
+    var aktionen = document.createElement('div');
+    aktionen.className = 'kalender-pop-aktionen';
+    if (eintrag.detail_url) {
+      var link = document.createElement('a');
+      link.href = eintrag.detail_url;
+      link.textContent = 'Beitrag öffnen';
+      aktionen.appendChild(link);
+    } else {
+      var weg = document.createElement('span');
+      weg.className = 'kalender-pop-loeschen';
+      weg.textContent = 'Beitrag nicht mehr vorhanden';
+      aktionen.appendChild(weg);
+    }
+    var loeschen = document.createElement('button');
+    loeschen.type = 'button';
+    loeschen.className = 'kalender-pop-loeschen';
+    loeschen.textContent = 'Löschen';
+    loeschen.addEventListener('click', function () {
+      if (!confirm('Diesen Kalendereintrag wirklich löschen? Der Beitrag selbst bleibt erhalten.')) return;
+      fetch(eintragUrl(eintrag.id), { method: 'DELETE', credentials: 'same-origin' })
+        .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+        .then(function (res) {
+          if (!res.ok || !res.j.ok) throw new Error((res.j && res.j.fehler) || 'Fehler');
+          popoverSchliessen();
+          laden();
+        })
+        .catch(function (err) {
+          fehlerEl.hidden = false;
+          fehlerEl.textContent = 'Löschen hat nicht geklappt: ' + err.message;
+        });
+    });
+    aktionen.appendChild(loeschen);
+    box.appendChild(aktionen);
+
+    popoverPlatzieren(box, ankerEl);
+    popover = box;
+  }
+
+  function aendern(eintrag, felder, box) {
+    fetch(eintragUrl(eintrag.id), {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify(felder)
+    })
+      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+      .then(function (res) {
+        if (!res.ok || !res.j.ok) throw new Error((res.j && res.j.fehler) || 'Fehler');
+        popoverSchliessen();
+        laden();
+      })
+      .catch(function (err) {
+        var fehlerEl = box.querySelector('.kalender-pop-fehler');
+        if (fehlerEl) {
+          fehlerEl.hidden = false;
+          fehlerEl.textContent = 'Änderung hat nicht geklappt: ' + err.message;
+        }
+      });
+  }
+
+  // -- Selbst planen ------------------------------------------
+  // Verschieben per Ziehen: nur echte, noch geplante Eintraege. Archiv-Karten
+  // und Serien-Vorkommen stehen fest. Ziel ist ein Tag ab heute, und am
+  // heutigen Tag nur, wenn die Uhrzeit noch nicht vorbei ist: geplant wird
+  // nach vorne, was schon draussen ist, wird als gepostet markiert.
+  function verschiebbar(e) {
+    return !e.archiv && !e.serie && e.status !== 'gepostet' && !!e.id;
+  }
+  function datumKurz(wert) {
+    var t = String(wert || '').split('-');
+    return t.length === 3 ? Number(t[2]) + '.' + Number(t[1]) + '.' : wert;
+  }
+  function jetztZeit() {
+    var d = new Date();
+    return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+  }
+  function inVergangenheit(datum, uhrzeit) {
+    var heute = iso(new Date());
+    return datum < heute || (datum === heute && uhrzeit <= jetztZeit());
+  }
+
+  var gezogen = null;
+  raster.addEventListener('dragstart', function (e) {
+    var karte = e.target.closest ? e.target.closest('[data-kal-id]') : null;
+    if (!karte) return;
+    gezogen = eintraege.filter(function (x) { return x.id === karte.dataset.kalId; })[0] || null;
+    if (!gezogen || !verschiebbar(gezogen)) { gezogen = null; e.preventDefault(); return; }
+    popoverSchliessen();
+    if (e.dataTransfer) { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', gezogen.id); }
+    karte.classList.add('zieht');
+  });
+  raster.addEventListener('dragend', function (e) {
+    var karte = e.target.closest ? e.target.closest('[data-kal-id]') : null;
+    if (karte) karte.classList.remove('zieht');
+    raster.querySelectorAll('.kalender-tag.ziel').forEach(function (z) { z.classList.remove('ziel'); });
+    gezogen = null;
+  });
+  raster.addEventListener('dragover', function (e) {
+    var zelle = gezogen && e.target.closest ? e.target.closest('[data-kal-tag]') : null;
+    if (!zelle || inVergangenheit(zelle.dataset.kalTag, gezogen.uhrzeit || '23:59')) return;
+    e.preventDefault();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+    raster.querySelectorAll('.kalender-tag.ziel').forEach(function (z) { if (z !== zelle) z.classList.remove('ziel'); });
+    zelle.classList.add('ziel');
+  });
+  raster.addEventListener('drop', function (e) {
+    var zelle = gezogen && e.target.closest ? e.target.closest('[data-kal-tag]') : null;
+    if (!zelle) return;
+    e.preventDefault();
+    var eintrag = gezogen;
+    var ziel = zelle.dataset.kalTag;
+    gezogen = null;
+    zelle.classList.remove('ziel');
+    if (ziel === eintrag.datum || inVergangenheit(ziel, eintrag.uhrzeit || '23:59')) return;
+    // Sofort sichtbar verschieben, der Server bestaetigt beim Neuladen.
+    eintrag.datum = ziel;
+    zeichnen();
+    fetch(eintragUrl(eintrag.id), {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({ datum: ziel })
+    })
+      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+      .then(function (res) {
+        if (!res.ok || !res.j.ok) throw new Error((res.j && res.j.fehler) || 'Fehler');
+        laden();
+      })
+      .catch(function (err) {
+        meldungZeigen('Verschieben hat nicht geklappt: ' + err.message, true);
+        laden();
+      });
+  });
+
+  var planDialog = document.getElementById('kp-dialog');
+  var auswahlUrl = wurzel.dataset.auswahlUrl;
+  var plan = { quelle: 'beitraege', daten: null, gewaehlt: null };
+
+  function planEl(id) { return document.getElementById(id); }
+
+  function planMeldung(text, fehler) {
+    var el = planEl('kp-meldung');
+    el.hidden = !text;
+    el.className = 'posten-meldung' + (fehler ? ' err' : '');
+    el.textContent = text || '';
+  }
+
+  function planKanaele() {
+    return Array.prototype.slice.call(planEl('kp-dd-liste').querySelectorAll('input[type=checkbox]'))
+      .filter(function (h) { return h.checked; }).map(function (h) { return h.value; });
+  }
+
+  function planKanaeleZeichnen() {
+    var liste = planKanaele();
+    planEl('kp-dd-symbole').innerHTML = '';
+    liste.slice(0, 5).forEach(function (k) {
+      var ico = planEl('kp-dd-liste').querySelector('[data-kanal="' + k + '"] .kanal-dd-ico');
+      if (ico) planEl('kp-dd-symbole').appendChild(ico.cloneNode(true));
+    });
+    planEl('kp-dd-text').textContent = !liste.length ? 'Kanäle wählen'
+      : liste.length <= 2 ? liste.map(function (k) { return KANAL_NAME[k] || k; }).join(', ')
+      : liste.length + ' Kanäle';
+    planEl('kp-speichern').textContent = liste.length > 1 ? 'Auf ' + liste.length + ' Kanälen planen' : 'Planen';
+  }
+
+  function planUntertitel(item) {
+    var teile = [];
+    if (item.version) teile.push('Version ' + item.version + (item.version_name && item.version_name !== 'Version ' + item.version ? ', ' + item.version_name : ''));
+    if (item.datum) teile.push('vom ' + datumKurz(item.datum));
+    if (item.gepostet) teile.push('schon gepostet');
+    if (item.geplant) teile.push('geplant am ' + datumKurz(item.geplant));
+    return teile.join(', ');
+  }
+
+  function planListeZeichnen() {
+    var liste = planEl('kp-liste');
+    liste.innerHTML = '';
+    if (!plan.daten) {
+      liste.innerHTML = '<p class="kp-leer">Lädt …</p>';
+      return;
+    }
+    var suche = planEl('kp-suche').value.trim().toLowerCase();
+    var items = plan.daten[plan.quelle] || [];
+    var treffer = items.filter(function (it) { return !suche || it.titel.toLowerCase().indexOf(suche) >= 0; });
+    if (!treffer.length) {
+      var leer = document.createElement('p');
+      leer.className = 'kp-leer';
+      leer.textContent = suche ? 'Nichts gefunden.'
+        : plan.quelle === 'trials' ? 'Noch keine Trial-Clips mit Video.'
+        : 'Noch keine freigegebenen Beiträge. Entwürfe planst du nach der Freigabe.';
+      liste.appendChild(leer);
+      return;
+    }
+    treffer.forEach(function (it) {
+      var zeile = document.createElement('button');
+      zeile.type = 'button';
+      zeile.className = 'kp-item';
+      zeile.setAttribute('role', 'option');
+      var an = plan.gewaehlt === it;
+      zeile.setAttribute('aria-selected', an ? 'true' : 'false');
+      if (it.vorschau_url) {
+        zeile.appendChild(vorschauMedium(it.vorschau_url, 'kp-bild', false));
+      } else {
+        var ersatz = document.createElement('span');
+        ersatz.className = 'kp-bild kp-bild-ersatz';
+        ersatz.textContent = (it.titel || '?').trim().charAt(0).toUpperCase();
+        zeile.appendChild(ersatz);
+      }
+      var text = document.createElement('span');
+      text.className = 'kp-text';
+      var t = document.createElement('span');
+      t.className = 'kp-titel';
+      t.textContent = it.titel;
+      var u = document.createElement('span');
+      u.className = 'kp-unter';
+      u.textContent = planUntertitel(it);
+      text.appendChild(t);
+      text.appendChild(u);
+      zeile.appendChild(text);
+      zeile.addEventListener('click', function () { planWaehlen(it); });
+      liste.appendChild(zeile);
+    });
+  }
+
+  function planWaehlen(it) {
+    plan.gewaehlt = it;
+    planMeldung('');
+    var box = planEl('kp-clip-box');
+    var feld = planEl('kp-clip');
+    if (it && it.clips && it.clips.length > 1) {
+      feld.innerHTML = '';
+      it.clips.forEach(function (name) {
+        var o = document.createElement('option');
+        o.value = name;
+        o.textContent = name;
+        if (name === it.clip) o.selected = true;
+        feld.appendChild(o);
+      });
+      box.hidden = false;
+    } else {
+      box.hidden = true;
+    }
+    planListeZeichnen();
+  }
+
+  function planQuelle(neu) {
+    plan.quelle = neu === 'trials' ? 'trials' : 'beitraege';
+    planEl('kp-quelle').querySelectorAll('[data-kp-quelle]').forEach(function (b) {
+      b.setAttribute('aria-pressed', b.dataset.kpQuelle === plan.quelle ? 'true' : 'false');
+    });
+    planWaehlen(null);
+  }
+
+  function planLaden() {
+    plan.daten = null;
+    planListeZeichnen();
+    fetch(auswahlUrl, { headers: { Accept: 'application/json' }, credentials: 'same-origin' })
+      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+      .then(function (res) {
+        if (!res.ok || !res.j.ok) throw new Error((res.j && res.j.fehler) || 'Fehler');
+        plan.daten = { beitraege: res.j.beitraege || [], trials: res.j.trials || [] };
+        planEl('kp-quelle').hidden = !plan.daten.trials.length;
+        if (!plan.daten.trials.length) plan.quelle = 'beitraege';
+        planListeZeichnen();
+      })
+      .catch(function (err) {
+        plan.daten = { beitraege: [], trials: [] };
+        planListeZeichnen();
+        planMeldung('Die Beiträge konnten nicht geladen werden: ' + err.message, true);
+      });
+  }
+
+  function planOeffnen(datum) {
+    if (!planDialog) return;
+    popoverSchliessen();
+    var heute = iso(new Date());
+    if (!datum) {
+      // Ohne Tag: heute, wenn der sichtbare Zeitraum heute enthaelt, sonst
+      // der erste Tag des sichtbaren Zeitraums (nie in der Vergangenheit).
+      var spanne = zeitraum();
+      var von = modus === 'monat' ? iso(new Date(anker.getFullYear(), anker.getMonth(), 1, 12)) : iso(spanne.start);
+      datum = von > heute ? von : heute;
+    }
+    var datumFeld = planEl('kp-datum');
+    datumFeld.min = heute;
+    datumFeld.value = datum < heute ? heute : datum;
+    var zeitFeld = planEl('kp-uhrzeit');
+    zeitFeld.value = '17:00';
+    if (datumFeld.value === heute && jetztZeit() >= '16:30') {
+      // Spaet am Tag: naechste volle Viertelstunde mit etwas Luft.
+      var d = new Date(Date.now() + 30 * 60000);
+      d.setMinutes(Math.ceil(d.getMinutes() / 15) * 15, 0, 0);
+      if (iso(d) !== heute) { datumFeld.value = iso(d); }
+      zeitFeld.value = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+    }
+    planEl('kp-suche').value = '';
+    planEl('kp-notiz').value = '';
+    planEl('kp-dd-liste').hidden = true;
+    planEl('kp-dd-knopf').setAttribute('aria-expanded', 'false');
+    planMeldung('');
+    planEl('kp-speichern').disabled = false;
+    planKanaeleZeichnen();
+    planQuelle(plan.quelle);
+    planLaden();
+    if (planDialog.showModal) planDialog.showModal(); else planDialog.setAttribute('open', '');
+    planEl('kp-suche').focus();
+  }
+
+  function planSchliessen() {
+    if (planDialog.close) planDialog.close(); else planDialog.removeAttribute('open');
+  }
+
+  function planSpeichern() {
+    var it = plan.gewaehlt;
+    var datum = planEl('kp-datum').value;
+    var uhrzeit = planEl('kp-uhrzeit').value;
+    var kanaele = planKanaele();
+    if (!it) { planMeldung('Bitte wähle zuerst einen Beitrag.', true); return; }
+    if (!datum || !uhrzeit) { planMeldung('Bitte Datum und Uhrzeit angeben.', true); return; }
+    if (inVergangenheit(datum, uhrzeit)) {
+      planMeldung('Dieser Zeitpunkt ist schon vorbei. Bitte wähle einen späteren.', true);
+      return;
+    }
+    if (!kanaele.length) { planMeldung('Bitte wähle mindestens einen Kanal.', true); return; }
+    var basis = { kind: it.kind, slug: it.slug, datum: datum, uhrzeit: uhrzeit };
+    if (it.kind === 'trials') {
+      basis.version = it.version;
+      basis.clip = it.clips && it.clips.length > 1 ? planEl('kp-clip').value : it.clip;
+    }
+    var notiz = planEl('kp-notiz').value.trim();
+    if (notiz) basis.notiz = notiz;
+    var knopf = planEl('kp-speichern');
+    knopf.disabled = true;
+    planMeldung('');
+    var fertig = [];
+    function naechster(i) {
+      if (i >= kanaele.length) {
+        planSchliessen();
+        var d = datum.split('-');
+        anker = new Date(Number(d[0]), Number(d[1]) - 1, Number(d[2]), 12);
+        laden();
+        return;
+      }
+      var body = Object.assign({}, basis, { kanal: kanaele[i] });
+      fetch(listeUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify(body)
+      })
+        .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+        .then(function (res) {
+          if (!res.ok || !res.j.ok) throw new Error((res.j && res.j.fehler) || 'Fehler');
+          fertig.push(kanaele[i]);
+          naechster(i + 1);
+        })
+        .catch(function (err) {
+          knopf.disabled = false;
+          planMeldung((fertig.length ? 'Geplant für ' + fertig.map(function (k) { return KANAL_NAME[k] || k; }).join(', ') + '. ' : '') +
+            'Für ' + (KANAL_NAME[kanaele[i]] || kanaele[i]) + ' hat es nicht geklappt: ' + err.message, true);
+          if (fertig.length) laden();
+        });
+    }
+    naechster(0);
+  }
+
+  if (planDialog) {
+    wurzel.querySelectorAll('[data-kal-planen]').forEach(function (b) {
+      b.addEventListener('click', function () { planOeffnen(''); });
+    });
+    planEl('kp-quelle').querySelectorAll('[data-kp-quelle]').forEach(function (b) {
+      b.addEventListener('click', function () { planQuelle(b.dataset.kpQuelle); });
+    });
+    planEl('kp-suche').addEventListener('input', planListeZeichnen);
+    planEl('kp-dd-knopf').addEventListener('click', function () {
+      var liste = planEl('kp-dd-liste');
+      liste.hidden = !liste.hidden;
+      planEl('kp-dd-knopf').setAttribute('aria-expanded', liste.hidden ? 'false' : 'true');
+    });
+    planEl('kp-dd-liste').querySelectorAll('input[type=checkbox]').forEach(function (h) {
+      h.addEventListener('change', planKanaeleZeichnen);
+    });
+    planDialog.addEventListener('click', function (e) {
+      // Klick auf den abgedunkelten Hintergrund schliesst. Das Ziel ist dann
+      // der Dialog selbst, aber das ist es auch beim Klick in den Innenabstand,
+      // darum entscheidet die Position.
+      if (e.target === planDialog && planDialog.getBoundingClientRect) {
+        var r = planDialog.getBoundingClientRect();
+        if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) {
+          planSchliessen();
+          return;
+        }
+      }
+      if (!planEl('kp-dd').contains(e.target)) {
+        planEl('kp-dd-liste').hidden = true;
+        planEl('kp-dd-knopf').setAttribute('aria-expanded', 'false');
+      }
+    });
+    planEl('kp-abbrechen').addEventListener('click', planSchliessen);
+    planEl('kp-speichern').addEventListener('click', planSpeichern);
+  } else {
+    wurzel.querySelectorAll('[data-kal-planen]').forEach(function (b) { b.hidden = true; });
+  }
+
+  // -- Bedienung ------------------------------------------------------------
+  raster.addEventListener('click', function (e) {
+    var plus = e.target.closest('[data-kal-plan-tag]');
+    if (plus) { planOeffnen(plus.dataset.kalPlanTag); return; }
+    // Karten UND Mini-Vorschaubilder tragen data-kal-id, beide oeffnen dasselbe
+    // Popover.
+    var karte = e.target.closest('[data-kal-id]');
+    if (!karte) return;
+    var treffer = eintraege.filter(function (x) { return x.id === karte.dataset.kalId; })[0];
+    if (treffer) popoverOeffnen(treffer, karte);
+  });
+
+  wurzel.querySelectorAll('[data-kal-nav]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var richtung = Number(btn.dataset.kalNav);
+      popoverSchliessen();
+      if (modus === 'woche') {
+        anker = tageAddieren(wochenStart(anker), richtung * 7);
+      } else {
+        anker = new Date(anker.getFullYear(), anker.getMonth() + richtung, 1, 12);
+      }
+      laden();
+    });
+  });
+
+  wurzel.querySelector('[data-kal-heute]').addEventListener('click', function () {
+    popoverSchliessen();
+    anker = new Date();
+    anker.setHours(12, 0, 0, 0);
+    laden();
+  });
+
+  function modusSetzen(neu) {
+    modus = neu === 'woche' ? 'woche' : 'monat';
+    try { localStorage.setItem(MODUS_KEY, modus); } catch (e) { /* egal */ }
+    wurzel.querySelectorAll('[data-kal-modus]').forEach(function (b) {
+      b.setAttribute('aria-pressed', b.dataset.kalModus === modus ? 'true' : 'false');
+    });
+    popoverSchliessen();
+    laden();
+  }
+
+  wurzel.querySelectorAll('[data-kal-modus]').forEach(function (btn) {
+    btn.addEventListener('click', function () { modusSetzen(btn.dataset.kalModus); });
+  });
+  wurzel.querySelectorAll('[data-kal-modus]').forEach(function (b) {
+    b.setAttribute('aria-pressed', b.dataset.kalModus === modus ? 'true' : 'false');
+  });
+
+  // Die Uebersicht ruft das hier auf, sobald die Kalender-Ansicht sichtbar
+  // wird. Geladen wird erst dann, damit das Raster ohne Umweg dasteht.
+  window.kalenderAnzeigen = function (sichtbar) {
+    wurzel.hidden = !sichtbar;
+    if (!sichtbar) { popoverSchliessen(); return; }
+    laden();
+  };
+})();
+</script>

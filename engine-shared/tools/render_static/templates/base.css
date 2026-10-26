@@ -1,0 +1,63 @@
+/* Design-Tokens: Basis für alle statischen Slides (1080×1350).
+   In Slide-HTML inline übernehmen oder per <style>@import</style> laden.
+   Quelle der Wahrheit: context/STYLEGUIDE.md + Archiv-Beiträge. */
+
+@import url('https://fonts.googleapis.com/css2?family=Anton&family=Archivo+Black&family=Caveat:wght@700&display=swap');
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  width: 1080px;
+  height: 1350px;
+  overflow: hidden;
+  background: radial-gradient(circle at 50% 0%, var(--grund-hell,#1f232a) 0%, var(--grund,#121417) 65%);
+  font-family: 'Inter', sans-serif;
+  color: #fff;
+  padding: 44px 56px 36px;
+  display: flex;
+  flex-direction: column;
+}
+
+img.logoimg { height: 58px; }
+
+.head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 36px; }
+.meta { font-size: 22px; color: rgba(255,255,255,0.5); font-weight: 600; }
+
+/* Markenzeichen: rote Keyword-Box, weißer Text. 1–3 pro Slide. */
+.redbox { background: var(--akzent,#E02020); color: #fff; padding: 2px 14px 6px; display: inline-block; border-radius: 4px; }
+
+/* Headline-Modi */
+h1.anton { font-family: 'Anton', sans-serif; font-size: 62px; letter-spacing: 1px; text-transform: uppercase; line-height: 1.1; }
+h1.inter { font-weight: 800; font-size: 48px; line-height: 1.3; }
+.subtitle { font-size: 26px; color: rgba(255,255,255,0.7); line-height: 1.5; }
+.subtitle b, .ev p b { color: #fff; }
+
+/* Riesen-Statistik */
+.bigstat { font-family: 'Anton', sans-serif; color: var(--akzent,#E02020); font-size: 300px; line-height: 1; }
+.bigstat .pct { font-size: 0.45em; }
+
+/* Chart-Balken */
+.bar { background: var(--balken,#3a4049); border-radius: 3px; }
+.bar .val { font-size: 20px; font-weight: 700; color: #fff; }
+
+/* Rot gestrichelte Einordnungs-/Zitatbox */
+.dashedbox { border: 3px dashed var(--akzent,#E02020); border-radius: 6px; padding: 24px 30px; font-size: 24px; line-height: 1.55; color: rgba(255,255,255,0.85); }
+
+/* Rote gedrehte Callout-Box */
+.callout { background: var(--akzent,#E02020); padding: 22px 26px; font-size: 27px; font-weight: 800; line-height: 1.35; border-radius: 4px; transform: rotate(-2deg); text-align: center; box-shadow: 0 6px 24px rgba(0,0,0,0.4); }
+
+/* Footer: Quellen links, weiter-Hinweis rechts */
+.footer { margin-top: auto; display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; font-size: 20px; color: rgba(255,255,255,0.45); }
+.footer b { color: rgba(255,255,255,0.75); }
+.credits { font-size: 14px; color: rgba(255,255,255,0.35); display: block; }
+.next { font-weight: 700; font-size: 26px; color: rgba(255,255,255,0.75); letter-spacing: 2px; white-space: nowrap; }
+
+/* Audi-Blinker: ››› leuchten nacheinander auf (nur animierte Slides) */
+.next .ch { opacity: 0.25; display: inline-block; animation: sweep 1.5s linear infinite; }
+.next .ch:nth-child(1) { animation-delay: 0s; }
+.next .ch:nth-child(2) { animation-delay: 0.15s; }
+.next .ch:nth-child(3) { animation-delay: 0.3s; }
+@keyframes sweep { 0% {opacity:0.25;} 10% {opacity:1;} 55% {opacity:1;} 65% {opacity:0.25;} 100% {opacity:0.25;} }
+
+/* Vertikaler Foto-Credit am rechten Rand */
+.photocredit { position: absolute; right: 14px; top: 80px; writing-mode: vertical-rl; font-size: 16px; color: rgba(255,255,255,0.4); letter-spacing: 1px; }

@@ -1,0 +1,1268 @@
+{% extends "base.html" %}
+{% block content %}
+  {# Eigenes Stylesheet fuer Kalender + Posten-Popup, base.html bleibt unberuehrt. #}
+  <link rel="stylesheet" href="{{ url_for('static', filename='kalender.css') }}?v=20261024">
+  {# templates-bereich.css bleibt eingebunden: die Serien-Box im Posten-Popup
+     (weiter unten) nutzt weiterhin deren Klassen (tpl-haken, tpl-feld usw). #}
+  <link rel="stylesheet" href="{{ url_for('static', filename='templates-bereich.css') }}?v=20260821a">
+  {# Eigenes Stylesheet fuer die Feed-Vorschau (Karussell + Caption) und
+     die Brief-Reiter, design.css/kalender.css bleiben unberuehrt. #}
+  <link rel="stylesheet" href="{{ url_for('static', filename='detail-beitrag.css') }}?v=20260916a">
+
+  {# Struktur-Vorlagen: fuer den Nutzer heissen
+     sie "Template". Erkennung wie in workspace.ist_struktur_template
+     nachgebildet (Slug- bzw. Thema-Praefix), damit die Detailseite eines
+     Templates weder gepostet noch freigegeben werden kann und der alte
+     Praefix im Titel nicht auftaucht. Rendern bleibt, das aktualisiert die
+     Gerüst-Vorschau. #}
+  {% set ist_struktur_vorlage = post.slug.startswith('template-') or post.thema.startswith('Struktur-Template') %}
+  {% set titel_anzeige = display_thema.split(':', 1)[1].strip() if display_thema.startswith('Struktur-Template:') else display_thema %}
+
+  <div class="detail-head">
+    <div>
+      <a class="back-arrow" href="{{ url_for('beitraege', tab='entwuerfe' if post.kind == 'drafts' else 'gepostet') }}">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 18l-6-6 6-6"/></svg>
+        Zurück
+      </a>
+      <div style="display:flex; align-items:center; gap:10px; margin-top:14px;">
+        <h1 class="page" id="titel-anzeige" contenteditable="false" spellcheck="false" style="margin:0; border-radius:8px; outline:none;">{{ titel_anzeige }}</h1>
+        {% if ist_struktur_vorlage %}
+        <span class="tpl-badge" title="Festes Gerüst mit Platzhalter-Slots">Template</span>
+        {% endif %}
+        <button id="titel-stift" title="Titel umbenennen" aria-label="Titel umbenennen" style="border:none; background:none; cursor:pointer; padding:6px; border-radius:8px; color:var(--sub, #6b6b6b); display:grid; place-items:center;">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg>
+        </button>
+      </div>
+      {% if post.datum %}
+        <p class="page-sub detail-meta-line" style="margin-bottom:0;">{{ post.datum | datum_de }}</p>
+      {% endif %}
+      {% if post.hook %}<p class="page-sub" style="margin-bottom:0;">„{{ post.hook }}"</p>{% endif %}
+    </div>
+    <div class="detail-head-actions">
+      {% if not ist_struktur_vorlage %}
+      <button class="btn" id="posten-btn" type="button">Planen</button>
+      {% if post.kind == 'drafts' %}
+      <button class="btn" id="freigeben-btn" type="button" data-kind="{{ post.kind }}" data-slug="{{ post.slug }}">Freigeben</button>
+      <span class="row-msg" id="freigeben-msg"></span>
+      {% endif %}
+      {% endif %}
+      {% if quell_vorschauen %}
+      <button class="btn" id="render-start-btn" type="button">Beitrag rendern</button>
+      {% endif %}
+      <button class="btn ghost" id="finder-btn"
+              data-kind="{{ post.kind }}" data-slug="{{ post.slug }}">Ordner öffnen</button>
+    </div>
+  </div>
+
+  {% if quell_vorschauen %}
+  <section class="render-status" id="render-status" aria-labelledby="render-status-title" hidden>
+    <div class="render-status-copy">
+      <h2 id="render-status-title">Render wird vorbereitet</h2>
+      <p id="render-status-text" role="status" aria-live="polite" aria-atomic="true">Dein Export startet gleich.</p>
+      <div class="render-progress-row">
+        <progress id="render-progress" max="{{ quell_vorschauen | length }}"
+                  aria-label="Renderfortschritt" aria-describedby="render-status-text"></progress>
+        <span id="render-progress-label" aria-hidden="true"></span>
+      </div>
+    </div>
+    <div class="render-status-actions">
+      <a class="btn" id="render-download" href="#" hidden>ZIP herunterladen</a>
+    </div>
+  </section>
+  {% endif %}
+
+  {# Feed-Vorschau: Karussell mit den aktuellen Slide-Renderings
+     (Fallback auf die HTML-Live-Vorschauen ohne Renderings) plus die Caption
+     der jeweils sichtbaren Slide darunter, wie in einem Feed. Rechts
+     daneben Skript und Brief, damit der Leerraum neben den Slides verschwindet. #}
+  <div class="detail-grid">
+    <div class="ig-spalte">
+      {% if carousel_slides %}
+      {% if vorschau_umschaltbar %}
+      <div class="vorschau-modus" id="vorschau-modus" role="group" aria-label="Vorschau-Format">
+        <button class="chip toggle on" data-modus="video" type="button">MP4</button>
+        <button class="chip toggle" data-modus="bild" type="button">PNG</button>
+      </div>
+      {% endif %}
+      <div class="ig-karte">
+        <div class="ig-karussell" id="ig-karussell"{% if post.format in ['motion-graphic', 'text-over-video', 'reel'] %} style="aspect-ratio:9/16"{% endif %}>
+          <div class="ig-karussell-track" id="ig-karussell-track">
+            {% for cs in carousel_slides %}
+            <div class="ig-slide" data-slide-index="{{ loop.index0 }}" data-url-video="{{ cs.url_video or '' }}" data-url-bild="{{ cs.url_bild or '' }}">
+              {% if cs.typ == 'video' %}
+              <video muted loop playsinline preload="metadata" src="{{ cs.url }}#t=0.5"></video>
+              {% elif cs.typ == 'image' %}
+              <img src="{{ cs.url }}" alt="{{ cs.name }}" loading="lazy">
+              {% else %}
+              <div class="ig-slide-iframe-rahmen quell-vorschau-rahmen" data-source-width="{{ cs.breite }}" data-source-height="{{ cs.hoehe }}">
+                <iframe loading="lazy" sandbox referrerpolicy="no-referrer" tabindex="-1"
+                        title="Live-Vorschau von {{ cs.name }}" src="{{ cs.url }}"></iframe>
+              </div>
+              {% endif %}
+            </div>
+            {% endfor %}
+          </div>
+          {% if carousel_slides | selectattr('typ', 'equalto', 'video') | list %}
+          <button type="button" class="ig-ton" id="ig-ton" aria-pressed="false" aria-label="Ton einschalten" title="Ton einschalten">
+            <svg class="ig-ton-aus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="m22 9-6 6M16 9l6 6"/></svg>
+            <svg class="ig-ton-an" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/></svg>
+          </button>
+          {% endif %}
+          {% if carousel_slides | length > 1 %}
+          <button type="button" class="ig-nav ig-nav-prev" id="ig-nav-prev" aria-label="Vorheriger Slide">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+          </button>
+          <button type="button" class="ig-nav ig-nav-next" id="ig-nav-next" aria-label="Nächster Slide">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+          </button>
+          <div class="ig-dots" id="ig-dots">
+            {% for cs in carousel_slides %}
+            <span class="ig-dot{{ ' on' if loop.first else '' }}" data-dot-index="{{ loop.index0 }}"></span>
+            {% endfor %}
+          </div>
+          {% endif %}
+        </div>
+        <div class="ig-caption-row">
+          <div class="ig-caption-text" id="caption-view">
+            {% for cs in carousel_slides %}
+            {# Kein Whitespace um den Caption-Text: pre-wrap wuerde die
+               Einrueckung des Templates als Einzug anzeigen. #}
+            <div class="ig-caption-slide{{ ' aktiv' if loop.first else '' }}" data-caption-index="{{ loop.index0 }}">{% if cs.hat_caption %}{{ cs.caption_html | safe }}{% else %}<span class="ig-caption-hinweis">Keine eigene Caption für diese Slide.</span>{% endif %}</div>
+            {% endfor %}
+          </div>
+          {% if not ist_struktur_vorlage %}
+          <button class="ig-caption-stift" id="caption-edit-btn" type="button" title="Caption bearbeiten" aria-label="Caption bearbeiten">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg>
+          </button>
+          {% endif %}
+        </div>
+        {% if not ist_struktur_vorlage %}
+        <div id="caption-editor" hidden>
+          <textarea id="caption-text" class="text-input caption-textarea" spellcheck="false">{{ caption_raw }}</textarea>
+          <p class="caption-counts"><span id="caption-chars">0 Zeichen</span>, <span id="caption-tags">0 Hashtags</span></p>
+          <div class="caption-actions">
+            <button class="btn" id="caption-save-btn" type="button">Speichern</button>
+            <button class="btn ghost" id="caption-cancel-btn" type="button">Abbrechen</button>
+          </div>
+          <p class="caption-status" id="caption-status"></p>
+        </div>
+        {% endif %}
+      </div>
+      {% else %}
+      <div class="empty"><div class="big">Keine Vorschau</div><p>Dieser Beitrag enthält noch keine HTML-Quelle und keine gerenderten Medien.</p></div>
+      {% endif %}
+    </div>
+
+    <div class="detail-nebenspalte">
+      {# Eckdaten fuellen die rechte Spalte, damit die Vorschau nicht allein
+         neben Leerraum steht — kompakte Fakten zum Beitrag. #}
+      <div class="panel eckdaten">
+        <h3>Eckdaten</h3>
+        <dl class="eckdaten-liste">
+          {% if post.format %}<dt>Format</dt><dd>{{ post.format | fmt_format }}</dd>{% endif %}
+          {% if post.datum %}<dt>Datum</dt><dd>{{ post.datum | datum_de }}</dd>{% endif %}
+          <dt>Status</dt><dd>{{ 'Template' if ist_struktur_vorlage else ('Entwurf' if post.kind == 'drafts' else 'Freigegeben') }}</dd>
+          {% if carousel_slides %}<dt>Umfang</dt><dd>{{ 'Ein Beitrag' if carousel_slides | length == 1 else (carousel_slides | length ~ ' Slides') }}</dd>{% endif %}
+          {% if post.export_types %}<dt>Dateien</dt><dd class="eckdaten-chips">{% for t in post.export_types %}<span class="chip mini">{{ t | upper }}</span>{% endfor %}</dd>{% endif %}
+          {% if post.quellen %}<dt>Quellen</dt><dd>{{ post.quellen | length }}</dd>{% endif %}
+        </dl>
+      </div>
+      {% if skript_html %}
+      <div class="panel">
+        <h3>Skript / O-Ton</h3>
+        <div class="md">{{ skript_html | safe }}</div>
+      </div>
+      {% endif %}
+
+    </div>
+  </div>
+
+  {# Brief unter dem Beitrag in voller Breite, nicht daneben. #}
+  {% if brief_html or brief_sections %}
+  <div class="panel brief-karte">
+    <h3>Brief</h3>
+    {% if brief_titel %}<p class="brief-unterzeile">{{ brief_titel }}</p>{% endif %}
+    {% if brief_sections %}
+    <nav class="brief-tabs" id="brief-tabs">
+      {% for s in brief_sections %}
+      <button type="button" class="brief-tab{{ ' active' if loop.first else '' }}" data-brief-tab="{{ loop.index0 }}" title="{{ s.titel }}">{{ s.kurz }}</button>
+      {% endfor %}
+    </nav>
+    {% for s in brief_sections %}
+    <div class="md brief-panel" data-brief-panel="{{ loop.index0 }}" {{ '' if loop.first else 'hidden' }}>{{ s.html | safe }}</div>
+    {% endfor %}
+    {% else %}
+    <div class="md">{{ brief_html | safe }}</div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <div class="arbeitsansicht">
+        {% if not export_media and quell_vorschauen %}
+          <section class="source-slides" aria-labelledby="source-slides-title">
+            <div class="format-head source-slides-head">
+              <h2 id="source-slides-title">Slides</h2>
+              <span class="count">{{ quell_vorschauen | length }}</span>
+            </div>
+            <div class="row-scroll source-slides-row">
+              {% for quelle in quell_vorschauen %}
+                <figure class="media-cell quell-vorschau quell-vorschau-kompakt r{{ quelle.ratio }}"
+                        data-source-preview="1">
+                  <div class="quell-vorschau-rahmen"
+                       data-source-width="{{ quelle.width }}"
+                       data-source-height="{{ quelle.height }}">
+                    <iframe loading="lazy"
+                            sandbox
+                            referrerpolicy="no-referrer"
+                            tabindex="-1"
+                            title="Live-Vorschau von {{ quelle.label }}"
+                            src="{{ url_for('quellvorschau', kind=post.kind, slug=post.slug, filename=quelle.name) }}"></iframe>
+                  </div>
+<figcaption class="media-name">{{ quelle.label }}</figcaption>
+                </figure>
+              {% endfor %}
+            </div>
+          </section>
+        {% endif %}
+        {% if export_media %}
+          {# Einzeldateien + Versionen: MP4/PNG-Wechsel und Bearbeiten haengen
+             jetzt direkt an der Vorschau oben — hier bleiben nur noch die
+             Datei-Werkzeuge (Loeschen, Lightbox, alte Versionen), darum
+             standardmaessig eingeklappt. #}
+          <section class="export-sec format-sec collapsible" id="dateien-sec">
+            <button class="format-head" type="button" aria-expanded="false">
+              <svg class="fold-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
+              <h2>Dateien &amp; Versionen</h2>
+              <span class="count">{{ export_media | length }}</span>
+            </button>
+            <div class="export-inhalt">
+            {% set export_videos = export_media | selectattr('type', 'equalto', 'video') | list %}
+            {% set export_bilder = export_media | rejectattr('type', 'equalto', 'video') | list %}
+            {% for reihe, eintraege in [('video', export_videos), ('bild', export_bilder)] %}
+            {% if eintraege %}
+            <div class="export-reihe" data-reihe="{{ reihe }}" style="display:flex; gap:12px; overflow-x:auto; -webkit-overflow-scrolling:touch; padding:2px 24px 10px 2px; margin-bottom:6px; scroll-padding-right:24px;">
+              {% for m in eintraege %}
+              <figure class="export-card" data-old="{{ '1' if m.old else '0' }}" style="flex:0 0 auto; width:112px; margin:0; position:relative;">
+                <span class="export-open" data-src="{{ url_for('asset', kind=post.kind, slug=post.slug, filename=m.name) }}" data-art="{{ reihe }}" data-name="{{ m.name }}" data-versionen="{{ m.versionen | join('|') }}" style="display:block; cursor:zoom-in;">
+                  {% if reihe == 'video' %}
+                  <video muted playsinline preload="metadata" src="{{ url_for('asset', kind=post.kind, slug=post.slug, filename=m.name) }}#t=0.5" style="width:112px; aspect-ratio:4/5; object-fit:cover; border-radius:12px; border:1px solid var(--gray-200, #e5e5e5); background:#111; display:block; pointer-events:none;"></video>
+                  {% else %}
+                  <img loading="lazy" src="{{ url_for('asset', kind=post.kind, slug=post.slug, filename=m.name) }}" alt="{{ m.name }}" style="width:112px; aspect-ratio:4/5; object-fit:cover; border-radius:12px; border:1px solid var(--gray-200, #e5e5e5); display:block;">
+                  {% endif %}
+                </span>
+                <span class="export-del" data-name="{{ m.name }}" title="Datei löschen" style="position:absolute; top:6px; right:6px; width:22px; height:22px; display:grid; place-items:center; border-radius:50%; background:rgba(10,10,10,.55); color:#fff; font-weight:700; cursor:pointer; line-height:1;">&times;</span>
+<figcaption style="font-size:11px; color:var(--sub, #6b6b6b); margin-top:5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ m.name }}</figcaption>
+              </figure>
+              {% endfor %}
+            </div>
+            {% endif %}
+            {% endfor %}
+            </div>
+          </section>
+          <script>
+          (function () {
+            var KEY = 'postmakr-dateien-offen:' + location.pathname;
+            var sec = document.getElementById('dateien-sec');
+            var head = sec.querySelector('.format-head');
+            function setzen(offen) {
+              sec.classList.toggle('open', offen);
+              head.setAttribute('aria-expanded', offen ? 'true' : 'false');
+            }
+            var gemerkt = null;
+            try { gemerkt = localStorage.getItem(KEY); } catch (e) {}
+            setzen(gemerkt === '1');
+            head.addEventListener('click', function () {
+              var offen = !sec.classList.contains('open');
+              setzen(offen);
+              try { localStorage.setItem(KEY, offen ? '1' : '0'); } catch (e) {}
+            });
+          })();
+          </script>
+          <script>
+          /* Lightbox-Galerie: X und Pfeile am Bild, Zaehler, nur SICHTBARE
+             Karten (versteckte Alt-Versionen und Geloeschtes blaettern nicht mit) */
+          var lbListe = [];
+          var lbIndex = 0;
+          var lb = document.createElement('div');
+          lb.id = 'export-lightbox';
+          lb.style.cssText = 'position:fixed; inset:0; z-index:900; display:none; align-items:center; justify-content:center; background:rgba(8,8,10,.86); padding:30px;';
+          lb.innerHTML =
+            '<div data-rahmen style="position:relative; max-width:min(500px, 78vw); width:100%;">' +
+              '<div data-inhalt></div>' +
+              '<button data-zu aria-label="Schließen" style="position:absolute; top:10px; right:10px; width:36px; height:36px; border-radius:50%; border:none; background:rgba(10,10,10,.62); color:#fff; font-size:19px; cursor:pointer; line-height:1;">&times;</button>' +
+              '<span data-zaehler style="position:absolute; top:14px; left:14px; padding:4px 12px; border-radius:999px; background:rgba(10,10,10,.62); color:#fff; font-size:12px; font-weight:600;"></span>' +
+              '<button data-version style="position:absolute; top:46px; left:14px; display:none; padding:5px 13px; border-radius:999px; border:1px solid rgba(255,255,255,.35); background:rgba(10,10,10,.62); color:#fff; font-size:12px; font-weight:600; cursor:pointer;"></button>' +
+              '<button data-uebernehmen style="position:absolute; top:80px; left:14px; display:none; padding:5px 13px; border-radius:999px; border:none; background:#e2574a; color:#fff; font-size:12px; font-weight:700; cursor:pointer;">Diese Version verwenden</button>' +
+              '<button data-nav="-1" aria-label="Vorheriges" style="position:absolute; left:-62px; top:50%; transform:translateY(-50%); width:46px; height:46px; border-radius:50%; border:1px solid rgba(255,255,255,.3); background:rgba(255,255,255,.12); color:#fff; font-size:22px; cursor:pointer;">&#8249;</button>' +
+              '<button data-nav="1" aria-label="Nächstes" style="position:absolute; right:-62px; top:50%; transform:translateY(-50%); width:46px; height:46px; border-radius:50%; border:1px solid rgba(255,255,255,.3); background:rgba(255,255,255,.12); color:#fff; font-size:22px; cursor:pointer;">&#8250;</button>' +
+              '<span data-titel style="position:absolute; bottom:-26px; left:0; right:0; text-align:center; color:rgba(255,255,255,.75); font-size:12px;"></span>' +
+            '</div>';
+          document.body.appendChild(lb);
+
+          function sichtbareKarten() {
+            return [].slice.call(document.querySelectorAll('.export-open')).filter(function (el) {
+              var card = el.closest('.export-card');
+              return card && card.offsetParent !== null;
+            });
+          }
+          var lbVersionTiefe = 0;  // 0 = aktueller Stand, 1 = eine Version zurueck ...
+          function versionsListe(el) {
+            return el.dataset.versionen ? el.dataset.versionen.split('|').filter(Boolean) : [];
+          }
+          function srcFuer(el, name) {
+            return el.dataset.src.replace(/[^\/]+$/, encodeURIComponent(name));
+          }
+          function lightboxZeigen(i, tiefe) {
+            if (!lbListe.length) return;
+            lbIndex = (i + lbListe.length) % lbListe.length;
+            lbVersionTiefe = tiefe || 0;
+            var el = lbListe[lbIndex];
+            var versionen = versionsListe(el);
+            var name = lbVersionTiefe > 0 ? versionen[lbVersionTiefe - 1] : el.dataset.name;
+            var src = lbVersionTiefe > 0 ? srcFuer(el, name) : el.dataset.src;
+            var ziel = lb.querySelector('[data-inhalt]');
+            if (el.dataset.art === 'video') {
+              ziel.innerHTML = '<video controls autoplay playsinline src="' + src + '" style="width:100%; max-height:80vh; border-radius:16px; background:#000; display:block;"></video>';
+            } else {
+              ziel.innerHTML = '<img src="' + src + '" alt="" style="width:100%; max-height:80vh; object-fit:contain; border-radius:16px; display:block;">';
+            }
+            lb.querySelector('[data-zaehler]').textContent = (lbIndex + 1) + ' / ' + lbListe.length +
+              (lbVersionTiefe > 0 ? ' (Version -' + lbVersionTiefe + ')' : '');
+            lb.querySelector('[data-titel]').textContent = name;
+            var vBtn = lb.querySelector('[data-version]');
+            var uBtn = lb.querySelector('[data-uebernehmen]');
+            if (versionen.length) {
+              vBtn.style.display = 'block';
+              vBtn.textContent = lbVersionTiefe < versionen.length ? 'Vorherige Version' : 'Zurück zum aktuellen Stand';
+            } else {
+              vBtn.style.display = 'none';
+            }
+            uBtn.style.display = lbVersionTiefe > 0 ? 'block' : 'none';
+            lb.style.display = 'flex';
+          }
+          lb.querySelector('[data-version]').addEventListener('click', function () {
+            var versionen = versionsListe(lbListe[lbIndex]);
+            var neu = lbVersionTiefe < versionen.length ? lbVersionTiefe + 1 : 0;
+            lightboxZeigen(lbIndex, neu);
+          });
+          lb.querySelector('[data-uebernehmen]').addEventListener('click', function () {
+            var el = lbListe[lbIndex];
+            var versionen = versionsListe(el);
+            var alt = versionen[lbVersionTiefe - 1];
+            if (!alt) return;
+            if (!confirm('„' + alt + '" als aktuellen Stand dieser Slide übernehmen? Der bisherige Stand bleibt gesichert.')) return;
+            fetch("{{ url_for('beitrag_datei_version_verwenden', kind=post.kind, slug=post.slug) }}", {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ aktuell: el.dataset.name, alt: alt })
+            }).then(function (r) { return r.json(); }).then(function (j) {
+              if (j.ok) location.reload();
+              else alert(j.fehler || 'Das hat nicht geklappt.');
+            });
+          });
+          function lightboxZu() {
+            lb.style.display = 'none';
+            lb.querySelector('[data-inhalt]').innerHTML = '';
+          }
+          lb.querySelector('[data-zu]').addEventListener('click', lightboxZu);
+          lb.addEventListener('click', function (e) { if (e.target === lb) lightboxZu(); });
+          lb.querySelectorAll('[data-nav]').forEach(function (btn) {
+            btn.addEventListener('click', function () { lightboxZeigen(lbIndex + parseInt(btn.dataset.nav, 10), 0); });
+          });
+          document.addEventListener('keydown', function (e) {
+            if (lb.style.display !== 'flex') return;
+            if (e.key === 'Escape') lightboxZu();
+            if (e.key === 'ArrowRight') lightboxZeigen(lbIndex + 1, 0);
+            if (e.key === 'ArrowLeft') lightboxZeigen(lbIndex - 1, 0);
+          });
+          document.querySelectorAll('.export-open').forEach(function (el) {
+            el.addEventListener('click', function () {
+              lbListe = sichtbareKarten();
+              lightboxZeigen(lbListe.indexOf(el), 0);
+            });
+          });
+          /* MP4-Vorschau spielt beim Drueberfahren an (Handler auf der Karte,
+             das Video selbst faengt wegen pointer-events:none keine Events) */
+          document.querySelectorAll('.export-open[data-art="video"]').forEach(function (karte) {
+            var v = karte.querySelector('video');
+            if (!v) return;
+            karte.addEventListener('mouseenter', function () { v.play().catch(function () {}); });
+            karte.addEventListener('mouseleave', function () { v.pause(); v.currentTime = 0.5; });
+          });
+          /* Titel umbenennen: Doppelklick auf die Ueberschrift */
+          var titel = document.getElementById('titel-anzeige');
+          if (titel) {
+            function titelBearbeiten() {
+              titel.contentEditable = 'true';
+              titel.style.background = 'rgba(10,10,10,.05)';
+              titel.focus();
+              var range = document.createRange();
+              range.selectNodeContents(titel);
+              range.collapse(false);
+              var sel = window.getSelection();
+              sel.removeAllRanges();
+              sel.addRange(range);
+            }
+            titel.addEventListener('dblclick', titelBearbeiten);
+            var stift = document.getElementById('titel-stift');
+            if (stift) stift.addEventListener('click', titelBearbeiten);
+            function titelSpeichern() {
+              titel.contentEditable = 'false';
+              titel.style.background = 'none';
+              var neu = titel.textContent.trim();
+              if (!neu) { location.reload(); return; }
+              fetch("{{ url_for('beitrag_titel', kind=post.kind, slug=post.slug) }}", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ titel: neu })
+              }).then(function (r) { return r.json(); }).then(function (j) {
+                if (!j.ok) { alert(j.fehler || 'Umbenennen hat nicht geklappt.'); location.reload(); }
+              });
+            }
+            titel.addEventListener('blur', titelSpeichern);
+            titel.addEventListener('keydown', function (e) {
+              if (e.key === 'Enter') { e.preventDefault(); titel.blur(); }
+              if (e.key === 'Escape') { location.reload(); }
+            });
+          }
+          /* Datei-Loeschen direkt an der Export-Kachel (mit Rueckfrage). */
+          document.querySelectorAll('.export-del').forEach(function (x) {
+            x.addEventListener('click', function (e) {
+              e.preventDefault();
+              e.stopPropagation();
+              var name = x.dataset.name;
+              if (!confirm('Datei "' + name + '" wirklich löschen?')) return;
+              fetch("{{ url_for('beitrag_datei_loeschen', kind=post.kind, slug=post.slug) }}", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: name })
+              }).then(function (r) { return r.json(); }).then(function (j) {
+                if (j.ok) { x.closest('.export-card').remove(); }
+                else { alert(j.fehler || 'Löschen hat nicht geklappt.'); }
+              }).catch(function () { alert('Server nicht erreichbar.'); });
+            });
+          });
+          </script>
+        {% endif %}
+  </div>
+
+  {% if material or post.quellen %}
+  <section class="media-row-sec" style="margin-top:26px;">
+    <div class="format-head"><h2>Material &amp; Quellen</h2><span class="count">{{ (material | length) + (post.quellen | length) }}</span><a class="show-all" target="_blank" rel="noopener" href="{{ url_for('medien', kind=post.kind, slug=post.slug, group='material') }}">Alle anzeigen ↗</a></div>
+    {% if post.quellen %}
+      <div class="panel" style="margin-top:4px;">
+        <h3>Quellen</h3>
+        <ul class="src-list">
+          {% for q in post.quellen %}
+            <li>
+              {% if q.startswith('http') %}<a href="{{ q }}" target="_blank" rel="noopener">{{ q }}</a>
+              {% else %}{{ q }}{% endif %}
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+    {# Arbeitsmaterial (Rohmaterial, O-Ton-Schnitte, Zwischenmixe) ist
+       Beleg, kein Endprodukt: standardmaessig eingeklappt, gleiches
+       Klapp-Muster wie die Format-Sektionen der Uebersicht. #}
+    {% if material %}
+      <section class="format-sec collapsible material-sec" id="material-sec">
+        <button class="format-head" type="button" aria-expanded="false">
+          <svg class="fold-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
+          <h2>Arbeitsmaterial</h2>
+          <span class="count">{{ material | length }}</span>
+        </button>
+        <div class="row-scroll">
+          {% for m in material %}
+            <figure class="mat-item" style="margin:0;" data-old="{{ '1' if m.old else '0' }}">
+              {% if m.type == 'image' %}
+                <img src="{{ url_for('asset', kind=post.kind, slug=post.slug, filename=m.name) }}" alt="{{ m.name }}" loading="lazy">
+              {% else %}
+                <video controls preload="metadata" src="{{ url_for('asset', kind=post.kind, slug=post.slug, filename=m.name) }}"></video>
+              {% endif %}
+              <span class="mat-name">{{ m.name }}</span>
+            </figure>
+          {% endfor %}
+        </div>
+      </section>
+      <script>
+      (function () {
+        var KEY = 'postmakr-material-offen:' + location.pathname;
+        var sec = document.getElementById('material-sec');
+        var head = sec.querySelector('.format-head');
+        function setzen(offen) {
+          sec.classList.toggle('open', offen);
+          head.setAttribute('aria-expanded', offen ? 'true' : 'false');
+        }
+        var gemerkt = null;
+        try { gemerkt = localStorage.getItem(KEY); } catch (e) {}
+        setzen(gemerkt === '1');
+        head.addEventListener('click', function () {
+          var offen = !sec.classList.contains('open');
+          setzen(offen);
+          try { localStorage.setItem(KEY, offen ? '1' : '0'); } catch (e) {}
+        });
+      })();
+      </script>
+    {% endif %}
+  </section>
+  {% endif %}
+
+  {# Posten-Popup: plant den Beitrag mit Datum, Uhrzeit und Kanal in den
+     Kalender. Muster: templates/_neu.html (<dialog> + Vanilla-JS). Es geht
+     nach der Freigabe auch von selbst auf, wenn die Adresse ?posten=1 traegt. #}
+  <dialog class="posten-dialog" id="posten-dialog">
+    <div id="posten-formular">
+      <h2>Beitrag planen</h2>
+      <p class="posten-sub">Wähle Tag, Uhrzeit und Kanal. Der Beitrag landet damit im Kalender der Übersicht.</p>
+      <div class="posten-zeile">
+        <div>
+          <label for="posten-datum">Datum</label>
+          <input type="date" id="posten-datum">
+        </div>
+        <div>
+          <label for="posten-uhrzeit">Uhrzeit</label>
+          <input type="time" id="posten-uhrzeit" value="17:00" step="300">
+        </div>
+      </div>
+      <label id="posten-kanal-label">Kanal</label>
+      {% set kv = kanal_verzeichnis() %}
+      {% set kv_start = kv[0].key if kv else '' %}
+      {# Kanal-Auswahl als Dropdown mit Mehrfachauswahl: je gewaehltem Kanal
+         entsteht ein eigener Kalender-Eintrag. Die Kanaele pflegst du in
+         Einstellungen > Allgemein. #}
+      <div class="kanal-dd" id="kanal-dd" data-start="{{ kv_start }}">
+        <button type="button" class="kanal-dd-knopf" id="kanal-dd-knopf" aria-haspopup="true" aria-expanded="false" aria-labelledby="posten-kanal-label">
+          <span class="kanal-dd-symbole" id="kanal-dd-symbole"></span>
+          <span class="kanal-dd-text" id="kanal-dd-text">Kanäle wählen</span>
+          <svg class="kanal-dd-pfeil" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <div class="kanal-dd-liste" id="kanal-dd-liste" hidden>
+          {% for k in kv %}
+          <label class="kanal-dd-option" data-kanal="{{ k.key }}">
+            <input type="checkbox" value="{{ k.key }}" {{ 'checked' if k.key == kv_start else '' }}>
+            <span class="kanal-dd-ico kf-{{ k.key }}">{{ kanal_svg(k.key) | safe }}</span>{{ k.name }}
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+      <p class="posten-hinweis">postmakr postet nicht selbst. Der Eintrag erinnert dich im Kalender, nach dem Posten markierst du ihn dort als gepostet.</p>
+      {# Wiederkehrende Posts: derselbe Termin, aber jede Woche neu aus einem
+         Template. Die Ausgabe entsteht rechtzeitig als Entwurf und wartet auf
+         deine Freigabe. Der Kasten erscheint nur, wenn es Templates gibt. #}
+      <div class="tpl-serie-box" id="posten-serie-box" hidden>
+        <label class="tpl-haken">
+          <input type="checkbox" id="posten-serie-an">
+          <span>Jede Woche wiederholen</span>
+        </label>
+        <div class="tpl-serie-felder" id="posten-serie-felder" hidden>
+          <div class="tpl-feld">
+            <label for="posten-serie-template">Vorlage</label>
+            <select id="posten-serie-template"></select>
+          </div>
+          <div class="tpl-feld">
+            <label for="posten-serie-vorlauf">Vorlauf</label>
+            <select id="posten-serie-vorlauf">
+              <option value="1">1 Tag vorher</option>
+              <option value="2" selected>2 Tage vorher</option>
+              <option value="3">3 Tage vorher</option>
+              <option value="7">1 Woche vorher</option>
+            </select>
+          </div>
+          <p class="tpl-feld-hinweis">Die neue Ausgabe liegt dann als Entwurf bereit, gepostet wird sie erst nach deiner Freigabe.</p>
+        </div>
+      </div>
+      <p class="posten-meldung" id="posten-meldung" hidden></p>
+      <div class="posten-aktionen">
+        <button type="button" class="btn ghost" id="posten-abbrechen">Später</button>
+        <button type="button" class="btn" id="posten-speichern">Im Kalender planen</button>
+      </div>
+    </div>
+    <div id="posten-erfolg" class="posten-erfolg" hidden>
+      <h2>Im Kalender geplant</h2>
+      <p id="posten-erfolg-text"></p>
+      <div class="posten-aktionen">
+        <button type="button" class="btn ghost" id="posten-fertig">Schließen</button>
+        <a class="btn" href="{{ url_for('uebersicht') }}?ansicht=kalender">Zum Kalender</a>
+      </div>
+    </div>
+  </dialog>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('finder-btn')?.addEventListener('click', function () {
+  const btn = this;
+  const body = new URLSearchParams({ kind: btn.dataset.kind, slug: btn.dataset.slug });
+  fetch('{{ url_for("finder") }}', { method: 'POST', body })
+    .then(r => r.json())
+    .then(d => { btn.textContent = d.ok ? 'Ordner geöffnet' : ('Fehler: ' + (d.error || '')); })
+    .catch(() => { btn.textContent = 'Fehler'; })
+    .finally(() => setTimeout(() => { btn.textContent = 'Ordner öffnen'; }, 2500));
+});
+
+// Freigeben (nur Entwuerfe): erster Klick fragt nach, zweiter Klick loest die
+// Archivierung aus (gleiche Logik wie approve_post im MCP-Server).
+(function () {
+  var btn = document.getElementById('freigeben-btn');
+  if (!btn) return;
+  var msg = document.getElementById('freigeben-msg');
+  var scharf = false;
+  var rueckstellTimer = null;
+  btn.addEventListener('click', function () {
+    if (!scharf) {
+      scharf = true;
+      btn.textContent = 'Wirklich freigeben?';
+      msg.className = 'row-msg';
+      msg.textContent = '';
+      rueckstellTimer = setTimeout(function () {
+        scharf = false;
+        btn.textContent = 'Freigeben';
+      }, 4000);
+      return;
+    }
+    clearTimeout(rueckstellTimer);
+    btn.disabled = true;
+    btn.textContent = 'Wird freigegeben …';
+    msg.className = 'row-msg';
+    msg.textContent = '';
+    fetch("{{ url_for('beitrag_freigeben', kind=post.kind, slug=post.slug) }}", { method: 'POST' })
+      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+      .then(function (res) {
+        if (res.ok && res.j.ok) {
+          btn.textContent = 'Freigegeben';
+          // Direkt weiter zum Posten: die Archiv-Detailseite oeffnet das
+          // Posten-Popup von selbst, wenn ?posten=1 dranhaengt.
+          var ziel = res.j.redirect;
+          window.location.href = ziel + (ziel.indexOf('?') >= 0 ? '&' : '?') + 'posten=1';
+        } else {
+          scharf = false;
+          btn.disabled = false;
+          btn.textContent = 'Freigeben';
+          msg.className = 'row-msg err';
+          msg.textContent = (res.j && res.j.fehler) || 'Das hat nicht geklappt.';
+        }
+      })
+      .catch(function () {
+        scharf = false;
+        btn.disabled = false;
+        btn.textContent = 'Freigeben';
+        msg.className = 'row-msg err';
+        msg.textContent = 'Server nicht erreichbar.';
+      });
+  });
+})();
+
+// Posten-Popup: plant den Beitrag ueber die Kalender-API ein. Standard ist
+// heute um 17:00 Uhr auf dem ersten Kanal des Workspace. Nach der Freigabe (Redirect mit
+// ?posten=1) geht das Popup von selbst auf, „Später" schliesst es einfach.
+(function () {
+  var dlg = document.getElementById('posten-dialog');
+  var btn = document.getElementById('posten-btn');
+  if (!dlg || !btn) return;
+  var datumEl = document.getElementById('posten-datum');
+  var zeitEl = document.getElementById('posten-uhrzeit');
+  var meldung = document.getElementById('posten-meldung');
+  var speichern = document.getElementById('posten-speichern');
+  var formular = document.getElementById('posten-formular');
+  var erfolg = document.getElementById('posten-erfolg');
+  var erfolgText = document.getElementById('posten-erfolg-text');
+  var kalenderUrl = {{ url_for('kalender_api') | tojson }};
+  var dd = document.getElementById('kanal-dd');
+  var ddKnopf = document.getElementById('kanal-dd-knopf');
+  var ddListe = document.getElementById('kanal-dd-liste');
+  var ddHaken = Array.prototype.slice.call(ddListe.querySelectorAll('input[type=checkbox]'));
+  var KANAL_SVG = {};
+  ddListe.querySelectorAll('.kanal-dd-option').forEach(function (o) {
+    KANAL_SVG[o.dataset.kanal] = o.querySelector('.kanal-dd-ico').innerHTML;
+  });
+  function gewaehlt() {
+    return ddHaken.filter(function (h) { return h.checked; }).map(function (h) { return h.value; });
+  }
+  var KANAL_NAME = {{ kanal_namen | tojson }};
+
+  function heute() {
+    var d = new Date();
+    var m = String(d.getMonth() + 1);
+    var t = String(d.getDate());
+    return d.getFullYear() + '-' + (m.length < 2 ? '0' + m : m) + '-' + (t.length < 2 ? '0' + t : t);
+  }
+
+  function ddZeichnen() {
+    var liste = gewaehlt();
+    var symbole = document.getElementById('kanal-dd-symbole');
+    symbole.innerHTML = liste.slice(0, 5).map(function (k) { return '<span class="kanal-dd-ico kf-' + k + '">' + KANAL_SVG[k] + '</span>'; }).join('');
+    document.getElementById('kanal-dd-text').textContent = !liste.length ? 'Kanäle wählen'
+      : liste.length <= 2 ? liste.map(function (k) { return KANAL_NAME[k] || k; }).join(', ')
+      : liste.length + ' Kanäle';
+    knopfPruefen();
+  }
+  function ddAuf(auf) {
+    ddListe.hidden = !auf;
+    ddKnopf.setAttribute('aria-expanded', auf ? 'true' : 'false');
+  }
+  ddKnopf.addEventListener('click', function () { ddAuf(ddListe.hidden); });
+  ddHaken.forEach(function (h) { h.addEventListener('change', ddZeichnen); });
+  // Klick ausserhalb schliesst das Dropdown, der Dialog bleibt offen.
+  dlg.addEventListener('click', function (e) {
+    if (!dd.contains(e.target)) ddAuf(false);
+  });
+  dlg.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && !ddListe.hidden) { e.preventDefault(); ddAuf(false); }
+  });
+
+  function knopfPruefen() {
+    var knopfText = gewaehlt().length > 1 ? 'Auf ' + gewaehlt().length + ' Kanälen planen' : 'Im Kalender planen';
+    if (!speichern.dataset.laeuft) speichern.textContent = knopfText;
+    speichern.disabled = !gewaehlt().length;
+  }
+
+  // Serien-Kasten: die Vorlagen kommen aus dem Templates-Bereich. Gibt es
+  // keine, bleibt der Kasten ganz weg.
+  var serieBox = document.getElementById('posten-serie-box');
+  var serieAn = document.getElementById('posten-serie-an');
+  var serieFelder = document.getElementById('posten-serie-felder');
+  var serieTemplate = document.getElementById('posten-serie-template');
+  serieAn.addEventListener('change', function () { serieFelder.hidden = !serieAn.checked; });
+  fetch({{ url_for('templates_liste') | tojson }}, {
+    headers: { Accept: 'application/json' }, credentials: 'same-origin'
+  })
+    .then(function (r) { return r.json(); })
+    .then(function (j) {
+      if (!j.ok || !j.templates || !j.templates.length) return;
+      j.templates.forEach(function (t) {
+        var opt = document.createElement('option');
+        opt.value = t.slug;
+        opt.textContent = t.name;
+        serieTemplate.appendChild(opt);
+      });
+      serieBox.hidden = false;
+    })
+    .catch(function () { /* ohne Templates einfach kein Serien-Kasten */ });
+
+  function oeffnen() {
+    formular.hidden = false;
+    erfolg.hidden = true;
+    meldung.hidden = true;
+    meldung.textContent = '';
+    speichern.disabled = false;
+    speichern.textContent = 'Im Kalender planen';
+    if (!datumEl.value) datumEl.value = heute();
+    if (!zeitEl.value) zeitEl.value = '17:00';
+    if (!dlg.open) dlg.showModal();
+    ddAuf(false);
+    ddZeichnen();
+  }
+
+  btn.addEventListener('click', oeffnen);
+  document.getElementById('posten-abbrechen').addEventListener('click', function () { dlg.close(); });
+  document.getElementById('posten-fertig').addEventListener('click', function () { dlg.close(); });
+
+  function planen(k, extra) {
+    var body = Object.assign({ datum: datumEl.value, uhrzeit: zeitEl.value, kanal: k }, extra);
+    return fetch(kalenderUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify(body)
+    }).then(function (r) {
+      return r.json().then(function (j) {
+        if (!r.ok || !j.ok) throw new Error((KANAL_NAME[k] || k) + ': ' + (j.fehler || 'Das hat nicht geklappt.'));
+        return j.eintrag;
+      });
+    });
+  }
+
+  // Ein Kalender-Eintrag je gewaehltem Kanal, nacheinander. Klappt einer
+  // nicht, bleiben die geplanten stehen und fallen aus der Auswahl, damit ein
+  // zweiter Versuch nichts doppelt anlegt.
+  speichern.addEventListener('click', function () {
+    var liste = gewaehlt();
+    if (!liste.length) return;
+    meldung.hidden = true;
+    speichern.disabled = true;
+    speichern.dataset.laeuft = '1';
+    speichern.textContent = 'Wird geplant …';
+    var geplant = [];
+    var fehler = [];
+    var kette = Promise.resolve();
+    liste.forEach(function (k) {
+      kette = kette.then(function () {
+        var extra = { kind: '{{ post.kind }}', slug: {{ post.slug | tojson }} };
+        return planen(k, extra)
+          .then(function (e) {
+            geplant.push(e);
+            if (!serieAn.checked || !serieTemplate.value) return null;
+            // Serien-Anker: gleicher Wochentag, gleiche Uhrzeit, gleicher Kanal.
+            return planen(k, { wiederholung: {
+              typ: 'woechentlich',
+              template: serieTemplate.value,
+              vorlauf_tage: Number(document.getElementById('posten-serie-vorlauf').value)
+            } }).catch(function () { fehler.push((KANAL_NAME[k] || k) + ': Serie ließ sich nicht anlegen.'); });
+          })
+          .catch(function (err) { fehler.push(err.message); });
+      });
+    });
+    kette.then(function () {
+      delete speichern.dataset.laeuft;
+      geplant.forEach(function (e) {
+        var h = ddHaken.filter(function (x) { return x.value === e.kanal; })[0];
+        if (h) h.checked = false;
+      });
+      if (!fehler.length) {
+        var e = geplant[0];
+        var teile = e.datum.split('-');
+        var namen = geplant.map(function (x) { return KANAL_NAME[x.kanal] || x.kanal; });
+        var aufzaehlung = namen.length > 1 ? namen.slice(0, -1).join(', ') + ' und ' + namen[namen.length - 1] : namen[0];
+        erfolgText.textContent = 'Der Beitrag steht am ' + teile[2] + '.' + teile[1] + '.' + teile[0] +
+          ' um ' + e.uhrzeit + ' Uhr für ' + aufzaehlung + ' im Kalender.' +
+          (serieAn.checked && serieTemplate.value ? ' Ab dann läuft die Serie jede Woche weiter.' : '');
+        formular.hidden = true;
+        erfolg.hidden = false;
+        return;
+      }
+      ddZeichnen();
+      meldung.hidden = false;
+      meldung.className = 'posten-meldung err';
+      meldung.textContent = (geplant.length
+        ? 'Geplant: ' + geplant.map(function (x) { return KANAL_NAME[x.kanal] || x.kanal; }).join(', ') + '. Nicht geklappt: '
+        : '') + fehler.join(' ');
+      knopfPruefen();
+    });
+  });
+
+  // Nach der Freigabe direkt weiterplanen.
+  if (new URLSearchParams(window.location.search).get('posten') === '1') {
+    oeffnen();
+  }
+})();
+
+// Aeltere Staende sind grundsaetzlich ausgeblendet - der Zugriff auf
+// Versionen laeuft pro Slide ueber "Vorherige Version" in der Grossansicht.
+document.querySelectorAll('.media-cell[data-old="1"], .mat-item[data-old="1"]')
+  .forEach(el => el.classList.add('hidden'));
+
+// Die Quellen behalten ihren echten 1080er-Viewport. Nur die Darstellung im
+// Dashboard wird proportional auf die jeweilige Kartenbreite verkleinert.
+(function () {
+  const rahmen = Array.from(document.querySelectorAll('.quell-vorschau-rahmen'));
+  if (!rahmen.length) return;
+  function skalieren(el) {
+    const breite = Number(el.dataset.sourceWidth) || 1080;
+    const hoehe = Number(el.dataset.sourceHeight) || 1350;
+    const frame = el.querySelector('iframe');
+    if (!frame) return;
+    frame.style.width = breite + 'px';
+    frame.style.height = hoehe + 'px';
+    frame.style.transform = 'scale(' + (el.clientWidth / breite) + ')';
+  }
+  rahmen.forEach(skalieren);
+  if ('ResizeObserver' in window) {
+    const observer = new ResizeObserver(function (eintraege) {
+      eintraege.forEach(function (eintrag) { skalieren(eintrag.target); });
+    });
+    rahmen.forEach(function (el) { observer.observe(el); });
+  } else {
+    window.addEventListener('resize', function () { rahmen.forEach(skalieren); });
+  }
+})();
+
+// Persistenter Beitrags-Export. Der Server ist die einzige Quelle fuer den
+// Zustand, damit Fortschritt und Download auch nach einem Reload stimmen.
+(function () {
+  const startBtn = document.getElementById('render-start-btn');
+  const box = document.getElementById('render-status');
+  if (!startBtn || !box) return;
+  const title = document.getElementById('render-status-title');
+  const statusText = document.getElementById('render-status-text');
+  const progress = document.getElementById('render-progress');
+  const progressLabel = document.getElementById('render-progress-label');
+  const download = document.getElementById('render-download');
+  const startUrl = {{ url_for('beitrag_render_start', kind=post.kind, slug=post.slug) | tojson }};
+  const statusUrl = {{ url_for('beitrag_render_status', kind=post.kind, slug=post.slug) | tojson }};
+  let currentJobId = '';
+  let pollTimer = null;
+  let generation = 0;
+  let currentState = 'idle';
+
+  function schedule(delay) {
+    clearTimeout(pollTimer);
+    if (document.hidden || !['queued', 'running'].includes(currentState)) return;
+    pollTimer = setTimeout(loadStatus, delay || 2000);
+  }
+
+  function scheduleStatusRetry(delay) {
+    clearTimeout(pollTimer);
+    if (!document.hidden) pollTimer = setTimeout(loadStatus, delay || 4000);
+  }
+
+  function showProgress(value, total, indeterminate) {
+    progress.max = Math.max(1, Number(total) || 1);
+    if (indeterminate) {
+      progress.removeAttribute('value');
+      progress.setAttribute('aria-valuetext', 'Wartet auf den Start');
+      progressLabel.textContent = 'Wartet';
+    } else {
+      progress.value = Math.min(progress.max, Math.max(0, Number(value) || 0));
+      progress.setAttribute('aria-valuetext', progress.value + ' von ' + progress.max + ' Slides');
+      progressLabel.textContent = Math.round(progress.value / progress.max * 100) + '%';
+    }
+  }
+
+  function applyState(data) {
+    const state = data.state || 'idle';
+    currentState = state;
+    if (data.job_id) currentJobId = data.job_id;
+    statusText.setAttribute('role', state === 'error' ? 'alert' : 'status');
+    download.hidden = true;
+    download.removeAttribute('href');
+
+    if (state === 'idle') {
+      box.hidden = true;
+      startBtn.disabled = false;
+      startBtn.textContent = 'Beitrag rendern';
+      return;
+    }
+
+    box.hidden = false;
+    if (state === 'queued') {
+      startBtn.disabled = true;
+      startBtn.textContent = 'Render wird vorbereitet';
+      title.textContent = 'Render wird vorbereitet';
+      statusText.textContent = 'Dein Export startet gleich.';
+      showProgress(0, data.total, true);
+    } else if (state === 'running') {
+      startBtn.disabled = true;
+      startBtn.textContent = 'Beitrag wird gerendert';
+      title.textContent = 'Beitrag wird gerendert';
+      statusText.textContent = 'Fortschritt: ' + (data.completed || 0) + ' von ' + (data.total || 0) + ' Slides.';
+      showProgress(data.completed, data.total, false);
+    } else if (state === 'done') {
+      startBtn.disabled = false;
+      startBtn.textContent = 'Neu rendern';
+      title.textContent = 'Dein Export ist fertig';
+      statusText.textContent = (data.total || 0) + ' Slides wurden als hochauflösende MP4 und PNG erstellt.';
+      showProgress(data.total, data.total, false);
+      if (data.download_url) {
+        download.href = data.download_url;
+        download.hidden = false;
+      }
+    } else {
+      startBtn.disabled = false;
+      startBtn.textContent = 'Erneut rendern';
+      title.textContent = 'Rendern nicht abgeschlossen';
+      statusText.textContent = data.error || 'Der Export konnte nicht erstellt werden. Versuch es bitte erneut.';
+      showProgress(data.completed, data.total, false);
+    }
+  }
+
+  async function loadStatus() {
+    const ownGeneration = generation;
+    let url = statusUrl;
+    if (currentJobId) url += '?job_id=' + encodeURIComponent(currentJobId);
+    try {
+      const response = await fetch(url, { headers: { Accept: 'application/json' }, credentials: 'same-origin' });
+      if (!response.ok) throw new Error('status');
+      const data = await response.json();
+      if (ownGeneration !== generation) return;
+      if (currentJobId && data.job_id && data.job_id !== currentJobId) return;
+      applyState(data);
+      schedule(2000);
+    } catch (_) {
+      if (ownGeneration !== generation) return;
+      box.hidden = false;
+      title.textContent = 'Verbindung wird wiederhergestellt';
+      statusText.setAttribute('role', 'status');
+      statusText.textContent = 'Verbindung wird wiederhergestellt.';
+      scheduleStatusRetry(4000);
+    }
+  }
+
+  startBtn.addEventListener('click', async function () {
+    generation += 1;
+    currentJobId = '';
+    applyState({ state: 'queued', total: Number(progress.max) || 1 });
+    let publicError = 'Der Renderauftrag konnte nicht gestartet werden. Versuch es bitte erneut.';
+    let serverRejected = false;
+    try {
+      const response = await fetch(startUrl, {
+        method: 'POST',
+        headers: { Accept: 'application/json' },
+        credentials: 'same-origin'
+      });
+      const data = await response.json();
+      if (!response.ok || !data.ok) {
+        serverRejected = true;
+        publicError = data.error || publicError;
+        throw new Error('start');
+      }
+      applyState(data);
+      schedule(1200);
+    } catch (_) {
+      if (serverRejected) {
+        applyState({
+          state: 'error',
+          total: Number(progress.max) || 1,
+          error: publicError
+        });
+      } else {
+        currentState = 'queued';
+        box.hidden = false;
+        title.textContent = 'Renderstatus wird geprüft';
+        statusText.setAttribute('role', 'status');
+        statusText.textContent = 'Verbindung wird wiederhergestellt.';
+        scheduleStatusRetry(2000);
+      }
+    }
+  });
+
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) clearTimeout(pollTimer);
+    else if (['queued', 'running'].includes(currentState)) loadStatus();
+  });
+  loadStatus();
+})();
+
+// Caption-Editor: rohes Markdown bearbeiten und speichern
+(function () {
+  const editBtn = document.getElementById('caption-edit-btn');
+  if (!editBtn) return;
+  const view = document.getElementById('caption-view');
+  const editor = document.getElementById('caption-editor');
+  const text = document.getElementById('caption-text');
+  const chars = document.getElementById('caption-chars');
+  const tags = document.getElementById('caption-tags');
+  const status = document.getElementById('caption-status');
+  const saveBtn = document.getElementById('caption-save-btn');
+  const cancelBtn = document.getElementById('caption-cancel-btn');
+  const original = text.value;
+
+  function updateCounts() {
+    const v = text.value;
+    chars.textContent = v.length + ' Zeichen';
+    const m = v.match(/#[\p{L}\p{N}_]+/gu);
+    tags.textContent = (m ? m.length : 0) + ' Hashtags';
+  }
+  text.addEventListener('input', updateCounts);
+
+  function toggle(editing) {
+    view.hidden = editing;
+    editor.hidden = !editing;
+    editBtn.hidden = editing;
+    if (editing) { updateCounts(); text.focus(); }
+  }
+  editBtn.addEventListener('click', () => toggle(true));
+  cancelBtn.addEventListener('click', () => {
+    text.value = original;
+    status.textContent = '';
+    toggle(false);
+  });
+  saveBtn.addEventListener('click', () => {
+    saveBtn.disabled = true;
+    status.textContent = 'Speichere …';
+    fetch('{{ url_for("caption_save") }}', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ kind: '{{ post.kind }}', slug: '{{ post.slug }}', content: text.value })
+    })
+      .then(r => r.json())
+      .then(d => {
+        if (d.ok) {
+          location.reload();
+        } else {
+          status.textContent = 'Fehler: ' + (d.error || 'Unbekannter Fehler.');
+          saveBtn.disabled = false;
+        }
+      })
+      .catch(() => {
+        status.textContent = 'Fehler: Anfrage fehlgeschlagen.';
+        saveBtn.disabled = false;
+      });
+  });
+})();
+
+// Karussell wie im Feed: Pfeile, Punkte, Maus-Drag/Touch-Wischen. Die
+// Caption unter dem Karussell wechselt mit (eine Div pro Slide, per Klasse
+// "aktiv" sichtbar), damit Slide-Bild und -Caption immer zusammen bleiben.
+(function () {
+  var track = document.getElementById('ig-karussell-track');
+  if (!track) return;
+  var slides = Array.prototype.slice.call(track.querySelectorAll('.ig-slide'));
+  var dots = Array.prototype.slice.call(document.querySelectorAll('#ig-dots .ig-dot'));
+  var captionSlides = Array.prototype.slice.call(document.querySelectorAll('#caption-view .ig-caption-slide'));
+  var prevBtn = document.getElementById('ig-nav-prev');
+  var nextBtn = document.getElementById('ig-nav-next');
+  var index = 0;
+
+  function formatAktualisieren() {
+    var slide = slides[index];
+    var medium = slide && slide.querySelector('video, img');
+    var rahmen = slide && slide.querySelector('[data-source-width]');
+    var breite = medium ? (medium.videoWidth || medium.naturalWidth) : (rahmen && Number(rahmen.dataset.sourceWidth));
+    var hoehe = medium ? (medium.videoHeight || medium.naturalHeight) : (rahmen && Number(rahmen.dataset.sourceHeight));
+    if (breite > 0 && hoehe > 0) {
+      document.getElementById('ig-karussell').style.aspectRatio = breite + '/' + hoehe;
+    }
+  }
+  track.addEventListener('loadedmetadata', formatAktualisieren, true);
+  track.addEventListener('load', formatAktualisieren, true);
+
+  // Ton-Knopf (unten rechts): gilt fuer alle Video-Slides,
+  // bleibt beim Blaettern und beim MP4/PNG-Wechsel erhalten und wird gemerkt.
+  var tonKnopf = document.getElementById('ig-ton');
+  var tonAn = false;
+  try { tonAn = localStorage.getItem('postmakr-vorschau-ton') === 'an'; } catch (e) {}
+  window.postmakrVorschauTon = function () { return tonAn; };
+  function tonAnwenden() {
+    track.querySelectorAll('video').forEach(function (v) { v.muted = !tonAn; });
+    if (tonKnopf) {
+      tonKnopf.classList.toggle('an', tonAn);
+      tonKnopf.setAttribute('aria-pressed', tonAn ? 'true' : 'false');
+      var label = tonAn ? 'Ton ausschalten' : 'Ton einschalten';
+      tonKnopf.setAttribute('aria-label', label); tonKnopf.title = label;
+    }
+  }
+  if (tonKnopf) {
+    tonKnopf.addEventListener('pointerdown', function (e) { e.stopPropagation(); });
+    tonKnopf.addEventListener('click', function (e) {
+      e.stopPropagation();
+      tonAn = !tonAn;
+      try { localStorage.setItem('postmakr-vorschau-ton', tonAn ? 'an' : 'aus'); } catch (err) {}
+      tonAnwenden();
+      var aktiv = slides[index] && slides[index].querySelector('video');
+      if (aktiv) aktiv.play().catch(function () {});
+    });
+  }
+  window.postmakrTonAnwenden = tonAnwenden;
+
+  function medienAktualisieren() {
+    formatAktualisieren();
+    tonAnwenden();
+    slides.forEach(function (s, si) {
+      var v = s.querySelector('video');
+      if (!v) return;
+      if (si === index) { v.play().catch(function () {}); } else { v.pause(); v.currentTime = 0.5; }
+    });
+  }
+
+  function zeigen(i) {
+    index = Math.max(0, Math.min(slides.length - 1, i));
+    track.style.transform = 'translateX(-' + (index * 100) + '%)';
+    dots.forEach(function (d, di) { d.classList.toggle('on', di === index); });
+    captionSlides.forEach(function (c, ci) { c.classList.toggle('aktiv', ci === index); });
+    if (prevBtn) prevBtn.disabled = index === 0;
+    if (nextBtn) nextBtn.disabled = index === slides.length - 1;
+    medienAktualisieren();
+  }
+
+  if (prevBtn) prevBtn.addEventListener('click', function () { zeigen(index - 1); });
+  if (nextBtn) nextBtn.addEventListener('click', function () { zeigen(index + 1); });
+  dots.forEach(function (d, di) { d.addEventListener('click', function () { zeigen(di); }); });
+
+  document.addEventListener('keydown', function (e) {
+    if (!track.closest('.ig-karte')) return;
+    if (e.target && ['INPUT', 'TEXTAREA'].indexOf(e.target.tagName) !== -1) return;
+    if (e.key === 'ArrowRight') zeigen(index + 1);
+    if (e.key === 'ArrowLeft') zeigen(index - 1);
+  });
+
+  // Wischen per Maus-Drag (funktioniert per Pointer Events auch fuer Touch).
+  var dragStartX = null;
+  var dragDeltaX = 0;
+  var dragActive = false;
+  track.addEventListener('pointerdown', function (e) {
+    dragActive = true;
+    dragStartX = e.clientX;
+    dragDeltaX = 0;
+    track.setPointerCapture(e.pointerId);
+    track.classList.add('dragging');
+  });
+  track.addEventListener('pointermove', function (e) {
+    if (!dragActive) return;
+    dragDeltaX = e.clientX - dragStartX;
+    var prozent = (dragDeltaX / track.clientWidth) * 100;
+    track.style.transform = 'translateX(calc(-' + (index * 100) + '% + ' + prozent + '%))';
+  });
+  function dragEnde() {
+    if (!dragActive) return;
+    dragActive = false;
+    track.classList.remove('dragging');
+    if (Math.abs(dragDeltaX) > track.clientWidth * 0.18) {
+      zeigen(index + (dragDeltaX < 0 ? 1 : -1));
+    } else {
+      zeigen(index);
+    }
+  }
+  track.addEventListener('pointerup', dragEnde);
+  track.addEventListener('pointercancel', dragEnde);
+
+  zeigen(0);
+})();
+
+// MP4/PNG-Umschalter ueber der Vorschau: tauscht in jeder Slide das Medium
+// gegen die jeweils andere Fassung derselben Position. Slides ohne
+// Gegenstueck (z.B. nur als Video vorhanden) behalten ihr Medium.
+(function () {
+  var schalter = document.getElementById('vorschau-modus');
+  if (!schalter) return;
+  var knoepfe = Array.prototype.slice.call(schalter.querySelectorAll('[data-modus]'));
+  function aktiveSlidePlay() {
+    var dots = document.querySelectorAll('#ig-dots .ig-dot');
+    var index = 0;
+    dots.forEach(function (d, di) { if (d.classList.contains('on')) index = di; });
+    var slides = document.querySelectorAll('.ig-slide');
+    var aktiv = slides[index];
+    var v = aktiv && aktiv.querySelector('video');
+    if (v) v.play().catch(function () {});
+  }
+  function setzen(modus) {
+    document.querySelectorAll('.ig-slide').forEach(function (slide) {
+      var ziel = modus === 'bild' ? slide.dataset.urlBild : slide.dataset.urlVideo;
+      if (!ziel) return;
+      var vorhanden = slide.querySelector('video, img');
+      if (!vorhanden) return;
+      if (modus === 'bild' && vorhanden.tagName === 'IMG') return;
+      if (modus === 'video' && vorhanden.tagName === 'VIDEO') return;
+      var neu;
+      if (modus === 'bild') {
+        neu = document.createElement('img');
+        neu.loading = 'lazy';
+        neu.alt = '';
+        neu.src = ziel;
+      } else {
+        neu = document.createElement('video');
+        neu.muted = !(window.postmakrVorschauTon && window.postmakrVorschauTon());
+        neu.loop = true;
+        neu.playsInline = true;
+        neu.preload = 'metadata';
+        neu.src = ziel + '#t=0.5';
+      }
+      vorhanden.replaceWith(neu);
+    });
+    knoepfe.forEach(function (k) {
+      var an = k.dataset.modus === modus;
+      k.classList.toggle('on', an);
+      k.setAttribute('aria-pressed', an ? 'true' : 'false');
+    });
+    if (modus === 'video') aktiveSlidePlay();
+  }
+  knoepfe.forEach(function (k) {
+    k.addEventListener('click', function () { setzen(k.dataset.modus); });
+  });
+})();
+
+// Brief-Reiter: generisch aus den ##-Abschnitten der brief.md gebaut,
+// gleiches Muster wie die Reiter im Wissen-Bereich.
+(function () {
+  var tabs = Array.prototype.slice.call(document.querySelectorAll('#brief-tabs [data-brief-tab]'));
+  if (!tabs.length) return;
+  var panels = Array.prototype.slice.call(document.querySelectorAll('[data-brief-panel]'));
+  tabs.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      tabs.forEach(function (b) { b.classList.toggle('active', b === btn); });
+      panels.forEach(function (p) { p.hidden = p.dataset.briefPanel !== btn.dataset.briefTab; });
+    });
+  });
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,1076 @@
+/* ============================================================================
+   kalender.css — Post-Kalender der Uebersicht (PR 401)
+   ----------------------------------------------------------------------------
+   Eigenes Stylesheet, damit design.css unangetastet bleibt. Wird direkt in
+   uebersicht.html und detail.html eingebunden. Es benutzt ausschliesslich die
+   vorhandenen Tokens aus style.css (--surface, --line, --text, --sub, ...),
+   damit der Kalender wie der Rest des Dashboards aussieht: weisse Flaechen,
+   feine 1px-Kanten, Chrome in Anthrazit statt in der Workspace-Akzentfarbe.
+   ============================================================================ */
+
+/* ---------- Segmented Control „Raster | Kalender" -------------------------- */
+/* Ein Eckenradius fuer die ganze Werkzeugleiste (zu viele
+   Pillen und Rundungen wirkten ueberladen). Kein Vollpillen-Look mehr,
+   dafuer derselbe kleine Radius wie ueberall im Dashboard. */
+.ansicht-umschalter {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+
+.ansicht-umschalter button,
+.ansicht-umschalter a {
+  appearance: none;
+  text-decoration: none;
+  border: 1px solid transparent;
+  background: none;
+  padding: 6px 15px;
+  border-radius: calc(var(--radius-sm) - 2px);
+  font-family: var(--font);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--sub);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.ansicht-umschalter button:hover,
+.ansicht-umschalter a:hover { color: var(--text); }
+/* Beitraege: die Pillen sind Links, die Zahl steht leise daneben. */
+.ansicht-umschalter a .count { margin-left: 4px; font-weight: 500; color: var(--faint); }
+
+/* In der Titelzeile der Uebersicht sitzt der Umschalter rechts, direkt vor
+   dem Knopf „Neuer Beitrag" (dessen margin-left:auto sonst eine Luecke
+   dazwischen reissen wuerde). */
+.page-title-row .ansicht-umschalter { margin-left: auto; flex: 0 0 auto; }
+.page-title-row .ansicht-umschalter + .title-actions { margin-left: 0; }
+
+.ansicht-umschalter button[aria-pressed="true"],
+.ansicht-umschalter a[aria-current="page"] {
+  background: var(--surface);
+  border-color: var(--line-strong);
+  color: var(--text);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ---------- Rahmen + Kopfzeile -------------------------------------------- */
+.kalender {
+  margin-top: 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.kalender-kopf {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.kalender-titel {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text);
+  min-width: 210px;
+}
+
+.kalender-nav { display: inline-flex; align-items: center; gap: 2px; }
+
+/* Rahmenlose Werkzeuge: Pfeile und „Heute" standen vorher
+   in eigenen Kaestchen. Jetzt sind es flache Buttons, die nur beim Hover
+   einen dezenten Grund zeigen -- ruhiger, weniger Kanten in der Leiste. */
+.kalender-nav button,
+.kalender-heute {
+  appearance: none;
+  border: 1px solid transparent;
+  background: none;
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.kalender-nav button {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+}
+
+.kalender-heute { padding: 7px 12px; }
+
+.kalender-nav button:hover,
+.kalender-heute:hover { background: var(--surface-2); }
+
+.kalender-nav svg { width: 16px; height: 16px; }
+
+.kalender-kopf .ansicht-umschalter { margin-left: auto; }
+
+.kalender-meldung {
+  padding: 10px 16px;
+  font-size: 13px;
+  color: var(--sub);
+  border-bottom: 1px solid var(--line);
+  background: var(--surface-3);
+}
+
+.kalender-meldung.err { color: var(--red-deep, #b81616); }
+
+/* ---------- Wochentagszeile ------------------------------------------------ */
+.kalender-wochentage {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  border-bottom: 1px solid var(--line);
+  background: var(--surface-3);
+}
+
+.kalender-wochentage span {
+  padding: 8px 10px;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+/* ---------- Monatsraster --------------------------------------------------- */
+.kalender-raster {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+/* Fester Kalender: das Monatsraster nimmt exakt die
+   Resthoehe des Fensters ein, sechs gleiche Zeilen, Zellen beschneiden
+   ihren Inhalt statt die Seite wachsen zu lassen -- kein Scrollen. */
+.kalender-raster.monat {
+  height: calc(100vh - 252px);
+  min-height: 520px;
+  grid-auto-rows: 1fr;
+}
+.kalender-raster.monat .kalender-tag {
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Kompakte Monatskarten: Uhrzeit und Titel stehen im Monat in
+   EINER Zeile, damit drei Beitraege je Tag nebeneinander Platz finden statt
+   nach der ersten Karte abgeschnitten zu werden. Die Wochenansicht behaelt
+   ihre grosse Form mit Vorschaubild und mehrzeiligem Titel. */
+.kalender-raster.monat .kalender-tag { gap: 4px; padding: 5px 6px 6px; }
+
+.kalender-raster.monat .kalender-tagzahl {
+  min-width: 19px;
+  height: 19px;
+  font-size: 11.5px;
+}
+
+.kalender-raster.monat .kalender-eintrag { padding: 2px 6px; gap: 5px; }
+
+.kalender-raster.monat .kalender-e-bild { width: 18px; height: 18px; border-radius: 3px; }
+
+.kalender-raster.monat .kalender-e-text {
+  flex-direction: row;
+  align-items: baseline;
+  gap: 5px;
+  flex: 1 1 auto;
+}
+
+.kalender-raster.monat .kalender-e-zeit { flex: 0 0 auto; font-size: 10px; }
+.kalender-raster.monat .kalender-e-titel { font-size: 11px; }
+.kalender-raster.monat .kalender-kanal { width: 13px; height: 13px; }
+
+/* ---------- Wirklich fixiert: die Seite scrollt gar nicht ------------------
+   Die Rasterhoehe allein reichte nicht, weil Seitentitel,
+   Kalender-Kopf und Innenabstaende zusammen ueber den Viewport hinausragen.
+   Solange die Kalender-Ansicht laeuft, traegt <body> die Klasse
+   kalender-aktiv: Fenster und Hauptspalte sind exakt so hoch wie der
+   Bildschirm, und der Kalender bekommt als Flex-Kind die ganze Resthoehe.
+   So zieht sich das Raster so weit nach unten, wie ueberhaupt Platz ist. */
+html.kalender-aktiv,
+body.kalender-aktiv {
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+body.kalender-aktiv .main {
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 14px;
+  /* Oben bewusst KEIN eigener Wert: der Seitentitel soll exakt auf der
+     Hoehe der Raster-Ansicht sitzen, .main bringt 34px mit.
+     Die Rasterzeilen verlieren die 16px, nicht der Kopf. */
+}
+
+/* Seit dem Makeover steckt der Inhalt in .main-inner, und .main hat oben
+   und unten den schwarzen Rahmen als Abstand. Beides muss mitziehen, sonst
+   bleibt der Kalender so hoch wie sein Inhalt. */
+body.kalender-aktiv .main {
+  height: calc(100dvh - 2 * var(--rahmen));
+  min-height: 0;
+  padding-bottom: 28px;
+}
+body.kalender-aktiv .main-inner {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-width: none;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Der Seitenkopf behaelt seine Hoehe, der Kalender nimmt den Rest. */
+body.kalender-aktiv .main > .page-title-row,
+body.kalender-aktiv .main-inner > .page-title-row { flex: 0 0 auto; margin-bottom: 12px; }
+
+/* Die Kopfzeile bleibt einzeilig. Umgebrochen kostete sie eine halbe
+   Rasterzeile, und die gehoert den Beitraegen. */
+body.kalender-aktiv .kalender-kopf {
+  flex-wrap: nowrap;
+  padding: 10px 14px;
+}
+
+body.kalender-aktiv .kalender-titel { min-width: 0; white-space: nowrap; }
+
+body.kalender-aktiv .kalender-filter {
+  flex-wrap: nowrap;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+body.kalender-aktiv .kalender-filter::-webkit-scrollbar { display: none; }
+
+body.kalender-aktiv .kalender-wochentage span { padding: 6px 10px; }
+
+body.kalender-aktiv .kalender {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  margin-top: 0;
+}
+
+body.kalender-aktiv .kalender-kopf,
+body.kalender-aktiv .kalender-meldung,
+body.kalender-aktiv .kalender-wochentage { flex: 0 0 auto; }
+
+/* Das Raster fuellt die Resthoehe exakt aus, in beiden Zeitraeumen. */
+body.kalender-aktiv .kalender-raster {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: auto;
+  grid-auto-rows: minmax(0, 1fr);
+}
+
+body.kalender-aktiv .kalender-raster.monat { min-height: 0; }
+
+body.kalender-aktiv .kalender-raster.woche .kalender-tag {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* Schmale Fenster zeigen statt des Dashboards den Hinweis auf den grossen
+   Bildschirm. Dort darf nichts fixiert oder abgeschnitten sein. */
+@media (max-width: 820px) {
+  html.kalender-aktiv,
+  body.kalender-aktiv { height: auto; overflow: visible; }
+  body.kalender-aktiv .main { height: auto; overflow: visible; display: block; }
+  body.kalender-aktiv .main-inner { display: block; }
+}
+
+.kalender-tag {
+  min-height: 72px;
+  padding: 7px 8px 9px;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.kalender-tag:nth-child(7n) { border-right: none; }
+
+.kalender-tag.fremd { background: var(--surface-3); }
+.kalender-tag.fremd .kalender-tagzahl { color: var(--faint); }
+.kalender-tag.wochenende { background: var(--surface-3); }
+
+.kalender-tagzahl {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--sub);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  align-self: flex-start;
+}
+
+.kalender-tag.heute .kalender-tagzahl {
+  background: #1a1a1a;
+  color: #fff;
+}
+
+/* ---------- Mini-Karten (Monat) ------------------------------------------- */
+.kalender-eintrag {
+  appearance: none;
+  text-align: left;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  cursor: pointer;
+  font-family: var(--font);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.kalender-eintrag:hover {
+  border-color: var(--line-strong);
+  box-shadow: var(--shadow-sm);
+}
+
+.kalender-eintrag.gepostet { background: var(--surface-2); }
+.kalender-eintrag.gepostet .kalender-e-titel { color: var(--sub); }
+
+/* Gepostete Karten mit bekanntem Kanal: die Regel oben
+   traf sie ebenso stark wie eine Karte ganz ohne Kanal, darum wirkten
+   Archiv-Beitraege grau statt farbig. Diese Regeln sind absichtlich
+   spezifischer (drei statt zwei Klassen), damit sie unabhaengig von der
+   Reihenfolge im Stylesheet gewinnen. Die Toenung ist etwas kraeftiger als
+   bei geplanten Karten, die Kante etwas gedaempft -- geplant und gepostet
+   bleiben unterscheidbar, aber beide klar als ihr Kanal erkennbar. */
+.kalender-eintrag.gepostet.kal-kanal-instagram { background: #f7e4ee; }
+.kalender-eintrag.gepostet.kal-kanal-instagram .kalender-e-titel { color: #7a3a5c; }
+.kalender-eintrag.gepostet.kal-kanal-tiktok { background: #e9e9ea; }
+.kalender-eintrag.gepostet.kal-kanal-facebook { background: #e1ecfb; }
+.kalender-eintrag.gepostet.kal-kanal-facebook .kalender-e-titel { color: #3766a6; }
+.kalender-eintrag.gepostet.kal-kanal-linkedin { background: #dfecf9; }
+.kalender-eintrag.gepostet.kal-kanal-linkedin .kalender-e-titel { color: #2f5c85; }
+.kalender-eintrag.gepostet.kal-kanal::before { opacity: 0.8; }
+
+.kalender-e-bild {
+  flex: 0 0 auto;
+  width: 22px;
+  height: 28px;
+  border-radius: 4px;
+  object-fit: cover;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  display: block;
+}
+
+.kalender-e-text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+
+.kalender-e-zeit {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--sub);
+  font-variant-numeric: tabular-nums;
+}
+
+.kalender-e-titel {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kalender-kanal {
+  flex: 0 0 auto;
+  width: 14px;
+  height: 14px;
+  margin-left: auto;
+  color: #1a1a1a;
+}
+
+.kalender-eintrag.gepostet .kalender-kanal { color: var(--faint); }
+
+/* ---------- Voller Tag: gestapelte Mini-Vorschauen ------------------------ */
+/* Ab vier Eintraegen am selben Tag treten die Textkarten zurueck und es bleibt
+   eine Reihe ueberlappender Vorschaubildchen. Der Monat bleibt
+   damit auch in dichten Wochen ohne Scrollen sichtbar. */
+.kalender-stapel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  padding-left: 6px;
+  row-gap: 4px;
+}
+
+.kalender-stapel-bild {
+  appearance: none;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 auto;
+  margin-left: -6px;
+  padding: 0;
+  border: 1.5px solid var(--surface);
+  border-radius: 6px;
+  background: var(--surface-2);
+  overflow: hidden;
+  cursor: pointer;
+  display: block;
+  box-shadow: 0 0 0 1px var(--line);
+  transition: transform 0.12s, box-shadow 0.12s;
+}
+
+.kalender-stapel-bild:hover,
+.kalender-stapel-bild:focus-visible {
+  transform: translateY(-2px);
+  box-shadow: 0 0 0 1px var(--line-strong);
+  position: relative;
+  z-index: 2;
+}
+
+.kalender-stapel-bild img,
+.kalender-stapel-bild video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.kalender-stapel-ersatz {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--sub);
+}
+
+.kalender-stapel-bild.serie { border-style: dashed; border-color: #9aa3b4; }
+
+/* ---------- Wochenansicht -------------------------------------------------- */
+.kalender-raster.woche .kalender-tag { min-height: 340px; }
+
+.kalender-raster.woche .kalender-eintrag {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  padding: 8px;
+}
+
+.kalender-raster.woche .kalender-e-bild {
+  width: 100%;
+  height: 88px;
+  border-radius: 6px;
+}
+
+.kalender-raster.woche .kalender-e-kopf {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.kalender-raster.woche .kalender-e-zeit { font-size: 12px; }
+/* In der Wochenansicht ist Platz, also steht der Titel voll da statt
+   gekuerzt: mehrzeilig, ohne Auslassungspunkte. */
+.kalender-raster.woche .kalender-e-titel {
+  font-size: 12.5px;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  overflow-wrap: anywhere;
+}
+.kalender-raster.woche .kalender-kanal { width: 15px; height: 15px; }
+
+/* ---------- Leerzustand ---------------------------------------------------- */
+.kalender-leer {
+  padding: 26px 16px;
+  text-align: center;
+  font-size: 13.5px;
+  color: var(--sub);
+}
+
+/* ---------- Popover am Eintrag --------------------------------------------- */
+.kalender-popover {
+  position: absolute;
+  z-index: 850;
+  width: 320px;
+  max-width: calc(100vw - 24px);
+  padding: 13px 14px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow-md);
+}
+
+/* Der Titel wird im Popover nie beschnitten: hier ist Platz, und
+   ein halber Titel hilft niemandem. Lange Woerter brechen notfalls um. */
+.kalender-popover h3 {
+  margin: 0 0 6px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.35;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  overflow-wrap: anywhere;
+  -webkit-line-clamp: none;
+  line-clamp: none;
+}
+
+.kalender-pop-meta {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--sub);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.kalender-pop-meta .kalender-kanal { margin-left: 0; }
+
+/* Kopfzeile des Popovers: Vorschau des Beitrags links, Titel + Eckdaten
+   rechts. Die Vorschau ist bewusst gross genug, um den Beitrag auf einen
+   Blick wiederzuerkennen. */
+.kalender-pop-kopf {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  margin-bottom: 11px;
+}
+
+.kalender-pop-kopftext { min-width: 0; }
+
+.kalender-pop-bildlink {
+  flex: 0 0 auto;
+  display: block;
+  border-radius: 8px;
+}
+
+.kalender-pop-bild {
+  display: block;
+  width: 64px;
+  height: 80px;
+  border-radius: 8px;
+  object-fit: cover;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+}
+
+.kalender-pop-bildlink:hover .kalender-pop-bild { border-color: var(--line-strong); }
+
+.kalender-pop-bild-ersatz {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--faint);
+}
+
+/* Status-Pille im Kopf (oeffnet das Plan-Menue) + das Menue selbst. */
+.kalender-pop-pillen {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  margin-top: 8px;
+}
+
+.kalender-pop-pille {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border: 1px solid #1a1a1a;
+  border-radius: 999px;
+  background: #1a1a1a;
+  color: #fff;
+  font-family: var(--font);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.kalender-pop-pille svg { width: 12px; height: 12px; }
+
+.kalender-pop-pille[aria-expanded="true"] svg { transform: rotate(180deg); }
+
+.kalender-pop-pille.gepostet {
+  background: var(--surface-2);
+  border-color: var(--line);
+  color: var(--sub);
+}
+
+.kalender-pop-pille.statisch { cursor: default; }
+
+.kalender-pop-menue {
+  margin: 0 0 11px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface-2);
+}
+
+.kalender-pop-menue-zeile {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.kalender-pop-menue-zeile input {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  font-family: var(--font);
+  font-size: 12.5px;
+  color: var(--text);
+}
+
+.kalender-pop-menue-knoepfe { display: flex; gap: 6px; }
+
+.kalender-pop-menue-knoepfe button {
+  appearance: none;
+  flex: 1;
+  padding: 6px 8px;
+  border-radius: 999px;
+  font-family: var(--font);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.kalender-pop-menue-gepostet {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--sub);
+}
+
+.kalender-pop-menue-posten {
+  border: 1px solid #1a1a1a;
+  background: #1a1a1a;
+  color: #fff;
+}
+
+.kalender-pop-menue-speichern {
+  appearance: none;
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: var(--font);
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--sub);
+  cursor: pointer;
+}
+
+.kalender-pop-menue-speichern:hover { color: var(--text); text-decoration: underline; }
+
+.kalender-pop-aktionen {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+}
+
+.kalender-pop-aktionen a {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.kalender-pop-aktionen a:hover { text-decoration: underline; }
+
+.kalender-pop-loeschen {
+  appearance: none;
+  border: none;
+  background: none;
+  padding: 0;
+  font-family: var(--font);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--sub);
+  cursor: pointer;
+}
+
+.kalender-pop-loeschen:hover { color: var(--red-deep, #b81616); }
+
+.kalender-pop-fehler {
+  margin: 0 0 10px;
+  font-size: 12px;
+  color: var(--red-deep, #b81616);
+}
+
+/* ---------- Posten-Popup (Detailseite) ------------------------------------- */
+.posten-dialog {
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  padding: 22px 24px 20px;
+  width: min(400px, 92vw);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow-md);
+}
+
+.posten-dialog::backdrop { background: rgba(10, 10, 12, 0.42); }
+
+.posten-dialog h2 {
+  margin: 0 0 4px;
+  font-size: 19px;
+  font-weight: 700;
+}
+
+.posten-sub {
+  margin: 0 0 16px;
+  font-size: 13px;
+  color: var(--sub);
+}
+
+.posten-dialog label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--sub);
+  margin-bottom: 5px;
+}
+
+.posten-zeile { display: flex; gap: 12px; margin-bottom: 14px; }
+.posten-zeile > div { flex: 1; }
+
+.posten-dialog input[type="date"],
+.posten-dialog input[type="time"] {
+  width: 100%;
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  font-family: var(--font);
+  font-size: 14px;
+  color: var(--text);
+}
+
+/* Vier Kanaele passen nicht nebeneinander in das Popup, zwei mal zwei schon. */
+
+/* Ungewaehlt traegt schon das Symbol die Plattformfarbe. */
+
+/* Ehrlicher Hinweis im Popup: geplant wird ueberall, automatisch gepostet
+   wird bis auf Weiteres nur auf Instagram. */
+.posten-hinweis {
+  margin: 0 0 16px;
+  font-size: 12px;
+  color: var(--sub);
+  line-height: 1.5;
+}
+
+/* Gewaehlter Kanal in seiner Plattformfarbe, damit Popup und Kalender
+   dieselbe Sprache sprechen. */
+
+.posten-aktionen {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.posten-meldung {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: var(--sub);
+}
+
+.posten-meldung.err { color: var(--red-deep, #b81616); }
+
+.posten-erfolg { text-align: left; }
+
+.posten-erfolg p { margin: 0 0 14px; font-size: 14px; color: var(--text); }
+
+.posten-erfolg a.btn {
+  /* Link in Button-Optik: dunkler Grund braucht helle Schrift, sonst
+     schwarz-auf-schwarz */
+  color: #fff;
+  font-weight: 700;
+}
+.posten-erfolg a {
+  font-weight: 700;
+  color: var(--text);
+}
+
+/* Kanal-Farben: Instagram im
+   Marken-Pink, TikTok monochrom, Facebook und LinkedIn in ihrem Blau. Die
+   Icons sind stroke-basierte Inline-SVGs. */
+.kanal-ico.kanal-instagram { color: #C13584; }
+.kanal-ico.kanal-tiktok { color: #1a1a1a; }
+.kanal-ico.kanal-facebook { color: #1877F2; }
+.kanal-ico.kanal-linkedin { color: #0A66C2; }
+
+/* ---------- Kanal-Faerbung der Kalender-Karten ----------------------------
+   Jede Karte traegt
+   links eine 3px-Kante in der Kanalfarbe und eine sehr zarte Toenung im
+   Grund, damit ein voller Monat auf einen Blick nach Plattform lesbar ist.
+   Instagram bekommt an der Kante den Verlauf seiner Marke, die uebrigen
+   Kanaele ihre Volltonfarbe. Ohne bekannten Kanal bleibt die Karte weiss. */
+.kalender-eintrag.kal-kanal {
+  position: relative;
+  border-left-width: 0;
+  padding-left: 9px;
+}
+
+.kalender-eintrag.kal-kanal::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: -1px;
+  bottom: -1px;
+  width: 3px;
+  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+}
+
+.kalender-eintrag.kal-kanal-instagram::before {
+  background: linear-gradient(180deg, #8134AF 0%, #DD2A7B 55%, #F58529 100%);
+}
+.kalender-eintrag.kal-kanal-instagram { background: #fdf3f8; }
+
+.kalender-eintrag.kal-kanal-tiktok::before { background: #1a1a1a; }
+.kalender-eintrag.kal-kanal-tiktok { background: #f4f4f5; }
+
+.kalender-eintrag.kal-kanal-facebook::before { background: #1877F2; }
+.kalender-eintrag.kal-kanal-facebook { background: #f1f6fe; }
+
+.kalender-eintrag.kal-kanal-linkedin::before { background: #0A66C2; }
+.kalender-eintrag.kal-kanal-linkedin { background: #eff5fc; }
+
+/* Die Mini-Vorschauen im vollen Tag tragen dieselbe Farbe als Ring. */
+.kalender-stapel-bild.kal-kanal-instagram { box-shadow: 0 0 0 1.5px #DD2A7B; }
+.kalender-stapel-bild.kal-kanal-tiktok { box-shadow: 0 0 0 1.5px #1a1a1a; }
+.kalender-stapel-bild.kal-kanal-facebook { box-shadow: 0 0 0 1.5px #1877F2; }
+.kalender-stapel-bild.kal-kanal-linkedin { box-shadow: 0 0 0 1.5px #0A66C2; }
+
+/* ---------- Kanal-Filter in der Kopfzeile --------------------------------- */
+/* Eine zusammenhaengende segmentierte Gruppe, dieselbe
+   Optik wie der Monat/Woche-Umschalter, statt einzelner schwebender Pillen.
+   So gehoeren Filter und Zeitraum-Umschalter sichtbar zusammen. */
+.kalender-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  flex-wrap: nowrap;
+  margin-left: auto;
+}
+
+/* Der Filter steht links vom Zeitraum-Umschalter, deshalb schiebt nur er. */
+.kalender-kopf .kalender-filter + .ansicht-umschalter { margin-left: 8px; }
+
+.kalender-filter-pille {
+  appearance: none;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+  gap: 5px;
+  padding: 6px 11px;
+  border: 1px solid transparent;
+  border-radius: calc(var(--radius-sm) - 2px);
+  background: none;
+  font-family: var(--font);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--sub);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s, opacity 0.15s;
+}
+
+.kalender-filter-pille .kalender-kanal {
+  width: 14px;
+  height: 14px;
+  margin-left: 0;
+}
+
+.kalender-filter-pille:hover { color: var(--text); }
+
+/* Kanal ohne Eintrag im sichtbaren Zeitraum: dezent, aber weiterhin da und
+   anklickbar, damit die Leiste nie springt. */
+.kalender-filter-pille.leer { opacity: 0.5; }
+
+.kalender-filter-pille[aria-pressed="true"] {
+  color: var(--text);
+  background: var(--surface);
+  border-color: var(--line-strong);
+  box-shadow: var(--shadow-sm);
+  opacity: 1;
+}
+
+.kalender-filter-pille.kal-kanal-instagram[aria-pressed="true"] { background: #fdf3f8; border-color: #DD2A7B; }
+.kalender-filter-pille.kal-kanal-tiktok[aria-pressed="true"] { background: #f4f4f5; border-color: #1a1a1a; }
+.kalender-filter-pille.kal-kanal-facebook[aria-pressed="true"] { background: #f1f6fe; border-color: #1877F2; }
+.kalender-filter-pille.kal-kanal-linkedin[aria-pressed="true"] { background: #eff5fc; border-color: #0A66C2; }
+
+/* Archiv-Eintraege (automatisch aus dem Archiv, read-only) sehen aus wie jeder
+   andere Eintrag. Ausgegraut waren sie schlecht lesbar, und die
+   Unterscheidung zu Geplantem traegt ohnehin die Zeile darueber: Geplantes
+   nennt seine Uhrzeit, Gepostetes sagt „Gepostet" oder die echte Postzeit. */
+.kalender-pop-link {
+  display: inline-block;
+  font-weight: 700;
+  color: #1a1a1a;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  margin-top: 4px;
+}
+
+/* Virtuelle Serien-Vorkommen: gestrichelt, bis die echte Ausgabe existiert. */
+.kalender-eintrag.serie { border: 1px dashed #9aa3b4; opacity: 0.8; }
+
+/* ---------- Weitere Kanaele (Kanal-Registry, 27.09.) ------------------------
+   Gleiche Sprache wie Instagram/TikTok/Facebook/LinkedIn oben: Symbol in der
+   Markenfarbe, Karte mit Kante und zarter Toenung, gewaehlte Pille gefuellt. */
+
+.kalender-eintrag.kal-kanal-youtube::before { background: #FF0000; }
+.kalender-eintrag.kal-kanal-youtube { background: color-mix(in srgb, #FF0000 7%, #fff); }
+.kalender-eintrag.gepostet.kal-kanal-youtube { background: color-mix(in srgb, #FF0000 14%, #fff); }
+.kalender-stapel-bild.kal-kanal-youtube { box-shadow: 0 0 0 1.5px #FF0000; }
+.kalender-filter-pille.kal-kanal-youtube[aria-pressed="true"] { background: color-mix(in srgb, #FF0000 7%, #fff); border-color: #FF0000; }
+
+.posten-dialog { max-height: calc(100vh - 40px); overflow-y: auto; }
+
+/* ---------- Kanal-Auswahl im Posten-Dialog: Dropdown mit Mehrfachauswahl --- */
+.kanal-dd { position: relative; margin-bottom: 10px; }
+.kanal-dd-knopf {
+  width: 100%; display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px; border-radius: 12px; border: 1px solid transparent;
+  background: var(--surface-2); font: inherit; font-size: 14px; color: var(--text);
+  cursor: pointer; text-align: left;
+}
+.kanal-dd-knopf[aria-expanded="true"] { background: #fff; border-color: var(--text); }
+.kanal-dd-symbole { display: inline-flex; gap: 4px; }
+.kanal-dd-symbole:empty { display: none; }
+.kanal-dd-text { flex: 1; font-weight: 600; }
+.kanal-dd-pfeil { width: 16px; height: 16px; color: var(--sub); flex: 0 0 auto; transition: transform .15s; }
+.kanal-dd-knopf[aria-expanded="true"] .kanal-dd-pfeil { transform: rotate(180deg); }
+.kanal-dd-ico { display: inline-flex; width: 16px; height: 16px; }
+.kanal-dd-ico svg { width: 16px; height: 16px; }
+/* Klappt im Dialog auf (schiebt den Rest nach unten), statt darueber zu
+   schweben: der Dialog scrollt selbst und wuerde eine schwebende Liste
+   abschneiden. */
+.kanal-dd-liste {
+  margin-top: 6px;
+  background: #fff; border: 1px solid var(--line); border-radius: 14px;
+  padding: 6px; max-height: 300px; overflow-y: auto;
+}
+.kanal-dd-kopf {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 10px 4px; font-size: 11.5px; font-weight: 600; color: var(--sub);
+}
+.kanal-dd-alle { border: none; background: none; font: inherit; font-size: 12px; font-weight: 600; color: var(--text); cursor: pointer; text-decoration: underline; padding: 0; }
+.posten-dialog .kanal-dd-option {
+  display: flex; align-items: center; gap: 10px; margin: 0;
+  padding: 8px 10px; border-radius: 10px;
+  font-size: 14px; font-weight: 500; color: var(--text); line-height: 1.2; cursor: pointer;
+}
+.posten-dialog .kanal-dd-option:hover { background: var(--surface-2); }
+.posten-dialog .kanal-dd-option input { width: 16px; height: 16px; accent-color: var(--text); margin: 0; flex: 0 0 auto; }
+.kf-instagram { color: #C13584; }
+.kf-facebook { color: #1877F2; }
+.kf-tiktok { color: #101010; }
+.kf-youtube { color: #FF0000; }
+.kf-linkedin { color: #0A66C2; }
+
+/* ---------- Selbst planen ------------------------------------ */
+/* Knopf „Planen" ganz rechts in der Kopfzeile, Plus je Tag beim Hover und
+   Verschieben per Ziehen. Der Dialog nutzt die Bausteine des Posten-Dialogs. */
+.kalender-planen { display: inline-flex; align-items: center; gap: 6px; }
+.kalender-planen svg { width: 14px; height: 14px; }
+
+.kalender-tag { position: relative; }
+.kalender-tag-plus {
+  position: absolute; top: 6px; right: 6px;
+  width: 22px; height: 22px; padding: 0;
+  display: grid; place-items: center;
+  border: none; border-radius: 999px;
+  background: var(--surface-2); color: var(--sub);
+  cursor: pointer; opacity: 0; transition: opacity .15s, background .15s, color .15s;
+}
+.kalender-tag-plus svg { width: 13px; height: 13px; }
+.kalender-tag:hover .kalender-tag-plus,
+.kalender-tag-plus:focus-visible { opacity: 1; }
+.kalender-tag-plus:hover { background: #1a1a1a; color: #fff; }
+@media (hover: none) { .kalender-tag-plus { opacity: .75; } }
+
+.kalender-eintrag[draggable="true"],
+.kalender-stapel-bild[draggable="true"] { cursor: grab; }
+.kalender-eintrag.zieht,
+.kalender-stapel-bild.zieht { opacity: .4; }
+.kalender-tag.ziel { background: var(--surface-2); box-shadow: inset 0 0 0 2px var(--text); }
+
+.kalender-plan-dialog { width: min(480px, 94vw); }
+.kp-kopf { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.kp-quelle { flex: 0 0 auto; }
+.kp-suche {
+  flex: 1; min-width: 0; padding: 8px 11px;
+  border: 1px solid var(--line); border-radius: var(--radius-sm);
+  background: var(--surface); font-family: var(--font); font-size: 14px; color: var(--text);
+}
+.kp-liste {
+  max-height: 264px; overflow-y: auto; margin-bottom: 14px; padding: 4px;
+  border: 1px solid var(--line); border-radius: var(--radius-sm);
+}
+.kp-item {
+  width: 100%; display: flex; align-items: center; gap: 10px; padding: 6px;
+  border: 1px solid transparent; border-radius: 8px; background: none;
+  text-align: left; cursor: pointer; font-family: var(--font);
+}
+.kp-item:hover { background: var(--surface-2); }
+.kp-item[aria-selected="true"] { background: var(--surface-2); border-color: var(--text); }
+.kp-bild {
+  width: 36px; height: 45px; flex: 0 0 auto; object-fit: cover;
+  border-radius: 6px; background: var(--surface-2);
+}
+.kp-bild-ersatz { display: grid; place-items: center; font-size: 14px; font-weight: 700; color: var(--sub); }
+.kp-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.kp-titel { font-size: 14px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kp-unter { font-size: 12px; color: var(--sub); }
+.kp-leer { margin: 12px; font-size: 13px; color: var(--sub); }
+.kp-clip { margin-bottom: 14px; }
+.kp-clip select,
+.kp-notiz {
+  width: 100%; padding: 9px 11px;
+  border: 1px solid var(--line); border-radius: var(--radius-sm);
+  background: var(--surface); font-family: var(--font); font-size: 14px; color: var(--text);
+}
+.kp-notiz { margin-bottom: 10px; }
+.kp-optional { font-weight: 500; color: var(--faint); }

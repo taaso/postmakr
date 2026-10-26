@@ -1,0 +1,66 @@
+{# Button „Neuer Beitrag" fuer Uebersicht + Entwuerfe. Es gibt keine Editoren
+   mehr: der Knopf legt das Thema direkt „zur Produktion" in den
+   Themenspeicher, die KI baut den Beitrag beim naechsten start_create. #}
+{% macro neuer_beitrag() %}
+<div class="title-actions">
+  <button type="button" class="btn" id="neu-oeffnen">Neuer Beitrag</button>
+</div>
+
+<dialog class="neu-dialog" id="neu-dialog">
+  <form method="dialog">
+    <h2>Neuer Beitrag</h2>
+    <p class="neu-sub">Beschreib kurz, worum es gehen soll. Deine KI baut den Beitrag beim nächsten Erstellen, du gibst ihn danach frei.</p>
+    <label for="neu-titel">Thema</label>
+    <input type="text" id="neu-titel" placeholder="z. B. Neue Öffnungszeiten ab Oktober" autocomplete="off">
+    <label for="neu-notiz">Hinweise für deine KI <span class="neu-optional">optional</span></label>
+    <textarea id="neu-notiz" rows="3" placeholder="Ton, Zahlen, Links, was unbedingt rein muss"></textarea>
+    <p class="neu-fehler" id="neu-fehler" hidden></p>
+    <div class="neu-actions">
+      <button type="submit" class="btn ghost" value="abbrechen">Abbrechen</button>
+      <button type="submit" class="btn" value="anlegen">Zur Produktion</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+(function () {
+  var dlg = document.getElementById('neu-dialog');
+  var titel = document.getElementById('neu-titel');
+  var notiz = document.getElementById('neu-notiz');
+  var fehler = document.getElementById('neu-fehler');
+  var ziel = "{{ url_for('backlog_produktion') }}";
+
+  document.getElementById('neu-oeffnen').addEventListener('click', function () {
+    titel.value = '';
+    notiz.value = '';
+    fehler.hidden = true;
+    dlg.showModal();
+    titel.focus();
+  });
+
+  dlg.addEventListener('close', function () {
+    var aktion = dlg.returnValue;
+    dlg.returnValue = '';
+    if (aktion !== 'anlegen') return;
+    if (!titel.value.trim()) {
+      fehler.textContent = 'Gib dem Beitrag ein Thema.';
+      fehler.hidden = false;
+      dlg.showModal();
+      return;
+    }
+    var body = new URLSearchParams({ titel: titel.value.trim(), notiz: notiz.value.trim(), typ: 'eigene' });
+    fetch(ziel, { method: 'POST', body: body })
+      .then(function (r) { return r.json(); })
+      .then(function (daten) {
+        if (!daten.ok) throw new Error(daten.error || 'Fehler beim Anlegen.');
+        window.location.href = "{{ url_for('themenspeicher') }}";
+      })
+      .catch(function (err) {
+        fehler.textContent = 'Das Thema konnte nicht angelegt werden: ' + err.message;
+        fehler.hidden = false;
+        dlg.showModal();
+      });
+  });
+})();
+</script>
+{% endmacro %}

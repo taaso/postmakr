@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  {% include "_app_kopf.html" %}
+  <title>{{ title }} | postmakr</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='design.css') }}">
+  <style>
+    body { min-height: 100vh; background: #f6f6f7; }
+    .wrap { max-width: 980px; margin: 0 auto; padding: 64px 24px 64px; }
+    .pm-head { display: flex; align-items: center; gap: 2px; margin: 0 0 52px;
+               font-size: 21px; font-weight: 700; letter-spacing: -0.02em; color: #6b6b6b; }
+    .pm-head .plane { width: 17px; height: 17px; margin: 2px 0 0 3px; fill: none; stroke: #1a1a1a;
+                      stroke-width: 2.1; stroke-linejoin: round; stroke-linecap: round; }
+    h1 { font-family: var(--display, var(--font)); font-weight: 700; letter-spacing: -0.03em;
+         font-size: 40px; line-height: 1.05; margin: 0 0 10px; color: #1a1a1a; }
+    .lead { color: #616161; margin: 0 0 40px; font-size: 15.5px; line-height: 1.55; max-width: 56ch; }
+    .grid { display: grid; gap: 18px; grid-template-columns: repeat(auto-fill, minmax(268px, 1fr)); }
+    .tile { display: flex; flex-direction: column; text-decoration: none; color: inherit;
+            border-radius: 14px; padding: 24px 22px 20px;
+            background: #fff; border: 1px solid #e3e3e3;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+            transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease; }
+    .tile:hover { transform: translateY(-2px); border-color: #d1d1d1;
+                  box-shadow: 0 10px 28px rgba(0,0,0,0.10); }
+    .swatch { width: 40px; height: 40px; border-radius: 11px; margin-bottom: 18px;
+              display: flex; align-items: center; justify-content: center;
+              color: #fff; font-weight: 800; font-size: 18px; text-transform: uppercase; }
+    .swatch-logo { overflow: hidden; background: #f3f3f3; }
+    .swatch-logo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .name { font-size: 21px; font-weight: 700; margin: 0 0 3px; letter-spacing: -0.02em; color: #1a1a1a; }
+    .slug { color: #8a8a8a; font-size: 12.5px; margin: 0 0 18px; font-family: var(--mono); }
+    .meta { display: flex; align-items: baseline; gap: 7px; color: #616161; font-size: 13px; margin-top: auto; }
+    .meta b { color: #1a1a1a; font-weight: 700; font-size: 16px; font-variant-numeric: tabular-nums; }
+    .go { margin-left: auto; color: #8a8a8a; font-weight: 700; transition: transform 0.16s, color 0.16s; }
+    .tile:hover .go { color: #1a1a1a; transform: translateX(3px); }
+
+    .neu { margin-top: 56px; max-width: 520px; }
+    .neu h2 { font-size: 19px; font-weight: 700; letter-spacing: -0.02em; margin: 0 0 6px; color: #1a1a1a; }
+    .neu p { color: #616161; font-size: 14.5px; line-height: 1.55; margin: 0 0 16px; }
+    .neu-zeile { display: flex; gap: 10px; flex-wrap: wrap; }
+    .neu input[type=text] { flex: 1 1 260px; font: inherit; font-size: 15px; padding: 12px 14px;
+                            border-radius: 10px; border: 1px solid #d6d6d6; background: #fff; color: #1a1a1a; }
+    .neu input[type=text]:focus { outline: 2px solid #1a1a1a; outline-offset: 1px; border-color: #1a1a1a; }
+    .neu button { font: inherit; font-size: 15px; font-weight: 600; padding: 12px 20px; border-radius: 10px;
+                  border: 0; background: #1a1a1a; color: #fff; cursor: pointer; }
+    .neu button:hover { background: #000; }
+    .neu .adresse { font-family: var(--mono); font-size: 12.5px; color: #8a8a8a; margin: 10px 0 0; min-height: 1.4em; }
+    .fehler { color: #b3261e; font-size: 14px; margin: 12px 0 0; }
+
+    .start { max-width: 600px; padding-top: 6vh; }
+    .start h1 { font-size: 46px; }
+    .start .lead { margin-bottom: 30px; }
+    .start .neu { margin-top: 0; }
+    .start .schritte { margin: 44px 0 0; padding: 0; list-style: none; display: grid; gap: 14px;
+                       color: #616161; font-size: 14.5px; line-height: 1.55; counter-reset: schritt; }
+    .start .schritte li { display: grid; grid-template-columns: 28px 1fr; gap: 6px; counter-increment: schritt; }
+    .start .schritte li::before { content: counter(schritt); font-weight: 700; color: #1a1a1a; }
+    @media (max-width: 560px) { .wrap { padding: 44px 18px 48px; } h1, .start h1 { font-size: 32px; } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="pm-head">postmakr<svg class="plane" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 3.8 4.2 10.1c-.9.4-.8 1.6.1 1.9l6 2 2.1 5.9c.3.9 1.5 1 1.9.1L21 3.8Z" style="stroke-linejoin:round;stroke-linecap:round"/><path d="M20.35 4.42 10.3 14" style="stroke-linecap:butt"/></svg></div>
+
+    {% macro anlege_formular(knopf) %}
+      <form method="post" action="{{ url_for('platform.anlegen') }}" class="neu-form" id="neu-form">
+        <div class="neu-zeile">
+          <input type="text" name="name" id="neu-name" value="{{ name }}" maxlength="80" required
+                 placeholder="Name deiner Marke" aria-label="Name des Workspace" autocomplete="off">
+          <button type="submit">{{ knopf }}</button>
+        </div>
+        <p class="adresse" id="neu-adresse" aria-live="polite"></p>
+        {% if fehler %}<p class="fehler" role="alert">{{ fehler }}</p>{% endif %}
+      </form>
+    {% endmacro %}
+
+    {% if erster_start %}
+      <div class="start">
+        <h1>Schön, dass du da bist.</h1>
+        <p class="lead">postmakr läuft auf deinem Rechner, deine Beiträge bleiben bei dir. Leg zuerst einen Workspace an. Das ist der Ort für eine Marke mit ihren Beiträgen, Sounds und Einstellungen.</p>
+        <section class="neu" aria-label="Ersten Workspace anlegen">
+          {{ anlege_formular("Workspace anlegen") }}
+        </section>
+        <ol class="schritte">
+          <li>Gib deinem Workspace einen Namen, zum Beispiel den deiner Marke.</li>
+          <li>Verbinde dein KI-Modell über den lokalen MCP-Server, dann baut es Beiträge direkt in diesen Workspace.</li>
+          <li>Prüf die Entwürfe in postmakr, gib sie frei und plane sie im Kalender.</li>
+        </ol>
+      </div>
+    {% else %}
+      <h1>Deine Workspaces</h1>
+      <p class="lead">Wähle einen Workspace. Jeder hat eigene Beiträge, Sounds und Einstellungen.</p>
+
+      <div class="grid">
+        {% for ws in workspaces %}
+          <a class="tile" href="{{ url_for('workspace.uebersicht', ws=ws.slug) }}" data-mobil="{{ url_for('workspace.mobil', ws=ws.slug) }}">
+            {% if ws.logo %}<div class="swatch swatch-logo"><img src="{{ ws.logo }}" alt=""></div>
+            {% else %}<div class="swatch" style="background: {{ ws.accent }};">{{ ws.name[:1] }}</div>{% endif %}
+            <p class="name">{{ ws.name }}</p>
+            <p class="slug">/w/{{ ws.slug }}</p>
+            <p class="meta"><b>{{ ws.archiv }}</b> {{ 'freigegebener Beitrag' if ws.archiv == 1 else 'freigegebene Beiträge' }} <span class="go">→</span></p>
+          </a>
+        {% endfor %}
+      </div>
+
+      <section class="neu" aria-labelledby="neu-titel">
+        <h2 id="neu-titel">Neuen Workspace anlegen</h2>
+        <p>Für eine weitere Marke oder ein eigenes Projekt. Die Adresse entsteht aus dem Namen.</p>
+        {{ anlege_formular("Anlegen") }}
+      </section>
+    {% endif %}
+  </div>
+  <script>
+  // Auf dem Handy direkt in die Handy-Ansicht des Workspace.
+  if (window.matchMedia && window.matchMedia('(max-width: 820px)').matches) {
+    document.querySelectorAll('a.tile[data-mobil]').forEach(function (a) { a.href = a.dataset.mobil; });
+  }
+  // Vorschau der Adresse, gleiche Regel wie slug_aus_name im Server.
+  (function () {
+    var feld = document.getElementById('neu-name');
+    var ziel = document.getElementById('neu-adresse');
+    if (!feld || !ziel) return;
+    function zeigen() {
+      var s = feld.value.toLowerCase().replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
+        .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40).replace(/-+$/, '');
+      ziel.textContent = s ? 'Adresse: /w/' + s : '';
+    }
+    feld.addEventListener('input', zeigen);
+    zeigen();
+  })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+{% from "_help.html" import help %}
+{% macro zeit(s) %}{{ '%d:%02d' % (s // 60, s % 60) }}{% endmacro %}
+{% macro karte(c, t=None, stelle=None, weitere=[]) %}
+  {% set bis = stelle.bis if stelle and stelle.bis and stelle.bis > stelle.von + 0.5 else None %}
+  {% set ziel = url_for('lager_clip', clip_id=c.id, t=t, bis=bis) if t is not none else url_for('lager_clip', clip_id=c.id) %}
+  <a class="lg-karte" href="{{ ziel }}" data-id="{{ c.id }}" data-status="{{ c.verarbeitung }}">
+    <span class="lg-bild">
+      {% if c.hat.titelbild %}<img loading="lazy" src="{{ url_for('lager_datei', clip_id=c.id, art='titelbild', stand=c.stand) }}" alt="">{% endif %}
+      {% if c.hat.vorschau %}<video muted playsinline preload="none" data-src="{{ url_for('lager_datei', clip_id=c.id, art='vorschau', stand=c.stand) }}{% if t %}#t={{ t }}{% endif %}"></video>{% endif %}
+      {% if c.verarbeitung in ['neu', 'wartet', 'laeuft'] %}<span class="lg-arbeit">{{ 'wird verarbeitet' if c.verarbeitung == 'laeuft' else 'wartet' }}</span>{% endif %}
+      {% if c.verarbeitung == 'fehler' %}<span class="lg-arbeit lg-fehler">Fehler</span>{% endif %}
+      {% if c.dauer %}<span class="lg-dauer">{{ '%d:%02d' % (c.dauer // 60, c.dauer % 60) }}</span>{% endif %}
+      {% if c.herkunft != 'eigen' %}<span class="lg-herkunft lg-herkunft-{{ c.herkunft }}">{{ 'KI' if c.herkunft == 'ki' else 'fremd' }}</span>{% endif %}
+    </span>
+    <span class="lg-text">
+      <span class="lg-titel">{{ c.titel }}</span>
+      {% if stelle %}
+        <span class="lg-stelle"><b>{{ zeit(stelle.von) }}{% if bis %} bis {{ zeit(bis) }}{% endif %}</b> {{ stelle.text|truncate(90) }}</span>
+        {% if weitere %}<span class="lg-weitere">Auch passend: {% for w in weitere %}{{ zeit(w.von) }}{% if w.bis and w.bis > w.von + 0.5 %} bis {{ zeit(w.bis) }}{% endif %}{{ ', ' if not loop.last }}{% endfor %}</span>{% endif %}
+      {% elif c.beschreibung %}
+        <span class="lg-info">{{ c.beschreibung|truncate(80) }}</span>
+      {% endif %}
+      <span class="lg-chips">
+        {% for t in (c.tags + c.schlagworte)[:4] %}<span class="lg-chip">{{ t }}</span>{% endfor %}
+        {% if c.verwendet_in %}<span class="lg-chip lg-chip-benutzt">{{ c.verwendet_in|length }}× benutzt</span>{% endif %}
+      </span>
+    </span>
+  </a>
+{% endmacro %}
+{% block content %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='kalender.css') }}?v=20261024">
+  <link rel="stylesheet" href="{{ url_for('static', filename='trial-reels.css') }}?v=20261018a">
+  <link rel="stylesheet" href="{{ url_for('static', filename='lager.css') }}?v=20261026a">
+
+  <div class="page-title-row">
+    <h1 class="page">Lager</h1>
+    {{ help('Hier liegt dein ganzes Rohmaterial: jede Aufnahme, B-Roll, Bildschirmaufnahmen und Fotos, unbearbeitet. Beim Hochladen schreibt postmakr automatisch mit, was gesagt wird und was zu sehen ist. Such dann einfach nach dem, was du brauchst, und du landest direkt an der passenden Stelle.') }}
+    <span class="lg-bestand">{{ anzahl }} Clips, {{ minuten }} Minuten{% if in_arbeit %}, {{ in_arbeit }} in Arbeit{% endif %}</span>
+    <span class="lg-platz{{ ' lg-platz-knapp' if platz.knapp }}{{ ' lg-platz-voll' if platz.voll }}" title="Pro Clip höchstens {{ platz.text.clip_max }}{% if platz.papierkorb %}, davon {{ platz.text.papierkorb }} im Papierkorb{% endif %}">
+      <span class="lg-platz-text">{{ platz.text.belegt }} von {{ platz.text.kontingent }}</span>
+      <span class="lg-platz-balken" role="meter" aria-label="Belegter Speicher im Lager" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ platz.prozent }}"><span style="width: {{ platz.prozent }}%"></span></span>
+    </span>
+    <button type="button" class="btn btn-sm lg-hochladen-knopf" data-hochladen>Hochladen</button>
+  </div>
+
+  <form class="lg-suche" method="get" action="{{ url_for('lager') }}">
+    <input type="search" name="q" value="{{ anfrage }}" placeholder="Was suchst du? Zum Beispiel: ich rede in die Kamera, MacBook mit Ente, nachts am Schreibtisch" autocomplete="off" aria-label="Lager durchsuchen">
+    <select name="regal" aria-label="Regal">
+      <option value="">Alle Regale</option>
+      {% for r in alle_regale %}<option value="{{ r }}" {{ 'selected' if filter.regal == r }}>{{ r }}</option>{% endfor %}
+    </select>
+    <select name="herkunft" aria-label="Herkunft">
+      <option value="">Jede Herkunft</option>
+      {% for k, n in herkunft_namen.items() %}<option value="{{ k }}" {{ 'selected' if filter.herkunft == k }}>{{ n }}</option>{% endfor %}
+    </select>
+    <select name="art" aria-label="Art">
+      <option value="">Videos und Fotos</option>
+      <option value="video" {{ 'selected' if filter.art == 'video' }}>Nur Videos</option>
+      <option value="foto" {{ 'selected' if filter.art == 'foto' }}>Nur Fotos</option>
+    </select>
+    <label class="lg-check"><input type="checkbox" name="unbenutzt" value="1" {{ 'checked' if filter.unbenutzt }}> noch unbenutzt</label>
+    <button type="submit" class="btn btn-sm">Suchen</button>
+  </form>
+
+  <input type="file" id="lg-datei" multiple accept="video/*,image/*" hidden>
+  <div class="lg-upload" id="lg-upload" hidden>
+    <span class="lg-upload-text">Wird hochgeladen</span>
+    <span class="lg-balken"><span></span></span>
+  </div>
+  <div class="lg-ablage" id="lg-ablage" hidden>Loslassen, um ins Lager zu legen</div>
+
+  {% if anfrage %}
+    {% if treffer %}
+    <p class="lg-trefferzahl">{{ treffer|length }} {{ 'Treffer' }} für „{{ anfrage }}“</p>
+    <div class="lg-grid">
+      {% for e in treffer %}
+        {% set s = e.stellen[0] if e.stellen else None %}
+        {{ karte(e.clip, s.von if s else None, s, e.stellen[1:3]) }}
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty"><div class="big">Nichts gefunden</div><p>Versuch es mit anderen Wörtern oder ohne Filter. Gesucht wird in Titel, Schlagworten, Beschreibung, allem, was in den Clips gesagt wird, und in den Bildern selbst, auf Deutsch und Englisch.</p></div>
+    {% endif %}
+  {% elif clips %}
+    {% for gruppe in gruppen %}
+    <section class="tr-gruppe">
+      <h2 class="tr-gruppe-kopf">{{ gruppe.name }} <span class="count">{{ gruppe.clips|length }}</span></h2>
+      <div class="lg-grid">{% for c in gruppe.clips %}{{ karte(c) }}{% endfor %}</div>
+    </section>
+    {% endfor %}
+  {% else %}
+    <div class="empty">
+      <div class="big">Dein Lager ist noch leer</div>
+      <p>Zieh deine Aufnahmen einfach hier rein oder tipp auf Hochladen. Alles bleibt im Original erhalten.</p>
+    </div>
+  {% endif %}
+
+  <script>
+  (function () {
+    var HOCHLADEN = {{ url_for('lager_hochladen') | tojson }};
+    var STATUS = {{ url_for('lager_status') | tojson }};
+    var REGAL = {{ (filter.regal or '') | tojson }};
+    var PLATZ = {{ {'frei': platz.frei, 'clip_max': platz.clip_max, 'text': platz.text} | tojson }};
+    var eingabe = document.getElementById('lg-datei');
+    var leiste = document.getElementById('lg-upload');
+    var ablage = document.getElementById('lg-ablage');
+
+    function melden(text) {
+      leiste.hidden = false;
+      leiste.querySelector('.lg-balken span').style.width = '0';
+      leiste.querySelector('.lg-upload-text').textContent = text;
+    }
+
+    function hochladen(dateien) {
+      if (!dateien.length) return;
+      // Grenzen schon hier pruefen, damit niemand Minuten auf einen Upload wartet,
+      // den der Server dann ablehnt.
+      var zuGross = Array.prototype.filter.call(dateien, function (d) { return d.size > PLATZ.clip_max; });
+      if (zuGross.length) {
+        melden(zuGross.map(function (d) { return d.name; }).join(', ') + (zuGross.length > 1 ? ' sind' : ' ist') + ' größer als ' + PLATZ.text.clip_max + ' pro Clip. Kürze den Clip oder exportiere ihn kleiner.');
+        return;
+      }
+      var summe = Array.prototype.reduce.call(dateien, function (s, d) { return s + d.size; }, 0);
+      if (summe > PLATZ.frei) {
+        melden('Das passt nicht mehr ins Lager: ' + PLATZ.text.belegt + ' von ' + PLATZ.text.kontingent + ' sind belegt, frei sind noch ' + PLATZ.text.frei + '. Lösche Clips, die du nicht mehr brauchst, oder frag uns nach mehr Platz.');
+        return;
+      }
+      var fd = new FormData();
+      Array.prototype.forEach.call(dateien, function (d) { fd.append('dateien', d, d.name); });
+      if (REGAL) fd.append('regal', REGAL);
+      var xhr = new XMLHttpRequest();
+      xhr.open('POST', HOCHLADEN);
+      leiste.hidden = false;
+      xhr.upload.onprogress = function (e) {
+        if (e.lengthComputable) leiste.querySelector('.lg-balken span').style.width = Math.round(e.loaded / e.total * 100) + '%';
+      };
+      xhr.onload = function () {
+        var j; try { j = JSON.parse(xhr.responseText); } catch (e) { j = { ok: false, error: 'Upload fehlgeschlagen (' + xhr.status + ')' }; }
+        if (!j.ok) { leiste.querySelector('.lg-upload-text').textContent = j.error; return; }
+        location.reload();
+      };
+      xhr.onerror = function () { leiste.querySelector('.lg-upload-text').textContent = 'Upload abgebrochen, Verbindung prüfen.'; };
+      xhr.send(fd);
+    }
+    document.querySelector('[data-hochladen]').addEventListener('click', function () { eingabe.click(); });
+    eingabe.addEventListener('change', function () { hochladen(eingabe.files); });
+    var tiefe = 0;
+    document.addEventListener('dragenter', function (e) { if (e.dataTransfer && Array.prototype.indexOf.call(e.dataTransfer.types, 'Files') !== -1) { tiefe++; ablage.hidden = false; } });
+    document.addEventListener('dragleave', function () { tiefe = Math.max(0, tiefe - 1); if (!tiefe) ablage.hidden = true; });
+    document.addEventListener('dragover', function (e) { e.preventDefault(); });
+    document.addEventListener('drop', function (e) { e.preventDefault(); tiefe = 0; ablage.hidden = true; hochladen(e.dataTransfer.files); });
+
+    // Vorschau beim Drueberfahren abspielen (lädt erst dann).
+    document.querySelectorAll('.lg-karte video').forEach(function (v) {
+      var karte = v.closest('.lg-karte');
+      karte.addEventListener('mouseenter', function () {
+        if (!v.src) v.src = v.dataset.src;
+        v.classList.add('an'); v.play().catch(function () {});
+      });
+      karte.addEventListener('mouseleave', function () { v.pause(); v.classList.remove('an'); });
+    });
+
+    // Laufende Verarbeitung: alle 4 s nachsehen, fertig = neu laden.
+    var offen = document.querySelectorAll('.lg-karte[data-status="neu"], .lg-karte[data-status="wartet"], .lg-karte[data-status="laeuft"]');
+    if (offen.length) {
+      var t = setInterval(function () {
+        fetch(STATUS).then(function (r) { return r.json(); }).then(function (s) {
+          var fertig = Array.prototype.every.call(offen, function (k) { return ['fertig', 'fehler'].indexOf(s[k.dataset.id]) !== -1; });
+          if (fertig) { clearInterval(t); location.reload(); }
+        }).catch(function () {});
+      }, 4000);
+    }
+  })();
+  </script>
+{% endblock %}

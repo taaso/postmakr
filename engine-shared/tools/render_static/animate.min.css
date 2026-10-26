@@ -1,0 +1,28 @@
+/* postmakr Animations-Baukasten — eigene, lizenzfreie Implementierung.
+   API-kompatibel zur verbreiteten animate__-Konvention (Grundklasse
+   animate__animated + Eintritts-Klassen), aber komplett selbst geschrieben:
+   keine Fremdlizenz, nur Standard-CSS-Keyframes. Wird von render.py
+   automatisch injiziert, sobald ein Slide-HTML "animate__" enthaelt.
+   Dauer pro Element per --animate-duration ueberschreibbar. */
+:root{--animate-duration:1s;--animate-delay:0s}
+.animate__animated{animation-duration:var(--animate-duration);animation-delay:var(--animate-delay);animation-fill-mode:both}
+@keyframes pm-fadeIn{from{opacity:0}to{opacity:1}}
+.animate__fadeIn{animation-name:pm-fadeIn}
+@keyframes pm-fadeInLeft{from{opacity:0;transform:translate3d(-60px,0,0)}to{opacity:1;transform:none}}
+.animate__fadeInLeft{animation-name:pm-fadeInLeft}
+@keyframes pm-fadeInRight{from{opacity:0;transform:translate3d(60px,0,0)}to{opacity:1;transform:none}}
+.animate__fadeInRight{animation-name:pm-fadeInRight}
+@keyframes pm-fadeInUp{from{opacity:0;transform:translate3d(0,60px,0)}to{opacity:1;transform:none}}
+.animate__fadeInUp{animation-name:pm-fadeInUp}
+@keyframes pm-fadeInDown{from{opacity:0;transform:translate3d(0,-60px,0)}to{opacity:1;transform:none}}
+.animate__fadeInDown{animation-name:pm-fadeInDown}
+@keyframes pm-slideInLeft{from{transform:translate3d(-100%,0,0);visibility:visible}to{transform:none}}
+.animate__slideInLeft{animation-name:pm-slideInLeft}
+@keyframes pm-slideInRight{from{transform:translate3d(100%,0,0);visibility:visible}to{transform:none}}
+.animate__slideInRight{animation-name:pm-slideInRight}
+@keyframes pm-zoomIn{from{opacity:0;transform:scale3d(.4,.4,.4)}60%{opacity:1}to{opacity:1;transform:none}}
+.animate__zoomIn{animation-name:pm-zoomIn}
+@keyframes pm-bounceIn{from{opacity:0;transform:scale3d(.5,.5,.5)}55%{opacity:1;transform:scale3d(1.06,1.06,1.06)}75%{transform:scale3d(.97,.97,.97)}to{opacity:1;transform:none}}
+.animate__bounceIn{animation-name:pm-bounceIn;animation-duration:calc(var(--animate-duration)*.9)}
+@keyframes pm-fadeOut{from{opacity:1}to{opacity:0}}
+.animate__fadeOut{animation-name:pm-fadeOut}

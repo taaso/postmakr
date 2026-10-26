@@ -1,0 +1,225 @@
+{% extends "base.html" %}
+{% from "_help.html" import help %}
+{% from "_einstellungen_reiter.html" import einstellungen_reiter with context %}
+{% block content %}
+  {# Eigenes Stylesheet, damit design.css unangetastet bleibt. #}
+  <link rel="stylesheet" href="{{ url_for('static', filename='wissen-bereich.css') }}?v=20260821b">
+
+  {% set WISSEN_ICONS = {
+    'marke': '<path d="M12 2 3 7v6c0 5 4 8 9 9 5-1 9-4 9-9V7Z"/><path d="m9 12 2 2 4-4"/>',
+    'logo': '<rect x="3" y="3" width="18" height="18" rx="4"/><path d="M8 15V9l4 6 4-6v6"/>',
+    'design': '<circle cx="13.5" cy="6.5" r="2.5"/><circle cx="19" cy="13" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="10" cy="19" r="2.5"/>',
+    'text': '<path d="M4 6h16"/><path d="M4 12h10"/><path d="M4 18h7"/>',
+    'slides': '<rect x="3" y="4" width="13" height="9" rx="1.5"/><path d="M8 17h5"/><path d="M10.5 13v4"/><rect x="17" y="7" width="4" height="9" rx="1"/>',
+    'caption': '<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M6 10h5"/><path d="M6 14h8"/>',
+    'animation': '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/>',
+    'bild': '<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="1.8"/><path d="m4 18 5-5 3 3 4-5 4 5"/>',
+    'referenz': '<path d="M9 18H6a3 3 0 0 1-3-3V9a3 3 0 0 1 3-3h1"/><path d="M15 6h3a3 3 0 0 1 3 3v6a3 3 0 0 1-3 3h-1"/><path d="M9 3 7 21"/>',
+    'learnings': '<path d="M2 5a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4v12a3 3 0 0 0-3-3H3a1 1 0 0 1-1-1Z"/><path d="M22 5a1 1 0 0 0-1-1h-5a4 4 0 0 0-4 4v12a3 3 0 0 1 3-3h6a1 1 0 0 0 1-1Z"/>',
+    'formate': '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
+    'generic': '<rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 9h8"/><path d="M8 13h5"/>'
+  } %}
+  {% macro wissen_ico(name, cls) -%}
+  <svg class="{{ cls }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{{ (WISSEN_ICONS.get(name) or WISSEN_ICONS['generic']) | safe }}</svg>
+  {%- endmacro %}
+
+  {% macro wissen_kachel(t, loop_index, attrs) -%}
+  <button type="button" class="wissen-tile wissen-tint-{{ loop_index % 6 }}" {{ attrs | safe }}>
+    <span class="wissen-tile-icon">{{ wissen_ico(t.icon, 'wissen-tile-svg') }}</span>
+    <span class="wissen-tile-title">{{ t.title }}</span>
+    <span class="wissen-tile-desc">{{ t.desc }}</span>
+    <span class="wissen-tile-foot">
+      <span class="wissen-tile-count">{{ t.meta }}</span>
+      <svg class="wissen-tile-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>
+    </span>
+  </button>
+  {%- endmacro %}
+
+  <div class="page-title-row">
+    <h1 class="page">Einstellungen</h1>
+  </div>
+  {{ einstellungen_reiter('wissen') }}
+
+  <div class="wissen-head">
+    <header class="st-head">
+      <h2>Marke &amp; Wissen</h2>
+      <p>Styleguide, Learnings und Format-Specs, nach denen die KI deine Beiträge baut. Ein Klick auf eine Kachel öffnet den Inhalt direkt hier.</p>
+    </header>
+    <div class="wissen-meta">
+      {% if zuletzt %}
+      <span class="wissen-meta-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
+        Zuletzt aktualisiert {{ zuletzt }}
+      </span>
+      {% endif %}
+      <span class="wissen-meta-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6h11"/><path d="M9 12h11"/><path d="M9 18h11"/><path d="m4 6 1 1 2-2"/><path d="m4 12 1 1 2-2"/><path d="m4 18 1 1 2-2"/></svg>
+        {{ gesamt_regeln }} Regel{{ '' if gesamt_regeln == 1 else 'n' }}
+      </span>
+      {% if formate_anzahl %}
+      <span class="wissen-meta-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        {{ formate_anzahl }} Format{{ '' if formate_anzahl == 1 else 'e' }}
+      </span>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if bereiche %}
+  <nav class="wissen-tabs" id="wissen-tabs">
+    <button type="button" class="wissen-tab active" data-wissen-tab="uebersicht">Übersicht</button>
+    {% for b in bereiche %}
+    <button type="button" class="wissen-tab" data-wissen-tab="{{ b.slug }}">{{ b.label }}</button>
+    {% endfor %}
+  </nav>
+
+  <section class="wissen-panel" data-wissen-panel="uebersicht">
+    <div class="wissen-panel-head">
+      <h2 class="wissen-panel-title">Übersicht</h2>
+      <p class="wissen-panel-sub">Die wichtigsten Regeln auf einen Blick.</p>
+    </div>
+    <div class="wissen-grid">
+      {% for t in uebersicht_tiles %}
+      {{ wissen_kachel(t, loop.index0, 'data-wissen-tab-target="' ~ t.slug ~ '"') }}
+      {% endfor %}
+    </div>
+  </section>
+
+  {% for b in bereiche %}
+  <section class="wissen-panel" data-wissen-panel="{{ b.slug }}" hidden>
+    <div class="wissen-panel-head">
+      <h2 class="wissen-panel-title">{{ b.label }}</h2>
+      <p class="wissen-panel-sub">{{ b.sub }}</p>
+    </div>
+    <div class="wissen-grid">
+      {% for t in b.tiles %}
+      {{ wissen_kachel(t, loop.index0, 'data-wissen-key="' ~ t.key ~ '"') }}
+      {% endfor %}
+    </div>
+  </section>
+  {% endfor %}
+  {% else %}
+  <div class="empty">
+    <div class="big">Noch kein Wissen hinterlegt</div>
+    <p>Sobald <code>context/STYLEGUIDE.md</code> oder <code>context/learnings.md</code> Inhalte haben, erscheinen hier
+      die passenden Reiter und Kacheln.</p>
+  </div>
+  {% endif %}
+
+  <dialog class="wissen-dialog" id="wissen-dialog">
+    <button type="button" class="wissen-dialog-close" id="wissen-dialog-close" aria-label="Schließen">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12"/><path d="M18 6 6 18"/></svg>
+    </button>
+    <h2 class="wissen-dialog-title" id="wissen-dialog-title"></h2>
+    <div class="wissen-dialog-body md" id="wissen-dialog-body"></div>
+  </dialog>
+
+  {# Overlay-Inhalte serverseitig vorgerendert und per JS eingeblendet: kein
+     Seitenwechsel beim Kachel-Klick. Der Schluessel wandert per pushState in
+     die URL, damit Links teilbar bleiben und ein Reload dasselbe Overlay
+     direkt offen zeigt (siehe open_key/open_bereich unten). data-wissen-bereich
+     sagt dem Skript, welchen Reiter ein Deep-Link zusaetzlich aktivieren muss. #}
+  <div id="wissen-inhalte" hidden>
+    {% for key, html in registry.items() %}
+    <div data-wissen-doc="{{ key }}" data-wissen-title="{{ titles.get(key, '') }}" data-wissen-bereich="{{ key_bereich.get(key, '') }}">{{ html | safe }}</div>
+    {% endfor %}
+  </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  var dlg = document.getElementById('wissen-dialog');
+  var titleEl = document.getElementById('wissen-dialog-title');
+  var bodyEl = document.getElementById('wissen-dialog-body');
+  var quelle = document.getElementById('wissen-inhalte');
+  var basisUrl = {{ url_for('wissen') | tojson }};
+
+  var panels = {};
+  document.querySelectorAll('[data-wissen-panel]').forEach(function (p) {
+    panels[p.dataset.wissenPanel] = p;
+  });
+  var tabs = {};
+  document.querySelectorAll('[data-wissen-tab]').forEach(function (btn) {
+    tabs[btn.dataset.wissenTab] = btn;
+  });
+
+  function aktiverBereich() {
+    for (var slug in tabs) {
+      if (tabs[slug].classList.contains('active')) return slug;
+    }
+    return 'uebersicht';
+  }
+
+  function zeigeBereich(slug, pushUrl) {
+    if (!panels[slug]) slug = 'uebersicht';
+    Object.keys(panels).forEach(function (s) { panels[s].hidden = s !== slug; });
+    Object.keys(tabs).forEach(function (s) { tabs[s].classList.toggle('active', s === slug); });
+    if (pushUrl) {
+      var url = slug === 'uebersicht' ? basisUrl : basisUrl + '?bereich=' + encodeURIComponent(slug);
+      window.history.replaceState(window.history.state || {}, '', url);
+    }
+  }
+
+  Object.keys(tabs).forEach(function (slug) {
+    tabs[slug].addEventListener('click', function () { zeigeBereich(slug, true); });
+  });
+  document.querySelectorAll('[data-wissen-tab-target]').forEach(function (kachel) {
+    kachel.addEventListener('click', function () { zeigeBereich(kachel.dataset.wissenTabTarget, true); });
+  });
+
+  var startBereich = new URLSearchParams(window.location.search).get('bereich');
+  if (startBereich) zeigeBereich(startBereich, false);
+
+  function inhaltVon(key) {
+    return quelle.querySelector('[data-wissen-doc="' + CSS.escape(key) + '"]');
+  }
+
+  function oeffnen(key, pushUrl) {
+    var node = inhaltVon(key);
+    if (!node) return;
+    titleEl.textContent = node.dataset.wissenTitle || '';
+    bodyEl.innerHTML = node.innerHTML;
+    if (node.dataset.wissenBereich) zeigeBereich(node.dataset.wissenBereich, false);
+    if (!dlg.open) dlg.showModal();
+    if (pushUrl !== false) {
+      window.history.pushState({ wissen: key }, '', basisUrl + '/' + encodeURIComponent(key));
+    }
+    bodyEl.scrollTop = 0;
+  }
+
+  function schliessen(pushUrl) {
+    if (dlg.open) dlg.close();
+    if (pushUrl !== false) {
+      var aktiv = aktiverBereich();
+      var url = aktiv === 'uebersicht' ? basisUrl : basisUrl + '?bereich=' + encodeURIComponent(aktiv);
+      window.history.pushState({}, '', url);
+    }
+  }
+
+  document.querySelectorAll('[data-wissen-key]').forEach(function (kachel) {
+    kachel.addEventListener('click', function () { oeffnen(kachel.dataset.wissenKey); });
+  });
+
+  document.getElementById('wissen-dialog-close').addEventListener('click', function () { schliessen(); });
+  dlg.addEventListener('click', function (ev) { if (ev.target === dlg) schliessen(); });
+  dlg.addEventListener('cancel', function (ev) { ev.preventDefault(); schliessen(); });
+
+  window.addEventListener('popstate', function () {
+    var pfad = window.location.pathname;
+    var praefix = basisUrl.replace(/\/$/, '') + '/';
+    if (pfad.indexOf(praefix) === 0) {
+      oeffnen(decodeURIComponent(pfad.slice(praefix.length).split('/')[0]), false);
+    } else {
+      if (dlg.open) dlg.close();
+      var b = new URLSearchParams(window.location.search).get('bereich');
+      zeigeBereich(b || 'uebersicht', false);
+    }
+  });
+
+  {% if open_key %}
+  oeffnen({{ open_key | tojson }}, false);
+  {% endif %}
+})();
+</script>
+{% endblock %}

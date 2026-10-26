@@ -1,0 +1,35 @@
+{% macro post_card(post, show_state=True) %}
+<a class="card" href="{{ url_for('detail', kind=post.kind, slug=post.slug) }}">
+<div class="thumb">
+    {% if post.export_types %}<span class="card-dateien">{{ post.export_types | map('upper') | join(', ') }}</span>{% endif %}
+    {% if post.preview and post.preview.lower().endswith(('.mp4', '.mov', '.webm')) %}
+      <video muted playsinline preload="metadata" src="{{ url_for('asset', kind=post.kind, slug=post.slug, filename=post.preview) }}#t=0.5"></video>
+    {% elif post.preview %}
+      <img src="{{ url_for('asset', kind=post.kind, slug=post.slug, filename=post.preview) }}" alt="{{ post.thema }}" loading="lazy">
+    {% else %}
+      <span class="noimg">
+        <span class="pm-mini">postmakr<svg class="plane" viewBox="0 0 24 24" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><path d="M21 3.8 4.2 10.1c-.9.4-.8 1.6.1 1.9l6 2 2.1 5.9c.3.9 1.5 1 1.9.1L21 3.8Z" style="stroke-linejoin:round;stroke-linecap:round"/><path d="M20.35 4.42 10.3 14" style="stroke-linecap:butt"/></svg></span>
+        <span>{{ post.format | fmt_format }}</span>
+      </span>
+    {% endif %}
+  </div>
+  {# Feste Kartenordnung:
+     oben links Format(+Entwurf), oben rechts Datum, darunter die
+     Ueberschrift. Seit 24.10.: Format als bunte Pille oben links (statt
+     grauem Text), Dateitypen (MP4, PNG) als Pille oben links im Bild.
+     Keine Likes und keine Viral-Prognose auf der Karte. #}
+  <div class="card-body">
+    <div class="card-meta">
+      {% if post.kind == 'drafts' and show_state %}<span class="badge draft">Entwurf</span>{% endif %}
+      {% if post.format %}
+      {% set f = (post.format or '') | lower %}
+      {% set familie = 'karussell' if 'karussell' in f else ('video' if ('reel' in f or 'video' in f or 'animation' in f) else ('story' if 'story' in f else ('text' if 'text' in f else 'bild'))) %}
+      <span class="fmt-pille fmt-{{ familie }}">{{ post.format | fmt_format }}</span>
+      {% endif %}
+      <span class="date">{{ post.datum | datum_de if post.datum else 'Kein Datum' }}</span>
+    </div>
+    <div class="card-title">{{ post.thema }}</div>
+
+  </div>
+</a>
+{% endmacro %}

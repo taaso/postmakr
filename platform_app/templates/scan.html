@@ -1,0 +1,378 @@
+{% extends "base.html" %}
+{% from "_help.html" import help %}
+{% block content %}
+  <div class="page-head">
+    <div class="page-head-text">
+      <div class="page-title-row">
+        <h1 class="page">Radar</h1>
+        {{ help('Themenvorschläge aus dem News-Scan, bewertet und in deinen Themenspeicher übernommen. Die volle Recherche läuft über deine KI, verbunden per MCP (<code>run_scan</code>).') }}
+      </div>
+    </div>
+  </div>
+
+  <div class="scan-stack">
+
+    <!-- Vorschlagsliste -->
+    <section class="vorschlaege">
+      <div class="notice">
+        Der volle Scan und die Produktion laufen über deine KI, verbunden mit dem lokalen
+        MCP-Server (<code>run_scan</code>, <code>start_create</code>).
+        Diese Seite zeigt die RSS-Rohdaten und deinen Themenspeicher.
+      </div>
+
+      <div class="toolbar">
+        <button class="btn ghost" id="fetch-btn">RSS-Rohdaten aktualisieren</button>
+        {% if datum %}<span class="hint">Vorschläge aus <strong>{{ datei }}</strong></span>{% endif %}
+      </div>
+      <pre id="fetch-out"></pre>
+
+      {% if history|length > 1 %}
+      {% set cur = namespace(idx=0) %}
+      {% for h in history %}{% if h.tag == datum %}{% set cur.idx = loop.index0 %}{% endif %}{% endfor %}
+      {# history ist neueste-zuerst: aelter = idx+1, neuer = idx-1 #}
+      {% set older = history[cur.idx + 1] if cur.idx + 1 < history|length else None %}
+      {% set newer = history[cur.idx - 1] if cur.idx > 0 else None %}
+      {# Links = Richtung „neuer" (bis zum aktuellen Scan), rechts = aelter. #}
+      <div class="scan-pager" id="scan-pager">
+        {% if newer %}
+        <a class="pager-btn" title="Neuerer Scan ({{ newer.label }})"
+           href="{{ url_for('scan') if newer.ist_aktuell else url_for('scan', tag=newer.tag) }}">‹</a>
+        {% else %}<span class="pager-btn off" title="Schon beim aktuellen Scan">‹</span>{% endif %}
+
+        <button class="pager-day" id="pager-day" type="button" aria-haspopup="true" aria-expanded="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4.5" width="18" height="17" rx="2.5"/><path d="M8 2.5v4M16 2.5v4M3 9.5h18"/></svg>
+          <span>Scan vom {{ datum_label or datum }}</span>
+          {% if not ist_archiv %}<span class="pager-now">aktuell</span>{% endif %}
+        </button>
+
+        {% if older %}
+        <a class="pager-btn" title="Älterer Scan ({{ older.label }})"
+           href="{{ url_for('scan') if older.ist_aktuell else url_for('scan', tag=older.tag) }}">›</a>
+        {% else %}<span class="pager-btn off">›</span>{% endif %}
+
+        {% if ist_archiv %}
+        <a class="pager-latest" href="{{ url_for('scan') }}">Zum aktuellen Scan</a>
+        {% endif %}
+
+        <div class="day-pop cal" id="day-pop" hidden>
+          <div class="cal-head">
+            <button class="pager-btn cal-nav" id="cal-prev" type="button" aria-label="Voriger Monat">‹</button>
+            <span class="cal-title" id="cal-title"></span>
+            <button class="pager-btn cal-nav" id="cal-next" type="button" aria-label="Nächster Monat">›</button>
+          </div>
+          <div class="cal-week" aria-hidden="true">
+            <span>Mo</span><span>Di</span><span>Mi</span><span>Do</span><span>Fr</span><span>Sa</span><span>So</span>
+          </div>
+          <div class="cal-grid" id="cal-grid"></div>
+          <p class="cal-hint">Nur Tage mit Scan sind wählbar.</p>
+        </div>
+        <script id="scan-days" type="application/json">
+          {{ history | map(attribute='tag') | list | tojson }}
+        </script>
+        <script id="scan-days-meta" type="application/json">
+          { "current": {{ datum | tojson }},
+            "latest": {{ (history[0].tag if history else '') | tojson }},
+            "base": {{ url_for('scan') | tojson }} }
+        </script>
+      </div>
+      {% endif %}
+
+      {% if suggestions %}
+        <div class="vcards">
+          {% for s in suggestions %}
+          {% set status = status_by_title.get(s.titel) %}
+          {% set richtung = praef_by_title.get(s.titel) %}
+          <article class="vcard" data-titel="{{ s.titel }}" data-nr="{{ s.nr }}"
+                   data-quelle="{{ s.quelle_scan }}" data-keyword="{{ s.keyword }}"
+                   data-empf-format="{{ s.empf_format }}" data-empf-label="{{ s.empf_format_label }}">
+            <header class="vcard-head">
+              <div class="vcard-headline">
+                <span class="vcard-nr">{{ s.nr }}</span>
+                <div>
+                  <h3 class="vcard-title">{{ s.titel }}</h3>
+                  <div class="vcard-meta">
+                    {% if status %}<span class="status-badge s-{{ status }} inline-status">{{ {'offen':'gemerkt','zur_produktion':'zur Produktion','erledigt':'erledigt'}[status] }}</span>{% endif %}
+                  </div>
+                </div>
+              </div>
+              <div class="vcard-actions">
+                <div class="gen-wrap">
+                  <button class="btn act-gen" data-act="gen" title="Thema zur Produktion vormerken und Format wählen. Die Erstellung übernimmt deine KI über den MCP-Server.">Zur Produktion</button>
+                  <div class="fmt-pop" hidden>
+                    <p class="fmt-pop-title">Welches Format?</p>
+                    {% for f in formate_options %}
+                    <button class="fmt-opt" type="button" data-format="{{ f.slug }}">{{ f.label }}<span class="fmt-check" aria-hidden="true">✓</span></button>
+                    {% endfor %}
+                    <button class="fmt-opt auto" type="button" data-format="">Die KI entscheiden lassen<span class="fmt-check" aria-hidden="true">✓</span></button>
+                  </div>
+                </div>
+                <button class="btn ghost act-merken {{ 'is-on' if status }}" data-act="merken">Merken</button>
+                <div class="thumbs">
+                  <button class="icon-btn thumb-up {{ 'is-on' if richtung == 'mehr' }}" data-act="mehr" title="Mehr davon" aria-label="Mehr davon">▲</button>
+                  <button class="icon-btn thumb-down {{ 'is-on' if richtung == 'weniger' }}" data-act="weniger" title="Weniger davon" aria-label="Weniger davon">▼</button>
+                </div>
+              </div>
+            </header>
+
+            <div class="note-drawer" hidden>
+              <input class="text-input" type="text" placeholder="Notiz zum Thema (optional)">
+              <select class="text-input fmt-select" aria-label="Gewünschtes Format">
+                <option value="">Format: die KI entscheidet</option>
+                {% for f in formate_options %}<option value="{{ f.slug }}">{{ f.label }}</option>{% endfor %}
+              </select>
+              <button class="btn btn-sm act-merken-save">Merken</button>
+            </div>
+
+            <div class="vcard-body md clamp">{{ s.body_html | safe }}</div>
+            <button class="body-toggle" type="button" hidden>Mehr anzeigen</button>
+          </article>
+          {% endfor %}
+        </div>
+
+        {% if reserve_html %}
+        <details class="reserve">
+          <summary>Reserve (nicht in den Top&nbsp;5)</summary>
+          <div class="md">{{ reserve_html | safe }}</div>
+        </details>
+        {% endif %}
+      {% else %}
+        <div class="empty">
+          <div class="big">Noch keine Vorschläge</div>
+          <p>Starte oben den Scan für die volle Recherche (oder <code>/scan</code> im Terminal).</p>
+        </div>
+      {% endif %}
+    </section>
+
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const URLS = {
+  fetch: '{{ url_for("scan_fetch") }}',
+  add: '{{ url_for("backlog_add") }}',
+  produktion: '{{ url_for("backlog_produktion") }}',
+  status: '{{ url_for("backlog_status") }}',
+  del: '{{ url_for("backlog_delete") }}',
+  praef: '{{ url_for("praeferenz") }}',
+  entwuerfe: '{{ url_for("entwuerfe") }}',
+  uebersicht: '{{ url_for("uebersicht") }}',
+};
+const STATUS_LABEL = { offen: 'offen', zur_produktion: 'zur Produktion', erledigt: 'erledigt' };
+
+function post(url, data) {
+  const body = new URLSearchParams(data);
+  return fetch(url, { method: 'POST', body }).then(r => r.json());
+}
+
+// ---- Datums-Popover: echter Monatskalender ----
+(function () {
+  const btn = document.getElementById('pager-day');
+  const pop = document.getElementById('day-pop');
+  if (!btn || !pop) return;
+  const days = new Set(JSON.parse(document.getElementById('scan-days').textContent));
+  const meta = JSON.parse(document.getElementById('scan-days-meta').textContent);
+  const grid = document.getElementById('cal-grid');
+  const title = document.getElementById('cal-title');
+  const MONATE = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+  // Startmonat = Monat des angezeigten Scans
+  let [y, m] = (meta.current || meta.latest).split('-').map(Number); m -= 1;
+
+  function urlFor(tag) { return tag === meta.latest ? meta.base : meta.base + '?tag=' + tag; }
+
+  function render() {
+    title.textContent = MONATE[m] + ' ' + y;
+    grid.innerHTML = '';
+    const first = new Date(y, m, 1);
+    const lead = (first.getDay() + 6) % 7;           // Mo-basiert
+    const nDays = new Date(y, m + 1, 0).getDate();
+    for (let i = 0; i < lead; i++) grid.appendChild(document.createElement('span'));
+    for (let d = 1; d <= nDays; d++) {
+      const tag = y + '-' + String(m + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+      if (days.has(tag)) {
+        const a = document.createElement('a');
+        a.className = 'cal-day has' + (tag === meta.current ? ' sel' : '') + (tag === meta.latest ? ' latest' : '');
+        a.href = urlFor(tag);
+        a.textContent = d;
+        if (tag === meta.latest) a.title = 'Aktueller Scan';
+        grid.appendChild(a);
+      } else {
+        const s = document.createElement('span');
+        s.className = 'cal-day';
+        s.textContent = d;
+        grid.appendChild(s);
+      }
+    }
+  }
+  document.getElementById('cal-prev').addEventListener('click', () => { m--; if (m < 0) { m = 11; y--; } render(); });
+  document.getElementById('cal-next').addEventListener('click', () => { m++; if (m > 11) { m = 0; y++; } render(); });
+
+  btn.addEventListener('click', () => {
+    pop.hidden = !pop.hidden;
+    btn.setAttribute('aria-expanded', pop.hidden ? 'false' : 'true');
+    if (!pop.hidden) render();
+  });
+  document.addEventListener('click', e => {
+    if (!pop.hidden && !e.target.closest('#scan-pager')) pop.hidden = true;
+  });
+})();
+
+// ---- Lange Vorschlags-Texte einklappen ----
+document.querySelectorAll('.vcard').forEach(card => {
+  const body = card.querySelector('.vcard-body');
+  const tog = card.querySelector('.body-toggle');
+  if (!body || !tog) return;
+  // Toggle nur zeigen, wenn der Text tatsaechlich abgeschnitten wird.
+  requestAnimationFrame(() => { if (body.scrollHeight > body.clientHeight + 24) tog.hidden = false; });
+  tog.addEventListener('click', () => {
+    const clamped = body.classList.toggle('clamp');
+    tog.textContent = clamped ? 'Mehr anzeigen' : 'Weniger anzeigen';
+    if (clamped) card.scrollIntoView({ block: 'nearest' });
+  });
+});
+
+let toastTimer;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 3200);
+}
+
+function escapeHtml(s) {
+  return (s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// ---- Themenspeicher rendern ----
+function topicNode(entry) {
+  const art = document.createElement('article');
+  art.className = 'topic';
+  art.dataset.id = entry.id;
+  art.innerHTML = `
+    <div class="topic-top">
+      <span class="status-badge s-${entry.status}" data-status="${entry.status}">${STATUS_LABEL[entry.status]}</span>
+      <button class="icon-btn del" title="Thema löschen" aria-label="Thema löschen">×</button>
+    </div>
+    <div class="topic-title">${escapeHtml(entry.titel)}</div>
+    ${entry.notiz ? `<div class="topic-note">${escapeHtml(entry.notiz)}</div>` : ''}
+    <div class="topic-foot">
+      <span class="typ-tag">${entry.typ === 'scan' ? 'Scan' : 'Eigen'}</span>
+      <span class="topic-date">${entry.datum}</span>
+    </div>`;
+  return art;
+}
+
+// Der Themenspeicher lebt auf seiner eigenen Seite; hier bestaetigt nur der Toast.
+function addTopicToList(entry) { /* Speicher-Liste ist auf /themenspeicher */ }
+function updateCount() {}
+
+// Karten-Aktionen
+document.querySelectorAll('.vcard').forEach(function (card) {
+  const titel = card.dataset.titel;
+  const quelle = card.dataset.quelle;
+  const nr = card.dataset.nr;
+  const keyword = card.dataset.keyword;
+
+  function setStatusBadge(status) {
+    let badge = card.querySelector('.inline-status');
+    const meta = card.querySelector('.vcard-meta');
+    if (!badge) {
+      badge = document.createElement('span');
+      badge.className = 'status-badge inline-status';
+      meta.appendChild(badge);
+    }
+    badge.className = 'status-badge inline-status s-' + status;
+    badge.textContent = status === 'zur_produktion' ? 'zur Produktion' : (status === 'erledigt' ? 'erledigt' : 'gemerkt');
+  }
+
+  // Zur Produktion: erst Format wählen (ruhiges Popover), dann vormerken. Die
+  // eigentliche Erstellung laeuft ueber die KI per MCP; das gewaehlte
+  // Format wird im Backlog-Eintrag gespeichert und fließt in die Instruktion.
+  const genBtn = card.querySelector('.act-gen');
+  const genPop = card.querySelector('.fmt-pop');
+  genBtn.addEventListener('click', function (e) {
+    e.stopPropagation();
+    const wasOpen = !genPop.hidden;
+    document.querySelectorAll('.fmt-pop').forEach(p => { p.hidden = true; });
+    genPop.hidden = wasOpen;
+  });
+  genPop.addEventListener('click', e => e.stopPropagation());
+  genPop.querySelectorAll('.fmt-opt').forEach(function (opt) {
+    opt.addEventListener('click', function () {
+      const format = this.dataset.format || '';
+      const label = this.textContent.replace('✓', '').trim();
+      genPop.hidden = true;
+      genBtn.disabled = true;
+      post(URLS.produktion, { titel, quelle_scan: quelle, format }).then(d => {
+        if (!d.ok) { toast(d.error || 'Fehler'); return; }
+        setStatusBadge('zur_produktion');
+        toast(format
+          ? ('Zur Produktion vorgemerkt, Format ' + label + '. Deine KI hält sich beim Erstellen daran.')
+          : 'Zur Produktion vorgemerkt. Das Format wählt deine KI beim Erstellen.');
+      }).finally(() => { genBtn.disabled = false; });
+    });
+  });
+
+  // Merken -> Notizfeld aufklappen
+  const drawer = card.querySelector('.note-drawer');
+  card.querySelector('.act-merken').addEventListener('click', function () {
+    drawer.hidden = !drawer.hidden;
+    if (!drawer.hidden) drawer.querySelector('input').focus();
+  });
+  drawer.querySelector('.act-merken-save').addEventListener('click', function () {
+    const notiz = drawer.querySelector('input').value.trim();
+    const fmtSel = drawer.querySelector('.fmt-select');
+    const format = fmtSel ? fmtSel.value : '';
+    post(URLS.add, { titel, notiz, typ: 'scan', quelle_scan: quelle, format }).then(d => {
+      if (!d.ok) { toast(d.error || 'Fehler'); return; }
+      addTopicToList(d.entry);
+      setStatusBadge('offen');
+      card.querySelector('.act-merken').classList.add('is-on');
+      drawer.hidden = true;
+      drawer.querySelector('input').value = '';
+      toast('Thema gemerkt');
+    });
+  });
+
+  // Mehr / Weniger
+  const up = card.querySelector('.thumb-up');
+  const down = card.querySelector('.thumb-down');
+  function pref(richtung, clicked, other) {
+    post(URLS.praef, { titel, richtung, stichworte: keyword }).then(d => {
+      if (!d.ok) { toast(d.error || 'Fehler'); return; }
+      up.classList.toggle('is-on', d.richtung === 'mehr');
+      down.classList.toggle('is-on', d.richtung === 'weniger');
+      if (d.richtung === 'mehr') toast('Gemerkt: mehr davon');
+      else if (d.richtung === 'weniger') toast('Gemerkt: weniger davon');
+      else toast('Präferenz aufgehoben');
+    });
+  }
+  up.addEventListener('click', () => pref('mehr'));
+  down.addEventListener('click', () => pref('weniger'));
+});
+
+// Popover schließen, wenn außerhalb geklickt wird
+document.addEventListener('click', function () {
+  document.querySelectorAll('.fmt-pop').forEach(p => { p.hidden = true; });
+});
+
+// RSS-Rohdaten
+document.getElementById('fetch-btn')?.addEventListener('click', function () {
+  const btn = this, out = document.getElementById('fetch-out');
+  btn.disabled = true;
+  const label = btn.textContent;
+  btn.textContent = 'Läuft …';
+  out.style.display = 'block';
+  out.textContent = 'RSS-Feeds werden geladen …';
+  fetch(URLS.fetch, { method: 'POST' })
+    .then(r => r.json())
+    .then(d => { out.textContent = d.output; })
+    .catch(e => { out.textContent = 'Fehler: ' + e; })
+    .finally(() => { btn.disabled = false; btn.textContent = label; });
+});
+
+</script>
+{% endblock %}

@@ -1,0 +1,12 @@
+# Themenspeicher (Backlog). Wird vom Dashboard verwaltet (Scan-Seite:
+# "Merken"/"Generieren"), nicht von Hand pflegen. Leere Liste zum Start.
+#
+# Format je Eintrag:
+# - id: 1
+#   typ: scan            # scan | eigene
+#   titel: "..."
+#   notiz: ""
+#   datum: "2026-01-01"
+#   status: offen         # offen | zur_produktion | erledigt
+#   quelle_scan: null      # Dateiname der vorschlaege-*.md, falls typ: scan
+[]

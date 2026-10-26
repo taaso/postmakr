@@ -1,0 +1,17 @@
+# News-Scan-Quellen dieses Workspace. Typ "rss" ist implementiert (siehe
+# scan/fetch_news.py); weitere Typen (newsapi, gnews, custom-api) muessten
+# dort als eigener Fetcher ergaenzt werden.
+#
+# Leer starten: Quellen hier eintragen, sobald du deine
+# Themenfelder (Ressorts) kennst. Beispiel-Eintrag als Vorlage auskommentiert.
+
+defaults:
+  max_age_hours: 48
+  timeout_seconds: 15
+  max_items: 60          # pro Quelle, nach Altersfilter (neueste zuerst)
+
+sources: []
+  # - name: tagesschau
+  #   type: rss
+  #   url: https://www.tagesschau.de/index~rss2.xml
+  #   ressort: politik

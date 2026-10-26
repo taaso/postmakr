@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="de"><head><meta charset="UTF-8"><style>
+/* Karussell: FOLGEN-CTA (letzter Slide, animiert)
+   Statement mit roter Keyword-Box, Subline zum Folgen/Teilen. Darunter drei
+   animierte Insta-Elemente: pulsierendes rotes Herz (Liken), Folgen-Button der
+   erst spät und kurz zu Gefolgt wechselt (blau zu grau), zweimal wegfliegender
+   und zurueckkehrender Papierflieger (Teilen).
+   Animationen laufen als loopbarer CSS-Zyklus (5,5 s); erster Frame ist Standbild
+   (Folgen-Zustand, Flieger in Ruheposition). */
+@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;}
+body{width:1080px;height:1350px;overflow:hidden;background:radial-gradient(circle at 50% 0%, var(--grund-hell,#1f232a) 0%, var(--grund,#121417) 65%);font-family:'Inter',sans-serif;color:#fff;padding:48px 56px 40px;display:flex;flex-direction:column;}
+img.logoimg{height:58px;}
+.head{display:flex;justify-content:space-between;align-items:center;}
+.mid{margin:auto 0;text-align:center;padding-bottom:40px;}
+.l1{font-family:'Archivo Black',sans-serif;font-size:58px;line-height:1.35;margin-bottom:40px;}
+.l1 .redbox{background:var(--akzent,#E02020);padding:2px 18px 8px;display:inline-block;border-radius:4px;}
+.l2{font-size:32px;line-height:1.6;font-weight:600;color:rgba(255,255,255,0.9);margin-bottom:90px;}
+.acts{display:flex;justify-content:center;align-items:center;gap:120px;}
+.act{display:flex;flex-direction:column;align-items:center;gap:20px;}
+.act .lb{font-size:26px;font-weight:600;color:rgba(255,255,255,0.85);}
+.act svg{display:block;}
+/* Herz: pulsiert dauerhaft, loopfähig */
+.act.like svg{animation:beat 1.2s ease-in-out infinite;}
+/* Papierflieger: fliegt zweimal pro Loop weg und kehrt zurück, loopfähig */
+.act.share svg{animation:fly 5.5s ease-in-out infinite;}
+.btnwrap{position:relative;margin-top:16px;}
+.btn{background:var(--akzent,#E02020);color:#fff;font-size:30px;font-weight:700;padding:18px 44px;border-radius:12px;}
+/* Gefolgt-Overlay: bleibt lange bei Folgen, wechselt spät zu Gefolgt und haelt nur kurz bis Loop-Ende (loopfähig) */
+.btn2{position:absolute;inset:0;background:#EFEFEF;color:#000;font-size:30px;font-weight:700;border-radius:12px;display:flex;align-items:center;justify-content:center;opacity:0;animation:show 5.5s ease infinite;}
+@keyframes show{0%{opacity:0;}58%{opacity:0;}70%{opacity:1;}96%{opacity:1;}100%{opacity:0;}}
+@keyframes beat{0%,100%{transform:scale(1);}25%{transform:scale(1.22);}45%{transform:scale(1);}60%{transform:scale(1.15);}}
+@keyframes fly{0%,12%{transform:translate(0,0) rotate(0deg);opacity:1;}24%{transform:translate(150px,-150px) rotate(18deg);opacity:0;}24.1%{transform:translate(-80px,80px) rotate(-10deg);opacity:0;}36%,55%{transform:translate(0,0) rotate(0deg);opacity:1;}67%{transform:translate(150px,-150px) rotate(18deg);opacity:0;}67.1%{transform:translate(-80px,80px) rotate(-10deg);opacity:0;}79%,100%{transform:translate(0,0) rotate(0deg);opacity:1;}}
+.footer{display:flex;justify-content:space-between;align-items:center;font-size:20px;color:rgba(255,255,255,0.45);}
+.footer b{color:rgba(255,255,255,0.75);}
+</style></head><body>
+<div class="head"><img class="logoimg" src="LOGO_B64"><div></div></div>
+<div class="mid">
+  <!-- INHALT: Statement, GENAU EINE .redbox mit dem Kern-Keyword -->
+  <div class="l1">Gute Themen teilt<br>man <span class="redbox">gemeinsam.</span></div>
+  <div class="l2">Folgt uns, bleibt informiert und<br>teilt diesen Beitrag mit euren Leuten.</div>
+  <div class="acts">
+    <div class="act like">
+      <svg width="86" height="86" viewBox="0 0 24 24" style="fill:var(--akzent,#E02020);stroke:var(--akzent,#E02020)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+      <div class="lb">Liken</div>
+    </div>
+    <div class="act follow">
+      <div class="btnwrap"><div class="btn">Folgen</div><div class="btn2">Gefolgt</div></div>
+      <div class="lb">&nbsp;</div>
+    </div>
+    <div class="act share">
+      <svg width="86" height="86" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      <div class="lb">Teilen</div>
+    </div>
+  </div>
+</div>
+<div class="footer"><span><b>Deine Marke</b></span><span></span></div>
+</body></html>

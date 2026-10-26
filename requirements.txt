@@ -1,0 +1,15 @@
+# postmakr lokal: Kern-Abhaengigkeiten (Dashboard, Renderer, Scan, Materiallager).
+# Einrichten: ./postmakr installieren  (legt .venv an und installiert diese Datei,
+# requirements-mcp.txt und auf Wunsch requirements-extras.txt)
+Flask==3.1.3
+PyYAML==6.0.3
+Markdown==3.10.2
+beautifulsoup4==4.14.3
+playwright==1.61.0
+feedparser==6.0.12
+Pillow>=10
+pypdf>=4.0            # scan/fetch_news_oparl.py: Text aus Drucksachen-PDFs
+numpy>=1.26           # engine-shared/tools/sinnsuche.py: Such-Index
+opencv-python-headless>=4.9  # platform_app/lager_verarbeitung.py: Gesichtserkennung (YuNet) im Materiallager
+cryptography>=42      # handy.py: eigene Zertifizierungsstelle fuer den Handy-Zugang (--handy)
+segno>=1.6            # handy.py: QR-Code der Handy-Adresse im Terminal (optional, reines Python)

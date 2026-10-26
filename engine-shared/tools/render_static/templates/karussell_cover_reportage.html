@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="de"><head><meta charset="UTF-8"><style>
+/* Karussell: REPORTAGE-COVER (Hook-Slide, Vollbild-Foto)
+   Vollbild-Foto mit Verlauf nach unten. Roter Kicker-Balken in gesperrten
+   Versalien (Inter-800). Inter-800-Headline aufs Bild. Optional freigestellte
+   Person links (.person). Logo oben links, vertikaler Fotocredit rechts.
+   Unten links Quellenzeile + Markenname, unten rechts animierter weiter-Blinker. */
+
+*{margin:0;padding:0;box-sizing:border-box;}
+body{width:1080px;height:1350px;overflow:hidden;background:var(--grund,#121417);font-family:'Inter',sans-serif;color:#fff;position:relative;}
+
+/* Vollbild-Hintergrundfoto + Verlauf nach unten */
+img.bg{position:absolute;inset:0;width:1080px;height:1350px;object-fit:cover;object-position:center;filter:brightness(0.82) saturate(0.98);}
+/* Weicher vertikaler Verlauf Foto -> dunkel. KEIN Panel: das Foto laeuft bis
+   unten durch, der Verlauf dunkelt nur ab, sodass Text lesbar auf dem Bild
+   steht und das Motiv dahinter noch durchscheint (bewusst nicht voll deckend). */
+.fade{position:absolute;inset:0;background:
+  linear-gradient(to bottom, color-mix(in srgb,var(--grund,#121417) 30%,transparent) 0%, color-mix(in srgb,var(--grund,#121417) 0%,transparent) 22%, color-mix(in srgb,var(--grund,#121417) 10%,transparent) 48%, color-mix(in srgb,var(--grund,#121417) 55%,transparent) 65%, color-mix(in srgb,var(--grund,#121417) 86%,transparent) 82%, color-mix(in srgb,var(--grund,#121417) 95%,transparent) 100%);}
+/* Optionale freigestellte Person links (transparentes PNG). Weglassen, wenn nicht vorhanden. */
+img.person{position:absolute;left:-40px;bottom:150px;height:900px;width:auto;filter:drop-shadow(0 8px 30px rgba(0,0,0,0.5));}
+
+img.logoimg{position:absolute;top:52px;left:56px;height:58px;filter:drop-shadow(0 2px 10px rgba(0,0,0,0.6));}
+/* Vertikaler Fotocredit am rechten Rand (Pflicht bei freien Lizenzen) */
+.credit{position:absolute;top:56px;right:26px;font-size:20px;color:rgba(255,255,255,0.6);writing-mode:vertical-rl;letter-spacing:1px;}
+
+.content{position:absolute;left:0;right:0;bottom:0;padding:0 56px 40px;display:flex;flex-direction:column;}
+/* Roter Kicker-Balken, gesperrte Versalien */
+.kicker{align-self:flex-start;background:var(--akzent,#E02020);color:#fff;font-weight:800;font-size:27px;text-transform:uppercase;letter-spacing:2px;padding:9px 18px 11px;border-radius:4px;margin-bottom:26px;}
+/* Inter-800-Headline aufs Bild */
+.headline{font-weight:800;font-size:62px;line-height:1.18;letter-spacing:-0.5px;color:#fff;text-shadow:0 2px 18px rgba(0,0,0,0.55);}
+.headline .hl{background:var(--akzent,#E02020);color:#fff;padding:0 14px 4px;display:inline-block;border-radius:4px;line-height:1;}
+
+.footer{margin-top:34px;display:flex;justify-content:space-between;align-items:flex-end;gap:20px;}
+.footer .src{font-size:24px;color:rgba(255,255,255,0.6);line-height:1.55;}
+.footer .src b{color:#fff;font-weight:700;display:block;margin-top:2px;}
+.footer .next{font-size:28px;font-weight:700;color:rgba(255,255,255,0.8);letter-spacing:2px;white-space:nowrap;}
+.next .ch{opacity:0.25;display:inline-block;animation:sweep 1.5s linear infinite;}
+.next .ch:nth-child(1){animation-delay:0s;}
+.next .ch:nth-child(2){animation-delay:0.15s;}
+.next .ch:nth-child(3){animation-delay:0.3s;}
+@keyframes sweep{0%{opacity:0.25;}10%{opacity:1;}55%{opacity:1;}65%{opacity:0.25;}100%{opacity:0.25;}}
+</style></head><body>
+<!-- INHALT: Vollbild-Hintergrundfoto (Thema/Ort, relativer Pfad oder URL) -->
+<img class="bg" src="assets/cover.jpg" alt="">
+<div class="fade"></div>
+<!-- INHALT (optional): freigestellte Person links. Ganze Zeile löschen, wenn nicht vorhanden. -->
+<img class="person" src="assets/person.png" alt="">
+<img class="logoimg" src="LOGO_B64">
+<!-- INHALT: vertikaler Fotocredit (Autor, Lizenz, ggf. "gespiegelt") -->
+<div class="credit">Fotos: Autorin oder Autor, Lizenz</div>
+<div class="content">
+  <!-- INHALT: roter Kicker (gesperrte Versalien, kurze Einordnung) -->
+  <div class="kicker">Die Geschichte hinter dem Thema</div>
+  <!-- INHALT: Headline aufs Bild, Mixed Case. Optional GENAU EINE .hl-Redbox als Zuspitzung. -->
+  <div class="headline">Eine Headline, die direkt aufs Bild gesetzt wird und neugierig macht.</div>
+  <div class="footer">
+    <!-- INHALT: Quellenzeile, Markenname fett -->
+    <div class="src">Quellen: Quelle A, Quelle B<b>Deine Marke</b></div>
+    <div class="next">weiter <span class="ch">›</span><span class="ch">›</span><span class="ch">›</span></div>
+  </div>
+</div>
+</body></html>

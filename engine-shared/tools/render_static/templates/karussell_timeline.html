@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="de"><head><meta charset="UTF-8"><style>
+/* Karussell: TIMELINE (Chronologie in mehreren Akten)
+   Kopf: Logo links + graue Meta oben rechts (Ereignis-Kontext). Inter-800-
+   Headline (Mixed Case) mit Redbox, graue Subline. Vertikale Timeline: Linie + weiße Punkte,
+   kritischer Punkt rot mit Glow. Große Anton-Uhrzeiten (kritische rot), Absätze
+   mit Zitaten kursiv. Optionale ironische Schlusszeile (.ps). Footer. */
+@import url('https://fonts.googleapis.com/css2?family=Anton&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;}
+body{width:1080px;height:1350px;overflow:hidden;background:radial-gradient(circle at 50% 0%, var(--grund-hell,#1f232a) 0%, var(--grund,#121417) 65%);font-family:'Inter',sans-serif;color:#fff;padding:48px 56px 40px;display:flex;flex-direction:column;}
+.head{display:flex;justify-content:space-between;align-items:center;margin-bottom:34px;}
+img.logoimg{height:58px;}
+.meta{font-size:22px;color:rgba(255,255,255,0.5);font-weight:600;}
+h1{font-family:'Inter',sans-serif;font-weight:800;font-size:62px;letter-spacing:-0.5px;line-height:1.12;margin-bottom:18px;}
+h1 .redbox{background:var(--akzent,#E02020);color:#fff;padding:2px 16px 6px;display:inline-block;border-radius:4px;}
+.subtitle{font-size:26px;color:rgba(255,255,255,0.7);line-height:1.45;margin-bottom:20px;}
+.subtitle b{color:#fff;}
+/* Vertikale Timeline */
+.tl{flex:1;position:relative;padding-left:56px;display:flex;flex-direction:column;justify-content:space-evenly;padding-bottom:22px;}
+.tl:before{content:'';position:absolute;left:14px;top:34px;bottom:96px;width:5px;background:rgba(255,255,255,0.25);border-radius:3px;}
+.ev{position:relative;}
+.ev:before{content:'';position:absolute;left:-56px;top:14px;width:32px;height:32px;border-radius:50%;background:#fff;}
+.ev.red:before{background:var(--akzent,#E02020);box-shadow:0 0 24px color-mix(in srgb,var(--akzent,#E02020) 65%,transparent);}
+.time{font-family:'Anton',sans-serif;font-size:84px;line-height:1;margin-bottom:12px;}
+.ev.red .time{color:var(--akzent,#E02020);}
+.ev p{font-size:25px;line-height:1.5;color:rgba(255,255,255,0.78);max-width:900px;}
+.ev p b{color:#fff;}
+.ev .q{font-style:italic;}
+/* Optionale ironische Schlusszeile */
+.ps{font-style:italic;font-size:25px;line-height:1.5;color:rgba(255,255,255,0.5);margin:14px 0 26px;}
+.footer{display:flex;justify-content:space-between;align-items:center;font-size:20px;color:rgba(255,255,255,0.45);white-space:nowrap;gap:20px;}
+.footer b{color:rgba(255,255,255,0.75);}
+.footer .next{font-weight:700;font-size:26px;color:rgba(255,255,255,0.75);letter-spacing:2px;}
+.next .ch{opacity:0.25;display:inline-block;animation:sweep 1.5s linear infinite;}
+.next .ch:nth-child(1){animation-delay:0s;}
+.next .ch:nth-child(2){animation-delay:0.15s;}
+.next .ch:nth-child(3){animation-delay:0.3s;}
+@keyframes sweep{0%{opacity:0.25;}10%{opacity:1;}55%{opacity:1;}65%{opacity:0.25;}100%{opacity:0.25;}}
+</style></head><body>
+<!-- INHALT: Meta = Ereignis-Kontext (grau, KEIN Datum als reines Layout-Element) -->
+<div class="head"><img class="logoimg" src="LOGO_B64"><div class="meta">Ereignis, Ort</div></div>
+<!-- INHALT: Headline, Redbox = Kern-Zuspitzung -->
+<h1>Ein Tag in <span class="redbox">drei Akten:</span></h1>
+<!-- INHALT: Subline mit Leitfrage -->
+<div class="subtitle">Ein Satz zum Ereignis und die Leitfrage, die sich durch die Chronologie zieht.</div>
+<div class="tl">
+  <!-- INHALT: Ereignis. class="ev" normal (weißer Punkt) oder "ev red" (kritischer Punkt, rote Uhrzeit + Glow).
+       Zitate in <span class="q">…</span> (kursiv), Quelle/Attribution als <b>. -->
+  <div class="ev"><div class="time">08:00</div><p><span class="q">„Ein wörtliches Zitat zum ersten Zeitpunkt."</span><br><b>Name, Anlass, Datum</b></p></div>
+  <div class="ev red"><div class="time">12:45</div><p>Der <b>kritische Moment</b> des Tages, belegt durch eine Quelle.</p></div>
+  <div class="ev"><div class="time">~13:00</div><p>Was danach passiert ist, mit einem <b>fetten Detail</b> und einer kurzen Erklärung.</p></div>
+</div>
+<!-- INHALT (optional): ironische Schlusszeile. Ganze Zeile löschen, wenn nicht gewünscht. -->
+<div class="ps">Eine augenzwinkernde Schlusszeile, wenn sie zum Ton deiner Marke passt.</div>
+<!-- INHALT: Quellenzeile links, Markenname fett -->
+<div class="footer"><span>Quellen: Quelle A, Quelle B <b>Deine Marke</b></span><span class="next">weiter <span class="ch">›</span><span class="ch">›</span><span class="ch">›</span></span></div>
+</body></html>

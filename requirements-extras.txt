@@ -1,0 +1,14 @@
+# postmakr lokal: Extras fuer Suche nach Bild und Bedeutung, Transkripte und Hoercheck.
+# Einrichten: ./postmakr installieren --extras
+# Die Modelle laedt postmakr beim ersten Gebrauch (Suche etwa 3 GB, Hoercheck etwa
+# 1,5 GB, Ablage unter ~/.cache/huggingface bzw. EARSHOT_HOME). Ohne Extras laeuft
+# alles andere weiter, die Suche faellt dann auf Stichworte zurueck.
+# Unter Linux installiert ./postmakr installieren torch vorher aus dem CPU-Index.
+torch>=2.2
+transformers>=4.44
+sentence-transformers>=3
+sentencepiece>=0.2    # Tokenizer des mehrsprachigen Bildmodells (SigLIP)
+protobuf>=4
+faster-whisper>=1.1   # engine-shared/tools/transcribe.py und Hoercheck: Sprache zu Text
+# earshot (MIT): Ohr fuer den Hoercheck, festgelegt auf einen geprueften Stand
+earshot @ https://github.com/Leonxlnx/earshot/archive/591fa3e028032e6dce56620a20e932e35667e8d8.tar.gz

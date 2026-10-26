@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+{% block content %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='trial-reels.css') }}?v=20261018a">
+  <link rel="stylesheet" href="{{ url_for('static', filename='lager.css') }}?v=20261026a">
+  {% set a = clip.auto %}
+  {% macro zeit(s) %}{{ '%d:%02d' % (s // 60, s % 60) }}{% endmacro %}
+
+  <div class="page-title-row">
+    <a class="lg-zurueck" href="{{ url_for('lager') }}">← Lager</a>
+  </div>
+
+  <div class="lg-detail">
+    <div class="lg-spieler {{ 'quer' if a.breite and a.breite > a.hoehe else '' }}">
+      {% if clip.art == 'video' and clip.hat.vorschau %}
+        <video id="lg-video" controls playsinline preload="metadata" src="{{ url_for('lager_datei', clip_id=clip.id, art='vorschau', stand=clip.stand) }}"></video>
+      {% elif clip.hat.titelbild %}
+        <img src="{{ url_for('lager_datei', clip_id=clip.id, art='titelbild', stand=clip.stand) }}" alt="">
+      {% else %}
+        <div class="lg-spieler-leer">{{ 'Wird gerade verarbeitet …' if clip.verarbeitung in ['neu','wartet','laeuft'] else 'Keine Vorschau' }}</div>
+      {% endif %}
+    </div>
+
+    <div class="lg-felder">
+      <input class="lg-titel-feld" name="titel" value="{{ clip.titel }}" aria-label="Titel">
+      <div class="lg-zeile">
+        <label>Regal
+          <input name="regal" value="{{ clip.regal }}" list="lg-regale">
+          <datalist id="lg-regale">{% for r in alle_regale %}<option value="{{ r }}">{% endfor %}</datalist>
+        </label>
+        <label>Herkunft
+          <select name="herkunft">{% for k, n in herkunft_namen.items() %}<option value="{{ k }}" {{ 'selected' if clip.herkunft == k }}>{{ n }}</option>{% endfor %}</select>
+        </label>
+      </div>
+      <label>Schlagworte <span class="lg-hinweis">mit Komma getrennt</span>
+        <input name="tags" value="{{ clip.tags|join(', ') }}" placeholder="z. B. MacBook, Ente, warmes Licht">
+      </label>
+      {% if clip.schlagworte %}
+      <div class="lg-chips lg-auto"><span class="lg-hinweis">automatisch:</span>{% for t in clip.schlagworte %}<span class="lg-chip">{{ t }}</span>{% endfor %}</div>
+      {% endif %}
+      <label>Was ist zu sehen?
+        <textarea name="beschreibung" rows="3" placeholder="Schreibt deine KI für dich, du kannst es ergänzen.">{{ clip.beschreibung }}</textarea>
+      </label>
+      <label>Notiz
+        <textarea name="notiz" rows="2">{{ clip.notiz }}</textarea>
+      </label>
+      <p class="lg-gespeichert" id="lg-gespeichert" hidden>Gespeichert</p>
+
+      <dl class="lg-daten">
+        {% if clip.dauer %}<div><dt>Länge</dt><dd>{{ zeit(clip.dauer) }}</dd></div>{% endif %}
+        {% if a.breite %}<div><dt>Format</dt><dd>{{ a.breite }} × {{ a.hoehe }}{% if a.fps %}, {{ a.fps|round|int }} fps{% endif %}</dd></div>{% endif %}
+        {% if a.hdr %}<div><dt>HDR</dt><dd>ja, Vorschau umgewandelt{% if a.sdr == 'ungenau' %} (Farben ungenau){% endif %}</dd></div>{% endif %}
+        {% if a.aufgenommen %}<div><dt>Aufgenommen</dt><dd>{{ a.aufgenommen[:10] | datum_de }} {{ a.aufgenommen[11:16] }}</dd></div>{% endif %}
+        <div><dt>Hochgeladen</dt><dd>{{ clip.hochgeladen[:10] | datum_de }}</dd></div>
+        <div><dt>Datei</dt><dd><a href="{{ url_for('lager_datei', clip_id=clip.id, art='original', laden=1) }}">{{ clip.datei or 'Original' }}</a></dd></div>
+      </dl>
+      {% if clip.verarbeitung == 'fehler' %}<p class="lg-fehlertext">Verarbeitung fehlgeschlagen: {{ clip.fehler }}</p>{% endif %}
+    </div>
+  </div>
+
+  {% if clip.szenen %}
+  {% set n = clip.szenen|length %}
+  <section class="lg-abschnitt">
+    <h2>Szenen <span class="count">{{ n }}</span></h2>
+    {% if ende %}<p class="lg-stelle-hinweis" id="lg-stelle">Du siehst die gefundene Stelle von {{ zeit(start) }} bis {{ zeit(ende) }}. <button type="button" class="btn btn-sm ghost" data-sprung="{{ start }}" data-bis="{{ ende }}">Noch mal abspielen</button></p>{% endif %}
+    {% if n == 1 %}<p class="lg-hinweis-text">Eine durchgehende Einstellung ohne Schnitt{% if clip.szenen[0].bewegung %}, {{ {'ruhig': 'ruhig', 'mittel': 'mit etwas Bewegung', 'bewegt': 'mit viel Bewegung'}[clip.szenen[0].bewegung] }}{% endif %}.</p>{% endif %}
+    <div class="lg-szenen" style="--kachel: {{ (a.breite / a.hoehe) if a.breite and a.hoehe else 0.5625 }}">
+      {% for sz in clip.szenen %}
+      <button type="button" class="lg-szene" data-sprung="{{ sz.von }}" data-von="{{ sz.von }}" data-szene-bis="{{ sz.bis }}" title="Szene {{ loop.index }}: {{ zeit(sz.von) }} bis {{ zeit(sz.bis) }}">
+        {% if clip.hat.szenen and sz.bild is not none %}<span class="lg-szene-bild" style="background-image: url('{{ url_for('lager_datei', clip_id=clip.id, art='szenen', stand=clip.stand) }}'); background-size: {{ n * 100 }}% 100%; background-position: {{ (loop.index0 / (n - 1) * 100) if n > 1 else 0 }}% 0"></span>{% else %}<span class="lg-szene-bild"></span>{% endif %}
+        <span class="lg-szene-zeit">{{ ('%d:%04.1f' % (sz.von // 60, sz.von % 60)) | replace('.', ',') }}</span>
+        <span class="lg-szene-text">{{ ('%.1f'|format(sz.bis - sz.von)) | replace('.', ',') }} s{% if sz.bewegung %}, {{ sz.bewegung }}{% endif %}</span>
+      </button>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  {% if a.bogen and clip.hat.bogen %}
+  <section class="lg-abschnitt">
+    <h2>Kontaktbogen</h2>
+    <div class="lg-bogen" style="--spalten: {{ [a.bogen|length, 6]|min }}">
+      <img src="{{ url_for('lager_datei', clip_id=clip.id, art='bogen', stand=clip.stand) }}" alt="">
+      <div class="lg-bogen-felder">
+        {% for t in a.bogen %}<button type="button" data-sprung="{{ t }}" title="{{ zeit(t) }}"><span>{{ zeit(t) }}</span></button>{% endfor %}
+      </div>
+    </div>
+  </section>
+  {% endif %}
+
+  {% if clip.segmente %}
+  <section class="lg-abschnitt">
+    <h2>Stellen</h2>
+    <ol class="lg-liste">
+      {% for s in clip.segmente %}<li><button type="button" data-sprung="{{ s.von }}">{{ zeit(s.von|float) }}</button> {{ s.text }}</li>{% endfor %}
+    </ol>
+  </section>
+  {% endif %}
+
+  {% if clip.transkript %}
+  <section class="lg-abschnitt">
+    <h2>Gesagt</h2>
+    <ol class="lg-liste">
+      {% for s in clip.transkript %}<li><button type="button" data-sprung="{{ s.von }}">{{ zeit(s.von|float) }}</button> {{ s.text }}</li>{% endfor %}
+    </ol>
+  </section>
+  {% endif %}
+
+  <section class="lg-abschnitt">
+    <h2>Verwendet in</h2>
+    <ul class="lg-verwendung" id="lg-verwendung">
+      {% for v in clip.verwendet_in %}
+      <li>{% if v.link %}<a href="{{ v.link }}">{{ v.reel }}</a>{% else %}{{ v.reel }}{% endif %}{% if v.version %}, {{ v.version }}{% endif %}
+        {% for x in v.ausschnitte or [] %}<span class="lg-ausschnitt">{{ zeit(x.von|float) }} bis {{ zeit(x.bis|float) }}</span>{% endfor %}
+        <button type="button" class="lg-entfernen" data-reel="{{ v.reel }}" data-version="{{ v.version or '' }}" aria-label="Entfernen">×</button></li>
+      {% else %}
+      <li class="lg-hinweis">Noch in keinem Reel und keinem Beitrag. So siehst du, was du noch nicht gepostet hast.</li>
+      {% endfor %}
+    </ul>
+    {% if reels %}
+    <form class="lg-verwendung-neu" id="lg-verwendung-neu">
+      <select name="reel" required>
+        <option value="">Trial Reel wählen</option>
+        {% for r in reels %}<option value="{{ r.titel }}" data-versionen="{{ r.versionen|join('|') }}">{{ r.titel }}</option>{% endfor %}
+      </select>
+      <select name="version"><option value="">alle Versionen</option></select>
+      <button type="submit" class="btn btn-sm ghost">Eintragen</button>
+    </form>
+    {% endif %}
+  </section>
+
+  <section class="lg-abschnitt lg-aktionen">
+    <button type="button" class="btn btn-sm ghost" id="lg-neu">Neu verarbeiten</button>
+    <button type="button" class="btn btn-sm ghost lg-loeschen" id="lg-loeschen">Aus dem Lager nehmen</button>
+  </section>
+
+  <script>
+  (function () {
+    var SPEICHERN = {{ url_for('lager_speichern', clip_id=clip.id) | tojson }};
+    var VERWENDUNG = {{ url_for('lager_verwendung', clip_id=clip.id) | tojson }};
+    var NEU = {{ url_for('lager_neu_verarbeiten', clip_id=clip.id) | tojson }};
+    var LOESCHEN = {{ url_for('lager_loeschen', clip_id=clip.id) | tojson }};
+    var LAGER = {{ url_for('lager') | tojson }};
+    var START = {{ start | tojson }};
+    var ENDE = {{ ende | tojson }};
+    var video = document.getElementById('lg-video');
+    // Gefundene Stelle: dort anfangen und am Ende der Stelle einmal anhalten
+    var halt = ENDE || 0;
+    if (video && START) video.addEventListener('loadedmetadata', function () { video.currentTime = START; }, { once: true });
+    var szenen = Array.prototype.slice.call(document.querySelectorAll('.lg-szene'));
+    function szeneZeigen() {
+      var t = video.currentTime;
+      if (halt && t >= halt) { video.pause(); halt = 0; }
+      szenen.forEach(function (b) { b.classList.toggle('an', t >= parseFloat(b.dataset.von) && t < parseFloat(b.dataset.szeneBis)); });
+    }
+    if (video) { video.addEventListener('timeupdate', szeneZeigen); video.addEventListener('seeked', szeneZeigen); }
+    document.querySelectorAll('[data-sprung]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        if (!video) return;
+        video.currentTime = parseFloat(b.dataset.sprung) || 0;
+        halt = parseFloat(b.dataset.bis) || 0;
+        video.play().catch(function () {});
+        video.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+    });
+
+    var hinweis = document.getElementById('lg-gespeichert');
+    function speichern(feld) {
+      var daten = {}; daten[feld.name] = feld.value;
+      fetch(SPEICHERN, { method: 'POST', body: new URLSearchParams(daten) }).then(function (r) { return r.json(); }).then(function (j) {
+        hinweis.textContent = j.ok ? 'Gespeichert' : (j.error || 'Nicht gespeichert');
+        hinweis.hidden = false; setTimeout(function () { hinweis.hidden = true; }, 1600);
+      });
+    }
+    document.querySelectorAll('.lg-felder input[name], .lg-felder textarea, .lg-felder select').forEach(function (f) {
+      f.addEventListener('change', function () { speichern(f); });
+    });
+
+    var form = document.getElementById('lg-verwendung-neu');
+    if (form) {
+      var reelWahl = form.querySelector('[name=reel]'), versionWahl = form.querySelector('[name=version]');
+      reelWahl.addEventListener('change', function () {
+        var opt = reelWahl.selectedOptions[0];
+        versionWahl.innerHTML = '<option value="">alle Versionen</option>';
+        (opt && opt.dataset.versionen ? opt.dataset.versionen.split('|') : []).forEach(function (n) {
+          var o = document.createElement('option'); o.value = n; o.textContent = n; versionWahl.appendChild(o);
+        });
+      });
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        fetch(VERWENDUNG, { method: 'POST', body: new URLSearchParams(new FormData(form)) }).then(function () { location.reload(); });
+      });
+    }
+    document.querySelectorAll('.lg-entfernen').forEach(function (b) {
+      b.addEventListener('click', function () {
+        fetch(VERWENDUNG, { method: 'POST', body: new URLSearchParams({ reel: b.dataset.reel, version: b.dataset.version, entfernen: '1' }) })
+          .then(function () { location.reload(); });
+      });
+    });
+    document.getElementById('lg-neu').addEventListener('click', function () {
+      fetch(NEU, { method: 'POST' }).then(function () { location.href = LAGER; });
+    });
+    var loeschen = document.getElementById('lg-loeschen');
+    loeschen.addEventListener('click', function () {
+      if (!loeschen.dataset.sicher) { loeschen.dataset.sicher = '1'; loeschen.textContent = 'Wirklich rausnehmen?'; return; }
+      fetch(LOESCHEN, { method: 'POST' }).then(function () { location.href = LAGER; });
+    });
+  })();
+  </script>
+{% endblock %}

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="de"><head><meta charset="UTF-8"><style>
+/* Karussell: ERKLÄR-LISTE (Headline läuft in Fließtext + Aufzählung)
+   Anton-Versal-Headline mit Redbox (mehrzeilig), Fließtext-Einstieg (grau, mit
+   fetten Begriffen), fette Zwischenzeile, Aufzählung mit roten ✕-Kreisen
+   (Abstände via flex-gap), fette Schlusszeile, rot gestrichelter Zitatkasten
+   mit Attribution. Footer. */
+@import url('https://fonts.googleapis.com/css2?family=Anton&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;}
+body{width:1080px;height:1350px;overflow:hidden;background:radial-gradient(circle at 50% 0%, var(--grund-hell,#1f232a) 0%, var(--grund,#121417) 65%);font-family:'Inter',sans-serif;color:#fff;padding:48px 56px 40px;display:flex;flex-direction:column;}
+.head{display:flex;justify-content:space-between;align-items:center;margin-bottom:44px;}
+img.logoimg{height:58px;}
+h1{font-family:'Anton',sans-serif;font-size:58px;letter-spacing:1px;text-transform:uppercase;line-height:1.24;margin-bottom:36px;}
+h1 .redbox{background:var(--akzent,#E02020);color:#fff;padding:2px 18px 8px;display:inline-block;border-radius:4px;}
+/* Fließtext-Einstieg */
+.expl{font-size:28px;line-height:1.6;color:rgba(255,255,255,0.78);margin-bottom:48px;}
+.expl b{color:#fff;}
+/* Fette Zwischenzeile */
+.block{font-size:29px;font-weight:800;margin-bottom:32px;}
+/* Aufzählungs-Zeile: roter ✕-Kreis + Text, Abstände via flex-gap */
+.row{display:flex;gap:24px;align-items:flex-start;margin-bottom:38px;}
+.x{flex:none;width:52px;height:52px;border-radius:50%;background:var(--akzent,#E02020);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:30px;}
+.row p{font-size:27px;line-height:1.5;color:rgba(255,255,255,0.82);padding-top:8px;}
+.row p b{color:#fff;}
+/* Fette Schlusszeile */
+.close{font-size:29px;line-height:1.5;color:#fff;font-weight:700;margin:34px 0 40px;}
+/* Rot gestrichelter Zitatkasten */
+.quote{border:3px dashed var(--akzent,#E02020);border-radius:6px;padding:26px 30px;font-size:26px;line-height:1.5;color:rgba(255,255,255,0.85);}
+.quote b{color:#fff;}
+.footer{margin-top:auto;display:flex;justify-content:space-between;align-items:center;font-size:20px;color:rgba(255,255,255,0.45);white-space:nowrap;gap:20px;}
+.footer b{color:rgba(255,255,255,0.75);}
+.footer .next{font-weight:700;font-size:26px;color:rgba(255,255,255,0.75);letter-spacing:2px;}
+.next .ch{opacity:0.25;display:inline-block;animation:sweep 1.5s linear infinite;}
+.next .ch:nth-child(1){animation-delay:0s;}
+.next .ch:nth-child(2){animation-delay:0.15s;}
+.next .ch:nth-child(3){animation-delay:0.3s;}
+@keyframes sweep{0%{opacity:0.25;}10%{opacity:1;}55%{opacity:1;}65%{opacity:0.25;}100%{opacity:0.25;}}
+</style></head><body>
+<div class="head"><img class="logoimg" src="LOGO_B64"><div></div></div>
+<!-- INHALT: Headline mehrzeilig, Redbox = Kern-Begriff. <br> für Zeilenumbruch. -->
+<h1>Möglich wurde das erst durch eine<br><span class="redbox">neue Regel,</span></h1>
+<!-- INHALT: Fließtext-Einstieg (läuft aus der Headline), <b> für Schlüsselbegriffe -->
+<div class="expl">die seit diesem Jahr gilt und <b>vieles im Alltag</b> verändert. Der Fließtext läuft direkt aus der Headline weiter und erklärt den <b>Kern</b> in zwei Sätzen.</div>
+<!-- INHALT: fette Zwischenzeile (leitet die Aufzählung ein) -->
+<div class="block">Das ändert sich jetzt:</div>
+<!-- INHALT: Aufzählungs-Zeilen mit rotem ✕-Kreis. <b> für Schlüsselbegriffe. -->
+<div class="row"><div class="x">✕</div><p>Erster Punkt mit einem <b>Schlüsselbegriff</b></p></div>
+<div class="row"><div class="x">✕</div><p><b>Zweiter Punkt</b>, ebenfalls kurz und konkret</p></div>
+<div class="row"><div class="x">✕</div><p>Dritter Punkt mit einer <b>Zahl oder Grenze</b></p></div>
+<!-- INHALT: fette Schlusszeile (Pointe) -->
+<div class="close">Die Schlusszeile bringt die Pointe in einem Satz.</div>
+<!-- INHALT: rot gestrichelter Zitatkasten + Attribution (fett). Kein Gedankenstrich in neuen Texten. -->
+<div class="quote">„Ein kurzes Zitat, das die Lage auf den Punkt bringt."<br><b>Name, Funktion</b></div>
+<!-- INHALT: Quellenzeile links, Markenname fett -->
+<div class="footer"><span>Quellen: Quelle A, Quelle B <b>Deine Marke</b></span><span class="next">weiter <span class="ch">›</span><span class="ch">›</span><span class="ch">›</span></span></div>
+</body></html>

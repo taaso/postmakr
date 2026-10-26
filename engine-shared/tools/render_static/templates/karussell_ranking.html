@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="de"><head><meta charset="UTF-8"><style>
+/* Karussell: RANKING / BALKEN (Daten-Slide)
+   Kopf: Logo links + graue Quellen-Referenz rechts. Anton-Versal-Headline mit Redbox,
+   graue Subline. Balken var(--balken,#3a4049), Rang + flagcdn-Flagge + Name + Wert IN der Balken.
+   Auslassung "…". Highlight-Rows: .gr (weiße Box, Vergleichsland) / .de (rote Box + roter Name).
+   Rote gedrehte Callout-Box, weiße SVG-Handpfeile. Footer: Quellen links, Teaser rechts. */
+@import url('https://fonts.googleapis.com/css2?family=Anton&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;}
+body{width:1080px;height:1350px;overflow:hidden;background:radial-gradient(circle at 50% 0%, var(--grund-hell,#1f232a) 0%, var(--grund,#121417) 65%);font-family:'Inter',sans-serif;color:#fff;padding:48px 56px 36px;display:flex;flex-direction:column;position:relative;}
+.head{display:flex;justify-content:space-between;align-items:center;margin-bottom:30px;}
+img.logoimg{height:58px;}
+.meta{font-size:22px;color:rgba(255,255,255,0.5);font-weight:600;}
+h1{font-family:'Anton',sans-serif;font-size:62px;letter-spacing:1px;text-transform:uppercase;line-height:1.05;margin-bottom:14px;}
+h1 .redbox{background:var(--akzent,#E02020);padding:2px 16px 6px;display:inline-block;}
+.subtitle{font-size:26px;color:rgba(255,255,255,0.7);margin-bottom:26px;line-height:1.5;}
+.subtitle b{color:#fff;}
+.chart{flex:1;display:flex;flex-direction:column;justify-content:space-between;}
+.row{display:flex;align-items:center;gap:10px;height:41px;}
+.rank{width:34px;font-size:20px;color:rgba(255,255,255,0.4);text-align:right;font-weight:600;flex:none;}
+.flag{width:38px;flex:none;display:flex;align-items:center;justify-content:center;}
+.flag img{width:36px;height:25px;object-fit:cover;border-radius:2px;box-shadow:0 0 0 1px rgba(255,255,255,0.15);}
+.name{width:198px;font-size:23px;font-weight:600;color:rgba(255,255,255,0.88);flex:none;white-space:nowrap;}
+.barwrap{flex:1;}
+.bar{height:35px;background:var(--balken,#3a4049);border-radius:3px;display:flex;align-items:center;justify-content:flex-end;padding-right:9px;}
+.val{font-size:20px;font-weight:700;color:#fff;white-space:nowrap;}
+.gap{height:24px;display:flex;align-items:center;padding-left:44px;color:rgba(255,255,255,0.35);font-size:24px;letter-spacing:4px;}
+.row.gr .bar{background:#fff;}          /* Vergleichsland: weiße Box */
+.row.gr .val{color:var(--grund,#121417);}
+.row.gr .name{color:#fff;font-weight:800;}
+.row.de .bar{background:var(--akzent,#E02020);}        /* Pointe: rote Box */
+.row.de .name{color:var(--akzent,#E02020);font-weight:800;}
+.quote u{text-decoration-thickness:4px;text-underline-offset:5px;}
+.quote{position:absolute;right:64px;bottom:272px;width:410px;background:var(--akzent,#E02020);padding:22px 26px;font-size:27px;font-weight:800;line-height:1.35;border-radius:4px;transform:rotate(-2deg);text-align:center;box-shadow:0 6px 24px rgba(0,0,0,0.4);}
+svg.arrows{position:absolute;left:0;top:0;width:1080px;height:1350px;pointer-events:none;}
+.footer{margin-top:18px;display:flex;justify-content:space-between;align-items:center;font-size:21px;color:rgba(255,255,255,0.45);}
+.footer b{color:rgba(255,255,255,0.75);}
+.footer .next{font-weight:700;font-size:26px;color:rgba(255,255,255,0.75);letter-spacing:2px;}
+.next .ch{opacity:0.25;display:inline-block;animation:sweep 1.5s linear infinite;}
+.next .ch:nth-child(1){animation-delay:0s;}
+.next .ch:nth-child(2){animation-delay:0.15s;}
+.next .ch:nth-child(3){animation-delay:0.3s;}
+@keyframes sweep{0%{opacity:0.25;}10%{opacity:1;}55%{opacity:1;}65%{opacity:0.25;}100%{opacity:0.25;}}
+</style></head><body>
+<div class="head"><img class="logoimg" src="LOGO_B64"><!-- INHALT: Quellen-Referenz oben rechts --><div class="meta">Beispieldaten</div></div>
+<!-- INHALT: Headline, Redbox = Kern-Begriff -->
+<h1><span class="redbox">Kennzahl</span> im Vergleich</h1>
+<!-- INHALT: Subline mit Kernaussage -->
+<div class="subtitle">Wert pro Kopf in Euro, <b>hervorgehoben: Platz 29 und 30</b></div>
+<!-- INHALT: Balken-Rows. width:max(<Anteil vom Max>%,<Mindestbreite>px). Werte mit Punkt-Tausendertrennung.
+     Highlight-Rows: class="row gr" (Vergleich) und class="row de" (Pointe). -->
+<div class="chart">
+<div class="row"><span class="rank">1</span><span class="flag"><img src="https://flagcdn.com/w80/lu.png"></span><span class="name">Luxemburg</span><div class="barwrap"><div class="bar" style="width:max(100.0%,125px)"><span class="val">394.005 €</span></div></div></div>
+<div class="row"><span class="rank">2</span><span class="flag"><img src="https://flagcdn.com/w80/be.png"></span><span class="name">Belgien</span><div class="barwrap"><div class="bar" style="width:max(70.3%,125px)"><span class="val">277.166 €</span></div></div></div>
+<div class="row"><span class="rank">3</span><span class="flag"><img src="https://flagcdn.com/w80/au.png"></span><span class="name">Australien</span><div class="barwrap"><div class="bar" style="width:max(53.5%,125px)"><span class="val">210.783 €</span></div></div></div>
+<div class="row"><span class="rank">4</span><span class="flag"><img src="https://flagcdn.com/w80/nz.png"></span><span class="name">Neuseeland</span><div class="barwrap"><div class="bar" style="width:max(52.4%,125px)"><span class="val">206.617 €</span></div></div></div>
+<div class="row"><span class="rank">5</span><span class="flag"><img src="https://flagcdn.com/w80/dk.png"></span><span class="name">Dänemark</span><div class="barwrap"><div class="bar" style="width:max(51.7%,125px)"><span class="val">203.771 €</span></div></div></div>
+<div class="row"><span class="rank">6</span><span class="flag"><img src="https://flagcdn.com/w80/hk.png"></span><span class="name">Hongkong</span><div class="barwrap"><div class="bar" style="width:max(47.7%,125px)"><span class="val">187.968 €</span></div></div></div>
+<div class="row"><span class="rank">7</span><span class="flag"><img src="https://flagcdn.com/w80/ca.png"></span><span class="name">Kanada</span><div class="barwrap"><div class="bar" style="width:max(37.5%,125px)"><span class="val">147.811 €</span></div></div></div>
+<div class="row"><span class="rank">8</span><span class="flag"><img src="https://flagcdn.com/w80/ch.png"></span><span class="name">Schweiz</span><div class="barwrap"><div class="bar" style="width:max(36.9%,125px)"><span class="val">145.555 €</span></div></div></div>
+<div class="row"><span class="rank">9</span><span class="flag"><img src="https://flagcdn.com/w80/no.png"></span><span class="name">Norwegen</span><div class="barwrap"><div class="bar" style="width:max(35.5%,125px)"><span class="val">140.003 €</span></div></div></div>
+<div class="row"><span class="rank">10</span><span class="flag"><img src="https://flagcdn.com/w80/jp.png"></span><span class="name">Japan</span><div class="barwrap"><div class="bar" style="width:max(34.5%,125px)"><span class="val">135.745 €</span></div></div></div>
+<div class="row"><span class="rank">11</span><span class="flag"><img src="https://flagcdn.com/w80/it.png"></span><span class="name">Italien</span><div class="barwrap"><div class="bar" style="width:max(33.2%,125px)"><span class="val">131.001 €</span></div></div></div>
+<div class="row"><span class="rank">12</span><span class="flag"><img src="https://flagcdn.com/w80/nl.png"></span><span class="name">Niederlande</span><div class="barwrap"><div class="bar" style="width:max(32.3%,125px)"><span class="val">127.407 €</span></div></div></div>
+<div class="row"><span class="rank">13</span><span class="flag"><img src="https://flagcdn.com/w80/gb.png"></span><span class="name">Großbritannien</span><div class="barwrap"><div class="bar" style="width:max(31.8%,125px)"><span class="val">125.335 €</span></div></div></div>
+<div class="row"><span class="rank">14</span><span class="flag"><img src="https://flagcdn.com/w80/fr.png"></span><span class="name">Frankreich</span><div class="barwrap"><div class="bar" style="width:max(30.9%,125px)"><span class="val">121.898 €</span></div></div></div>
+<div class="row"><span class="rank">15</span><span class="flag"><img src="https://flagcdn.com/w80/es.png"></span><span class="name">Spanien</span><div class="barwrap"><div class="bar" style="width:max(28.3%,125px)"><span class="val">111.575 €</span></div></div></div>
+<div class="row"><span class="rank">16</span><span class="flag"><img src="https://flagcdn.com/w80/kr.png"></span><span class="name">Südkorea</span><div class="barwrap"><div class="bar" style="width:max(25.8%,125px)"><span class="val">101.739 €</span></div></div></div>
+<div class="gap">…</div>
+<div class="row"><span class="rank">28</span><span class="flag"><img src="https://flagcdn.com/w80/us.png"></span><span class="name">USA</span><div class="barwrap"><div class="bar" style="width:max(17.5%,114px)"><span class="val">68.998 €</span></div></div></div>
+<div class="row gr"><span class="rank">29</span><span class="flag"><img src="https://flagcdn.com/w80/gr.png"></span><span class="name">Griechenland</span><div class="barwrap"><div class="bar" style="width:max(15.0%,114px)"><span class="val">59.162 €</span></div></div></div>
+<div class="row de"><span class="rank">30</span><span class="flag"><img src="https://flagcdn.com/w80/de.png"></span><span class="name">Deutschland</span><div class="barwrap"><div class="bar" style="width:max(13.6%,114px)"><span class="val">53.485 €</span></div></div></div>
+</div>
+<!-- INHALT: rote gedrehte Callout-Box mit der Zuspitzung -->
+<div class="quote">Hier steht die Zuspitzung, die die Grafik <u>auf einen Satz</u> bringt.</div>
+<!-- Weiße Handpfeile auf die Highlight-Rows (Koordinaten an Layout anpassen) -->
+<svg class="arrows" viewBox="0 0 1080 1350" fill="none">
+  <path d="M655 1108 C 610 1140, 558 1165, 496 1186" stroke="#fff" stroke-width="7" stroke-linecap="round"/>
+  <path d="M496 1186 l 35 5 M496 1186 l 22 -28" stroke="#fff" stroke-width="7" stroke-linecap="round"/>
+  <path d="M852 1112 C 822 1180, 700 1235, 512 1244" stroke="#fff" stroke-width="7" stroke-linecap="round"/>
+  <path d="M512 1244 l 33 -17 M512 1244 l 31 13" stroke="#fff" stroke-width="7" stroke-linecap="round"/>
+</svg>
+<div class="footer"><span>Quelle: Beispieldaten <b>Deine Marke</b></span><span class="next">Warum ist das so? <span class="ch">›</span><span class="ch">›</span><span class="ch">›</span></span></div>
+</body></html>
