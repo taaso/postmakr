@@ -153,7 +153,7 @@ class HochladenTest(unittest.TestCase):
         with mock.patch.object(lager, "platte_frei", return_value=2 * KB):
             r = self._hochladen(("take.mp4", 100 * KB))
         self.assertEqual(r.status_code, 413)
-        self.assertIn("Auf dem Server ist gerade zu wenig Platz frei", r.get_json()["error"])
+        self.assertIn("Auf deinem Rechner ist zu wenig Platz frei", r.get_json()["error"])
         self.assertEqual(self._clips(), [])
 
     def test_lager_seite_zeigt_belegung(self):

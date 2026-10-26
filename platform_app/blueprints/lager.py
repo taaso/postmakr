@@ -36,9 +36,17 @@ GB = 1024 ** 3
 #     clip_max_gb: 4
 KONTINGENT_GB = 10
 CLIP_MAX_GB = 2
-# So viel muss auf der Serverplatte immer frei bleiben, egal wie gross das
-# Kontingent ist (Datenbank, Logs, Renderings brauchen auch Platz).
-PLATTE_RESERVE_BYTES = 5 * GB
+# So viel muss auf der Festplatte immer frei bleiben, egal wie gross das
+# Kontingent ist, damit der Rechner selbst weiterlaeuft. Aenderbar mit
+# POSTMAKR_PLATZ_RESERVE_GB.
+def _reserve_bytes() -> int:
+    try:
+        return max(0, int(float(os.environ.get("POSTMAKR_PLATZ_RESERVE_GB", "5")) * GB))
+    except ValueError:
+        return 5 * GB
+
+
+PLATTE_RESERVE_BYTES = _reserve_bytes()
 # Spielraum fuer die Multipart-Huelle (Trenner, Dateinamen) bei der Vorpruefung.
 MULTIPART_PUFFER = 64 * 1024
 TEXT_FELDER = ("titel", "regal", "beschreibung", "notiz")
@@ -125,7 +133,7 @@ def belegung(ws=None) -> dict:
 
 
 def platte_frei(pfad: Path) -> int:
-    """Freier Platz auf der Serverplatte abzueglich der festen Reserve."""
+    """Freier Platz auf der Festplatte abzueglich der festen Reserve."""
     try:
         return max(0, shutil.disk_usage(pfad).free - PLATTE_RESERVE_BYTES)
     except OSError:
@@ -138,10 +146,12 @@ class ZuGross(Exception):
 
 def _platz_fehlt(benoetigt: int, stand: dict, platte: int) -> str:
     if benoetigt > platte:
-        return "Auf dem Server ist gerade zu wenig Platz frei. Bitte melde dich bei uns, wir schaffen Platz."
+        return ("Auf deinem Rechner ist zu wenig Platz frei. postmakr lässt immer "
+                f"{gb_text(PLATTE_RESERVE_BYTES)} frei, damit dein System weiterläuft. Räum etwas Platz frei "
+                "und versuch es noch einmal.")
     return (f"Das passt nicht mehr ins Lager: {stand['text']['belegt']} von {stand['text']['kontingent']} "
             f"sind belegt, frei sind noch {stand['text']['frei']}. Lösche Clips, die du nicht mehr brauchst, "
-            "oder frag uns nach mehr Platz.")
+            "oder setz in der brand.yaml unter lager: einen höheren Wert für kontingent_gb.")
 
 
 # ---------------------------------------------------------------------------

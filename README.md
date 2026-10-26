@@ -259,6 +259,9 @@ beim nächsten Mal neu geladen.
 
 ## Gut zu wissen
 
+- Das Lager hat pro Workspace 10 GB Platz (`lager: kontingent_gb` in
+  `brand.yaml`) und lässt auf der Festplatte immer 5 GB frei. Die Reserve
+  änderst du mit `POSTMAKR_PLATZ_RESERVE_GB`.
 - Farben deiner Marke stehen in `brand.yaml` (`accent` und `farben:`). Der
   Renderer übernimmt sie in die Slide-Vorlagen, die Schriften Inter und
   Source Sans 3 liegen bei.
