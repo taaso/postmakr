@@ -11,7 +11,6 @@ Routen selbst ein `<slug>` fuehren (Beitrags-Slug). Zwei gleichnamige
 Parameter waeren in einer Regel nicht erlaubt. Die URL bleibt `/w/<slug>/...`.
 """
 
-import fcntl
 import hashlib
 from html import escape as html_escape
 import json
@@ -28,6 +27,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import markdown as md
+import nh3
 import yaml
 from bs4 import BeautifulSoup
 from werkzeug.wsgi import ClosingIterator
@@ -53,6 +53,11 @@ bp = Blueprint("workspace", __name__, url_prefix="/w/<ws>")
 REPO_ROOT = Path(__file__).resolve().parents[2]
 RENDER_JOB_RUNNER = REPO_ROOT / "platform_app" / "render_job.py"
 RENDER_SCRIPT = REPO_ROOT / "engine-shared" / "tools" / "render_static" / "render.py"
+_WERKZEUGE = str(REPO_ROOT / "engine-shared" / "tools")
+if _WERKZEUGE not in sys.path:
+    sys.path.insert(0, _WERKZEUGE)
+from dateisperre import schliessen, sperrdatei, sperren  # noqa: E402
+import schriften  # noqa: E402
 RENDER_JOB_ID_RE = re.compile(r"^[a-f0-9]{32}$")
 RENDER_STALE_S = 30
 RENDER_MAX_SLIDES = 20
@@ -551,7 +556,14 @@ def render_markdown(text: str, with_boxes: bool = False) -> str:
     )
     if with_boxes:
         html = html.replace("[box]", '<span class="kwbox">').replace("[/box]", "</span>")
-    return _linkify(html)
+    return _linkify(markdown_bereinigen(html))
+
+
+def markdown_bereinigen(html: str) -> str:
+    """Laesst nur harmloses HTML stehen. Briefings und Vorschlaege koennen
+    Text aus Feeds oder von der KI enthalten, Skripte und Event-Attribute
+    duerfen daraus nie ins Dashboard gelangen."""
+    return nh3.clean(html, allowed_classes={"span": {"kwbox"}}, url_schemes={"http", "https", "mailto"})
 
 
 def read_text(path: Path) -> str:
@@ -1760,9 +1772,9 @@ def _render_verwaisten_job_vorbereiten(job_dir: Path) -> dict:
     """Setzt nur dann zurueck, wenn garantiert kein Queue-Worker aktiv ist."""
     lock_path = _render_queue_root().parent / "render_worker.lock"
     lock_path.parent.mkdir(parents=True, exist_ok=True)
-    with open(lock_path, "a+", encoding="utf-8") as worker_lock:
+    with sperrdatei(lock_path) as worker_lock:
         try:
-            fcntl.flock(worker_lock.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            sperren(worker_lock, warten=False)
         except BlockingIOError:
             return _render_job_status(job_dir)
         status = _render_job_status(job_dir)
@@ -1885,8 +1897,8 @@ def _render_job_anlegen(
         raise RenderLimitError(f"Ein Export kann höchstens {RENDER_MAX_SLIDES} Slides enthalten.")
     queue_root.mkdir(parents=True, exist_ok=True)
     lock_path = queue_root.parent / "render_create.lock"
-    with open(lock_path, "a+", encoding="utf-8") as lock:
-        fcntl.flock(lock.fileno(), fcntl.LOCK_EX)
+    with sperrdatei(lock_path) as lock:
+        sperren(lock)
         for job_dir, status in _render_jobs_fuer_beitrag(kind, slug):
             if status.get("state") in ("queued", "running"):
                 return job_dir, status, False
@@ -2120,7 +2132,7 @@ def beitrag_render_download(kind, slug, job_id):
     zip_path = job_dir / "export.zip"
     try:
         download_lock = open(job_dir / "download.lock", "a+", encoding="utf-8")
-        fcntl.flock(download_lock.fileno(), fcntl.LOCK_SH)
+        sperren(download_lock, geteilt=True)
         valid_zip = (
             zip_path.is_file()
             and not zip_path.is_symlink()
@@ -2159,11 +2171,11 @@ def beitrag_render_download(kind, slug, job_id):
             valid_zip = tatsaechlich == expected_sha256
     except OSError:
         if "download_lock" in locals():
-            download_lock.close()
+            schliessen(download_lock)
         valid_zip = False
     if not valid_zip:
         if "download_lock" in locals():
-            download_lock.close()
+            schliessen(download_lock)
         return jsonify({"ok": False, "error": "Der Download ist nicht mehr verfügbar."}), 410
     download_slug = re.sub(r"[^A-Za-z0-9_-]+", "-", slug).strip("-") or "beitrag"
     try:
@@ -2175,9 +2187,9 @@ def beitrag_render_download(kind, slug, job_id):
             conditional=True,
         )
     except Exception:
-        download_lock.close()
+        schliessen(download_lock)
         raise
-    response.response = ClosingIterator(response.response, [download_lock.close])
+    response.response = ClosingIterator(response.response, [lambda: schliessen(download_lock)])
     response.headers["Cache-Control"] = "private, no-store"
     return response
 
@@ -4276,6 +4288,8 @@ def quellvorschau(kind, slug, filename):
             "LOGO_B64", logo_b64_file.read_text(encoding="utf-8").strip()
         )
 
+    html = _schriften_einsetzen(html)
+
     response = current_app.response_class(html, mimetype="text/html")
     response.headers["Cache-Control"] = "no-store"
     response.headers["X-Content-Type-Options"] = "nosniff"
@@ -4293,6 +4307,19 @@ def quellvorschau(kind, slug, filename):
         "form-action 'none'; frame-ancestors 'self'"
     )
     return response
+
+
+def _schriften_einsetzen(html: str) -> str:
+    """Setzt die mitgelieferten Schriften wie der Renderer als ersten
+    <style>-Block in den Kopf. Eigene Styles der Slide behalten Vorrang."""
+    css = schriften.schriften_css(lambda pfad: url_for("platform.schrift", name=pfad.name))
+    if not css:
+        return html
+    block = f"<style>{css}</style>"
+    kopf = re.search(r"<head\b[^>]*>", html, re.IGNORECASE)
+    if kopf:
+        return html[:kopf.end()] + block + html[kopf.end():]
+    return block + html
 
 
 @bp.route("/preview/<kind>/<slug>/<path:filename>")

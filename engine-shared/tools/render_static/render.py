@@ -12,7 +12,8 @@ Konventionen:
 - Reel-Viewport 1080×1920, deviceScaleFactor 2 → 2160×3840 PNG/MP4.
 - Platzhalter LOGO_B64 im HTML wird beim Rendern durch die Logo-Data-URI ersetzt
   (assets/logo/logo_b64.txt im Workspace). Die Logo-Datei selbst nie verändern.
-- Schriften: Inter und Source Sans 3 liegen in assets/fonts (OFL) und werden als
+- Schriften: Inter, Source Sans 3, Anton, Archivo Black und Caveat liegen in
+  assets/fonts (OFL, Liste in engine-shared/tools/schriften.py) und werden als
   @font-face mit file://-Adresse an den Anfang des <head> gesetzt. Es muss
   nichts im System installiert sein.
 - Markenfarben: liegt über dem Slide (oder per --brand) eine brand.yaml, setzt
@@ -36,25 +37,27 @@ import re
 import subprocess
 import sys
 import threading
+import time
 import urllib.parse
+import urllib.request
+from contextlib import contextmanager
 from pathlib import Path
 
 import yaml
 
 from playwright.sync_api import sync_playwright
 
+_WERKZEUGE = str(Path(__file__).resolve().parents[1])
+if _WERKZEUGE not in sys.path:
+    sys.path.insert(0, _WERKZEUGE)
+from dateisperre import schliessen, sperren  # noqa: E402
+from schriften import FONTS_DIR, schriften_css as _schriften_css  # noqa: E402
+from slide_bereinigung import ERLAUBTE_HOSTS  # noqa: E402
+
 ENGINE_ROOT = Path(__file__).resolve().parents[2]
 LOGO_B64_FILE = ENGINE_ROOT / "assets" / "logo" / "logo_b64.txt"
 ANIMATE_CSS_FILE = Path(__file__).resolve().parent / "animate.min.css"
 REPO_ROOT = Path(__file__).resolve().parents[3]
-FONTS_DIR = REPO_ROOT / "assets" / "fonts"
-# (Familie, Datei, Stil): variable Schriften, ein Schnitt deckt 100 bis 900 ab.
-SCHRIFTEN = (
-    ("Inter", "Inter[opsz,wght].ttf", "normal"),
-    ("Inter", "Inter-Italic[opsz,wght].ttf", "italic"),
-    ("Source Sans 3", "SourceSans3[wght].ttf", "normal"),
-    ("Source Sans 3", "SourceSans3-Italic[wght].ttf", "italic"),
-)
 # brand.yaml-Schluessel unter farben: -> CSS-Variable
 MARKEN_FARBEN = {
     "grund": "--grund",
@@ -69,12 +72,9 @@ ANIMATE_MARKER = "animate__"
 HEAD_END_RE = re.compile(r"</head\s*>", re.IGNORECASE)
 HEAD_START_RE = re.compile(r"<head\b[^>]*>", re.IGNORECASE)
 FPS = 30
-DEFAULT_ALLOWED_NETWORK_HOSTS = {
-    "fonts.googleapis.com",
-    "fonts.gstatic.com",
-    "flagcdn.com",
-    "howtheyvote.eu",
-}
+DEFAULT_ALLOWED_NETWORK_HOSTS = set(ERLAUBTE_HOSTS)
+# Gleichzeitige Renderlaeufe auf dem Rechner, Dashboard und MCP zusammen
+STANDARD_RENDER_PLAETZE = 2
 
 
 def _is_below(path: Path, root: Path) -> bool:
@@ -127,15 +127,7 @@ def marken_css(brand_datei: Path | None) -> str:
 
 def schriften_css() -> str:
     """@font-face fuer die mitgelieferten Schriften aus assets/fonts."""
-    bloecke = []
-    for familie, datei, stil in SCHRIFTEN:
-        pfad = FONTS_DIR / datei
-        if pfad.is_file():
-            bloecke.append(
-                f"@font-face{{font-family:'{familie}';src:url('{pfad.resolve().as_uri()}') format('truetype');"
-                f"font-style:{stil};font-weight:100 900;font-display:block;}}"
-            )
-    return "\n".join(bloecke)
+    return _schriften_css(lambda pfad: pfad.resolve().as_uri())
 
 
 def kopf_injizieren(html: str, brand_datei: Path | None) -> str:
@@ -226,11 +218,11 @@ def render_animated(
     # eingeblendet) oder wie bisher eine stille Spur.
     if audio is not None and audio_once:
         # Einmaliger Ton (z. B. CTA-Ding), danach Stille bis zum Videoende.
-        ton_eingang = ["-i", str(audio)]
+        ton_eingang = ["-protocol_whitelist", "file", "-i", str(audio)]
         ton_filter = ["-af", f"volume={audio_volume:.2f},apad"]
     elif audio is not None:
         ausblenden = min(1.2, seconds / 4)
-        ton_eingang = ["-stream_loop", "-1", "-i", str(audio)]
+        ton_eingang = ["-protocol_whitelist", "file", "-stream_loop", "-1", "-i", str(audio)]
         ton_filter = [
             "-af",
             f"volume={audio_volume:.2f},afade=t=in:d=0.15,"
@@ -342,6 +334,67 @@ def render_animated(
     print(f"  {mp4.name}")
 
 
+def _platz_ordner() -> Path:
+    """Gleiche Regel wie Dashboard und MCP: WORKSPACES_DIR, sonst
+    $POSTMAKR_DATEN/workspaces, sonst ~/postmakr/workspaces."""
+    roh = os.environ.get("WORKSPACES_DIR", "").strip()
+    if roh:
+        workspaces = Path(roh).expanduser()
+    else:
+        daten = os.environ.get("POSTMAKR_DATEN", "").strip() or "~/postmakr"
+        workspaces = Path(daten).expanduser() / "workspaces"
+    return workspaces / ".platform" / "render-plaetze"
+
+
+@contextmanager
+def render_platz():
+    """Haelt einen von POSTMAKR_RENDER_PLAETZE Plaetzen (Standard 2), solange der
+    Browser laeuft. So begrenzen Dashboard-Export und MCP gemeinsam, wie viele
+    Browser und ffmpeg-Laeufe gleichzeitig rechnen."""
+    try:
+        anzahl = max(1, int(os.environ.get("POSTMAKR_RENDER_PLAETZE", "") or STANDARD_RENDER_PLAETZE))
+    except ValueError:
+        anzahl = STANDARD_RENDER_PLAETZE
+    try:
+        ordner = _platz_ordner()
+        ordner.mkdir(parents=True, exist_ok=True)
+    except OSError:
+        yield  # ohne Datenordner lieber unbegrenzt rendern als gar nicht
+        return
+    gemeldet = False
+    while True:
+        geoeffnet = 0
+        for nummer in range(anzahl):
+            try:
+                datei = open(ordner / f"platz-{nummer}.lock", "a+", encoding="utf-8")
+            except OSError:
+                continue
+            geoeffnet += 1
+            try:
+                sperren(datei, warten=False)
+            except BlockingIOError:
+                datei.close()
+                continue
+            try:
+                yield
+            finally:
+                schliessen(datei)
+            return
+        if not geoeffnet:
+            yield  # Sperrdateien nicht nutzbar: unbegrenzt rendern
+            return
+        if not gemeldet:
+            print("Warte auf einen freien Render-Platz.", file=sys.stderr, flush=True)
+            gemeldet = True
+        time.sleep(0.25)
+
+
+def datei_pfad(url_pfad: str) -> str:
+    """Pfad einer file://-URL fuer das eigene System. Unter Windows wird aus
+    /C:/Users/... wieder C:\\Users\\..., unquote allein liefe dort ins Leere."""
+    return urllib.request.url2pathname(url_pfad)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("files", nargs="+", type=Path)
@@ -378,7 +431,7 @@ def main() -> None:
     global BRAND_DATEI
     BRAND_DATEI = args.brand.resolve() if args.brand else None
 
-    with sync_playwright() as p:
+    with render_platz(), sync_playwright() as p:
         # POSTMAKR_BROWSER_KANAL=chrome nutzt ein installiertes Chrome statt des
         # Playwright-Chromium (spart den Download, Ergebnis kann minimal abweichen).
         kanal = os.environ.get("POSTMAKR_BROWSER_KANAL", "").strip()
@@ -406,7 +459,7 @@ def main() -> None:
         def sichere_anfrage(route):
             url = urllib.parse.urlsplit(route.request.url)
             if url.scheme == "file":
-                path = Path(urllib.parse.unquote(url.path)).resolve()
+                path = Path(datei_pfad(url.path)).resolve()
                 if any(_is_below(path, root) for root in allowed_roots):
                     route.continue_()
                 else:

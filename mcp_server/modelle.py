@@ -19,7 +19,7 @@ import os
 SUCHE = {"torch": "torch", "sentence_transformers": "sentence-transformers", "transformers": "transformers"}
 HOEREN = {"earshot": "earshot", "faster_whisper": "faster-whisper"}
 
-INSTALL = "pip install -r requirements-mcp.txt"
+INSTALL = "./postmakr installieren --extras"
 
 
 def _da(modul: str) -> bool:
@@ -75,17 +75,26 @@ def mit_rueckfall(fn, *args, **kwargs):
 def vorladen_im_hintergrund() -> bool:
     """Lädt die Suchmodelle beim Start in einem Hintergrund-Thread, damit der erste
     find_sounds- oder find_footage-Aufruf nicht minutenlang wartet und in ein
-    Client-Timeout läuft. Abschalten mit POSTMAKR_VORLADEN=0. Liefert, ob gestartet."""
+    Client-Timeout läuft. Vorgeladen wird nur, was schon im Cache liegt: Der
+    Start lädt nie etwas aus dem Netz. Die Downloads übernimmt
+    ``./postmakr installieren --extras`` oder der erste Aufruf.
+    Abschalten mit POSTMAKR_VORLADEN=0. Liefert, ob gestartet."""
     if os.environ.get("POSTMAKR_VORLADEN", "1").strip().lower() in ("0", "nein", "aus", "false"):
         return False
     if _aus() or os.environ.get("VEKTOR_URL", "").strip() or fehlend(SUCHE):
+        return False
+    try:
+        import vektor  # noqa: PLC0415  (engine-shared/tools liegt nach dem Tool-Import im Pfad)
+        arten = [art for art in ("text", "bild", "klang") if vektor.im_cache(art)]
+    except Exception:  # noqa: BLE001 - scheitert es hier, meldet es der erste Aufruf
+        return False
+    if not arten:
         return False
     import threading  # noqa: PLC0415
 
     def laden() -> None:
         try:
-            import vektor  # noqa: PLC0415  (engine-shared/tools liegt nach dem Tool-Import im Pfad)
-            for art in ("text", "bild", "klang"):
+            for art in arten:
                 vektor._laden(art)
         except Exception:  # noqa: BLE001 - scheitert es hier, meldet es der erste Aufruf
             pass

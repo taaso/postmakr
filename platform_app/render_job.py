@@ -10,7 +10,6 @@ bleiben Status und Queue ueber mehrere Server-Prozesse hinweg konsistent.
 from __future__ import annotations
 
 import argparse
-import fcntl
 import hashlib
 import json
 import os
@@ -21,12 +20,15 @@ import subprocess
 import sys
 import threading
 import time
-import urllib.parse
 import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
 
-from bs4 import BeautifulSoup
+_WERKZEUGE = str(Path(__file__).resolve().parents[1] / "engine-shared" / "tools")
+if _WERKZEUGE not in sys.path:
+    sys.path.insert(0, _WERKZEUGE)
+from dateisperre import sperrdatei, sperren  # noqa: E402
+from slide_bereinigung import ERLAUBTE_HOSTS, snapshot_bereinigen  # noqa: E402
 
 
 JOB_ID_RE = re.compile(r"^[a-f0-9]{32}$")
@@ -38,12 +40,7 @@ MAX_OUTPUT_BYTES = 1024 * 1024 * 1024
 RETAIN_PER_POST = 2
 RETAIN_PER_WORKSPACE = 20
 RETAIN_WORKSPACE_BYTES = 5 * 1024 * 1024 * 1024
-ALLOWED_NETWORK_HOSTS = (
-    "fonts.googleapis.com",
-    "fonts.gstatic.com",
-    "flagcdn.com",
-    "howtheyvote.eu",
-)
+ALLOWED_NETWORK_HOSTS = ERLAUBTE_HOSTS
 VIDEO_OUTPUT_SCALE = 2
 VIDEO_CAPTURE_SCALE = 1
 
@@ -150,9 +147,18 @@ def _cleanup_retained_jobs(job_dir: Path, spec: dict) -> None:
         if not outside_workspace_limit and not outside_post_limit:
             continue
         try:
-            with open(entry / "download.lock", "a+", encoding="utf-8") as download_lock:
-                fcntl.flock(download_lock.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-                shutil.rmtree(entry)
+            with sperrdatei(entry / "download.lock") as download_lock:
+                sperren(download_lock, warten=False)
+                # Unter Windows laesst sich die offene Sperrdatei nicht
+                # loeschen, sie faellt erst nach dem Schliessen weg.
+                for teil in entry.iterdir():
+                    if teil.name == "download.lock":
+                        continue
+                    if teil.is_dir() and not teil.is_symlink():
+                        shutil.rmtree(teil)
+                    else:
+                        teil.unlink()
+            shutil.rmtree(entry)
         except (BlockingIOError, OSError):
             continue
 
@@ -172,59 +178,26 @@ def _sha256_file(path: Path) -> str:
 
 
 def _sanitize_snapshot_html(path: Path) -> None:
-    """Entfernt aktive Inhalte. Die Exporte brauchen CSS, aber kein JS."""
-    soup = BeautifulSoup(path.read_text(encoding="utf-8"), "html.parser")
-    for tag in soup.find_all(("script", "iframe", "object", "embed")):
-        tag.decompose()
-    for meta in list(soup.find_all("meta")):
-        if str(meta.get("http-equiv") or "").lower() in (
-            "content-security-policy", "refresh"
-        ):
-            meta.decompose()
-    remote_urls = []
-    for tag in soup.find_all(True):
-        resource_attrs = ["src", "srcset", "poster", "style"]
-        if tag.name == "link":
-            resource_attrs.append("href")
-        for attr in resource_attrs:
-            value = tag.get(attr)
-            if value:
-                remote_urls.extend(re.findall(r"https?://[^\s\"'()<>]+", str(value)))
-    for style in soup.find_all("style"):
-        remote_urls.extend(re.findall(r"https?://[^\s\"'()<>]+", style.get_text()))
-    for remote_url in remote_urls:
-        parsed = urllib.parse.urlsplit(remote_url)
-        if parsed.scheme != "https" or (parsed.hostname or "").lower() not in ALLOWED_NETWORK_HOSTS:
-            raise ValueError("Die Quelle verwendet ein nicht freigegebenes externes Asset.")
-    for tag in soup.find_all(True):
-        for attr in list(tag.attrs):
-            if attr.lower().startswith("on") or attr.lower() == "srcdoc":
-                del tag.attrs[attr]
-
-    csp = soup.new_tag("meta")
-    csp["http-equiv"] = "Content-Security-Policy"
-    csp["content"] = (
-        "default-src 'none'; img-src 'self' data: blob: "
-        "https://flagcdn.com https://howtheyvote.eu; "
-        "media-src 'self' data: blob:; "
-        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
-        "font-src 'self' data: https://fonts.gstatic.com; "
-        "script-src 'none'; connect-src 'none'; frame-src 'none'; object-src 'none'"
-    )
-    if soup.head is not None:
-        soup.head.insert(0, csp)
-    else:
-        head = soup.new_tag("head")
-        head.append(csp)
-        if soup.html is not None:
-            soup.html.insert(0, head)
-        else:
-            soup.insert(0, head)
-    path.write_text(str(soup), encoding="utf-8")
+    """Entfernt aktive Inhalte (engine-shared/tools/slide_bereinigung.py)."""
+    snapshot_bereinigen(path, ALLOWED_NETWORK_HOSTS)
 
 
 def _kill_process_group(proc: subprocess.Popen) -> None:
     if proc.poll() is not None:
+        return
+    if os.name == "nt":
+        # Windows kennt keine Prozessgruppen per Signal: taskkill beendet den
+        # Renderer samt Browser und ffmpeg (/T) ohne Rueckfrage (/F).
+        subprocess.run(
+            ["taskkill", "/F", "/T", "/PID", str(proc.pid)],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=False,
+        )
+        try:
+            proc.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            proc.kill()
         return
     try:
         os.killpg(proc.pid, signal.SIGTERM)
@@ -236,6 +209,13 @@ def _kill_process_group(proc: subprocess.Popen) -> None:
             pass
 
 
+def eigene_prozessgruppe() -> dict:
+    """Popen-Argumente, damit der Kindprozess samt Nachkommen beendbar bleibt."""
+    if os.name == "nt":
+        return {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP}
+    return {"start_new_session": True}
+
+
 def _run_renderer(
     job_dir: Path, command: list[str], current: str, timeout_s: float = SLIDE_TIMEOUT_S
 ) -> tuple[int, str]:
@@ -244,7 +224,7 @@ def _run_renderer(
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
-        start_new_session=True,
+        **eigene_prozessgruppe(),
     )
     # Beide Pipes waehrend der Laufzeit leerlaufen lassen. Wir warten hier in
     # einer Heartbeat-Schleife und nicht in communicate(); ohne mitlesende
@@ -523,9 +503,9 @@ def drain_queue(queue_root: Path) -> None:
     queue_root = queue_root.resolve()
     queue_root.mkdir(parents=True, exist_ok=True)
     lock_path = queue_root.parent / "render_worker.lock"
-    with open(lock_path, "a+", encoding="utf-8") as lock:
+    with sperrdatei(lock_path) as lock:
         try:
-            fcntl.flock(lock.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            sperren(lock, warten=False)
         except BlockingIOError:
             return
         empty_checks = 0

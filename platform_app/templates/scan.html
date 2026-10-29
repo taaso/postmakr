@@ -66,10 +66,10 @@
           <div class="cal-grid" id="cal-grid"></div>
           <p class="cal-hint">Nur Tage mit Scan sind wählbar.</p>
         </div>
-        <script id="scan-days" type="application/json">
+        <script nonce="{{ csp_nonce() }}" id="scan-days" type="application/json">
           {{ history | map(attribute='tag') | list | tojson }}
         </script>
-        <script id="scan-days-meta" type="application/json">
+        <script nonce="{{ csp_nonce() }}" id="scan-days-meta" type="application/json">
           { "current": {{ datum | tojson }},
             "latest": {{ (history[0].tag if history else '') | tojson }},
             "base": {{ url_for('scan') | tojson }} }
@@ -149,7 +149,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 const URLS = {
   fetch: '{{ url_for("scan_fetch") }}',
   add: '{{ url_for("backlog_add") }}',

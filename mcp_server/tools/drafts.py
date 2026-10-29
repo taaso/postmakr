@@ -8,6 +8,7 @@ from __future__ import annotations
 import re
 
 from .. import lokal
+from ..ergebnis import fehler
 from ..workspace import Workspace, WorkspaceError
 
 ALLOWED_EXT = {".md", ".html", ".css", ".yaml", ".yml", ".txt"}
@@ -75,7 +76,7 @@ def register(mcp, fest: Workspace | None = None) -> None:
                 return "Keine Entwürfe vorhanden."
             return "\n".join(lines)
         except WorkspaceError as e:
-            return f"Fehler: {e}"
+            return fehler(f"Fehler: {e}")
 
     @mcp.tool
     def save_draft(slug: str, filename: str, content: str, workspace: str = "") -> str:
@@ -102,9 +103,9 @@ def register(mcp, fest: Workspace | None = None) -> None:
                 f"Zum Rendern von HTML: render_slide(\"{slug}\", \"{filename}\")."
             )
         except WorkspaceError as e:
-            return f"Fehler: {e}"
+            return fehler(f"Fehler: {e}")
         except OSError as e:
-            return f"Fehler beim Schreiben: {e}"
+            return fehler(f"Fehler beim Schreiben: {e}")
 
     @mcp.tool
     def read_draft(slug: str, filename: str, workspace: str = "") -> str:
@@ -127,6 +128,6 @@ def register(mcp, fest: Workspace | None = None) -> None:
                 text = text[:MAX_READ_CHARS] + "\n… (gekürzt, Datei größer als Limit)"
             return f"# {ws.rel(target)}\n\n{text}"
         except WorkspaceError as e:
-            return f"Fehler: {e}"
+            return fehler(f"Fehler: {e}")
         except (OSError, UnicodeDecodeError) as e:
-            return f"Fehler beim Lesen: {e}"
+            return fehler(f"Fehler beim Lesen: {e}")

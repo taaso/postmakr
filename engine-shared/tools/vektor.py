@@ -26,6 +26,12 @@ MODELLE = {
     "bild": "google/siglip-base-patch16-256-multilingual",
     "klang": "laion/clap-htsat-unfused",
 }
+# Festgelegte Staende der Modelle, damit jede Installation dieselben Gewichte laedt
+REVISIONEN = {
+    "text": "614241f622f53c4eeff9890bdc4f31cfecc418b3",
+    "bild": "8952a4eafcde3cb7ab46b1dd629b33f8784ca9c6",
+    "klang": "8fa0f1c6d0433df6e97c127f64b2a1d6c0dcda8a",
+}
 KLANG_SR = 48000
 KLANG_MAX_S = 10.0
 
@@ -40,14 +46,28 @@ def _laden(art: str):
             torch.set_num_threads(max(1, min(4, torch.get_num_threads())))
             if art == "text":
                 from sentence_transformers import SentenceTransformer  # noqa: PLC0415
-                _geladen[art] = SentenceTransformer(MODELLE[art], device="cpu")
+                _geladen[art] = SentenceTransformer(MODELLE[art], device="cpu", revision=REVISIONEN[art])
             elif art == "bild":
                 from transformers import AutoModel, AutoProcessor  # noqa: PLC0415
-                _geladen[art] = (AutoModel.from_pretrained(MODELLE[art]).eval(), AutoProcessor.from_pretrained(MODELLE[art]))
+                rev = REVISIONEN[art]
+                _geladen[art] = (AutoModel.from_pretrained(MODELLE[art], revision=rev).eval(),
+                                 AutoProcessor.from_pretrained(MODELLE[art], revision=rev))
             else:
                 from transformers import ClapModel, ClapProcessor  # noqa: PLC0415
-                _geladen[art] = (ClapModel.from_pretrained(MODELLE[art]).eval(), ClapProcessor.from_pretrained(MODELLE[art]))
+                rev = REVISIONEN[art]
+                _geladen[art] = (ClapModel.from_pretrained(MODELLE[art], revision=rev).eval(),
+                                 ClapProcessor.from_pretrained(MODELLE[art], revision=rev))
         return _geladen[art]
+
+
+def im_cache(art: str) -> bool:
+    """Liegt das Modell schon auf der Platte? Fragt nur den Cache, laedt nichts."""
+    try:
+        from huggingface_hub import try_to_load_from_cache  # noqa: PLC0415
+    except ImportError:
+        return False
+    treffer = try_to_load_from_cache(MODELLE[art], "config.json", revision=REVISIONEN[art])
+    return isinstance(treffer, str)
 
 
 def _norm(m) -> np.ndarray:
@@ -89,7 +109,7 @@ def bild_text(texte: list[str]) -> np.ndarray:
 
 
 def _audio(pfad: str | Path) -> np.ndarray:
-    roh = subprocess.run(["ffmpeg", "-v", "error", "-i", str(pfad), "-t", str(KLANG_MAX_S), "-ac", "1",
+    roh = subprocess.run(["ffmpeg", "-v", "error", "-protocol_whitelist", "file", "-i", str(pfad), "-t", str(KLANG_MAX_S), "-ac", "1",
                           "-ar", str(KLANG_SR), "-f", "f32le", "-"], capture_output=True, check=True).stdout
     x = np.frombuffer(roh, np.float32)
     return x if len(x) else np.zeros(KLANG_SR // 10, np.float32)

@@ -54,7 +54,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 const URLS = {
   add: '{{ url_for("backlog_add") }}',
   del: '{{ url_for("backlog_delete") }}',

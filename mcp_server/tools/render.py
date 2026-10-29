@@ -9,15 +9,18 @@ Wrapper-Prozess rendert im Hintergrund und schreibt `status.json` in ein
 Job-Verzeichnis unter `drafts/.render_jobs/<job_id>/`. `check_render_status`
 liest diese Datei.
 
-Die LOGO_B64-Ersetzung macht dieses Tool selbst aus dem Logo des Workspace
-(assets/logo/logo_b64.txt), damit sie unabhängig vom Ablageort des geteilten
-Renderers funktioniert.
+Jeder Aufruf rendert eine eigene, bereinigte Kopie der Slide (wie der Export
+im Dashboard, siehe engine-shared/tools/slide_bereinigung.py). Die
+LOGO_B64-Ersetzung macht dieses Tool dabei selbst aus dem Logo des Workspace
+(assets/logo/logo_b64.txt). Wie viele Renderläufe gleichzeitig rechnen,
+begrenzt der Renderer für Dashboard und MCP gemeinsam.
 """
 
 from __future__ import annotations
 
 import json
 import re
+import secrets
 import subprocess
 import sys
 import time
@@ -25,12 +28,17 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from .. import lokal
+from ..ergebnis import fehler
 from ..workspace import Workspace, WorkspaceError
 
 # engine-shared/tools/render_static/render.py relativ zum Repo-Root.
 # mcp_server/tools/render.py -> parents[2] == Repo-Root.
 REPO_ROOT = Path(__file__).resolve().parents[2]
 RENDER_SCRIPT = REPO_ROOT / "engine-shared" / "tools" / "render_static" / "render.py"
+_WERKZEUGE = str(REPO_ROOT / "engine-shared" / "tools")
+if _WERKZEUGE not in sys.path:
+    sys.path.insert(0, _WERKZEUGE)
+from slide_bereinigung import snapshot_bereinigen  # noqa: E402
 
 PNG_TIMEOUT_S = 180
 SLUG_RE = re.compile(r"^[A-Za-z0-9._-]+$")
@@ -66,22 +74,60 @@ def _check(slug: str, html_filename: str, ws: Workspace) -> tuple[str, Path]:
     return html_filename, html_path
 
 
-def _prepare_html(ws: Workspace, html_path: Path) -> Path | None:
-    """Ersetzt LOGO_B64 durch die Logo-Data-URI des Workspace und schreibt eine
-    Temp-Datei im selben Ordner (relative Asset-Pfade bleiben gültig). Gibt den
-    Temp-Pfad zurück, oder None wenn keine Ersetzung nötig war."""
+def _prepare_html(ws: Workspace, html_path: Path) -> Path:
+    """Schreibt eine eigene Kopie der Slide in denselben Ordner (relative
+    Asset-Pfade bleiben gültig): LOGO_B64 durch die Logo-Data-URI des Workspace
+    ersetzt, aktive Inhalte entfernt. Jeder Aufruf bekommt einen eigenen
+    Dateinamen, parallele Läufe stören sich nicht. Der Aufrufer löscht die Kopie."""
     html = html_path.read_text(encoding="utf-8")
-    if "LOGO_B64" not in html:
-        return None
-    logo_file = ws.assets / "logo" / "logo_b64.txt"
-    if not logo_file.is_file():
-        raise WorkspaceError(
-            "HTML nutzt LOGO_B64, aber assets/logo/logo_b64.txt fehlt im Workspace."
-        )
-    html = html.replace("LOGO_B64", logo_file.read_text(encoding="utf-8").strip())
-    tmp = html_path.with_name(f".render_tmp_{html_path.name}")
+    if "LOGO_B64" in html:
+        logo_file = ws.assets / "logo" / "logo_b64.txt"
+        if not logo_file.is_file():
+            raise WorkspaceError(
+                "HTML nutzt LOGO_B64, aber assets/logo/logo_b64.txt fehlt im Workspace."
+            )
+        html = html.replace("LOGO_B64", logo_file.read_text(encoding="utf-8").strip())
+    tmp = html_path.with_name(f".render_{secrets.token_hex(6)}_{html_path.name}")
     tmp.write_text(html, encoding="utf-8")
+    try:
+        snapshot_bereinigen(tmp)
+    except ValueError as e:
+        tmp.unlink(missing_ok=True)
+        raise WorkspaceError(f"{e} Erlaubt sind nur Schriften und Bilder von freigegebenen Servern.") from e
     return tmp
+
+
+# Läuft als eigener Prozess je Animation: rendert in den Job-Ordner, legt das
+# MP4 erst bei Erfolg atomar an seinen Platz und schreibt den Endstatus.
+RUNNER = """\
+import json, os, subprocess, sys, pathlib
+job = pathlib.Path(sys.argv[1])
+st = json.loads((job / 'status.json').read_text(encoding='utf-8'))
+eingabe = pathlib.Path(st['eingabe'])
+ausgabe = job / 'ausgabe.mp4'
+try:
+    r = subprocess.run(
+        [sys.executable, st['renderer'], str(eingabe), '--animate', str(st['seconds']),
+         '-o', str(job / 'ausgabe')],
+        capture_output=True, text=True, timeout=st['timeout'])
+    mp4 = pathlib.Path(st['mp4'])
+    if r.returncode == 0 and ausgabe.is_file():
+        os.replace(ausgabe, mp4)
+        st.update(status='done', mp4_size=mp4.stat().st_size)
+    else:
+        st.update(status='error', error=(r.stderr or r.stdout or '')[-1500:])
+except Exception as e:
+    st.update(status='error', error=str(e))
+finally:
+    try:
+        eingabe.unlink()
+    except OSError:
+        pass
+tmp = job / 'status.json.tmp'
+tmp.write_text(json.dumps(st, ensure_ascii=False, indent=1), encoding='utf-8')
+os.replace(tmp, job / 'status.json')
+"""
+ANIMATION_TIMEOUT_S = 280
 
 
 def register(mcp, fest: Workspace | None = None) -> None:
@@ -104,28 +150,24 @@ def register(mcp, fest: Workspace | None = None) -> None:
             html_filename, html_path = _check(slug, html_filename, ws)
             out_png = html_path.with_suffix(".png")
             tmp = _prepare_html(ws, html_path)
-            render_input = tmp or html_path
             proc = subprocess.run(
-                [sys.executable, str(RENDER_SCRIPT), str(render_input), "-o", str(out_png)],
+                [sys.executable, str(RENDER_SCRIPT), str(tmp), "-o", str(out_png)],
                 capture_output=True, text=True, timeout=PNG_TIMEOUT_S, cwd=str(html_path.parent),
             )
             if proc.returncode != 0 or not out_png.is_file():
                 err = (proc.stderr or proc.stdout or "").strip()
-                return f"Render fehlgeschlagen (Code {proc.returncode}).\nstderr:\n{err[-1500:]}{_hinweis(err)}"
+                return fehler(f"Render fehlgeschlagen (Code {proc.returncode}).\nstderr:\n{err[-1500:]}{_hinweis(err)}")
             size = out_png.stat().st_size
             return f"OK. PNG erzeugt: {ws.rel(out_png)} ({size} B, {size // 1024} KB)."
         except WorkspaceError as e:
-            return f"Fehler: {e}"
+            return fehler(f"Fehler: {e}")
         except subprocess.TimeoutExpired:
-            return f"Render dauerte länger als {PNG_TIMEOUT_S}s und wurde abgebrochen."
+            return fehler(f"Render dauerte länger als {PNG_TIMEOUT_S}s und wurde abgebrochen.")
         except Exception as e:  # noqa: BLE001 - kein Traceback an den Client
-            return f"Unerwarteter Fehler beim Rendern: {e}"
+            return fehler(f"Unerwarteter Fehler beim Rendern: {e}")
         finally:
-            if tmp and tmp.exists():
-                try:
-                    tmp.unlink()
-                except OSError:
-                    pass
+            if tmp is not None:
+                tmp.unlink(missing_ok=True)
 
     @mcp.tool
     def start_animation_render(slug: str, html_filename: str, seconds: float = 8.0, workspace: str = "") -> str:
@@ -143,52 +185,29 @@ def register(mcp, fest: Workspace | None = None) -> None:
         try:
             ws = lokal.resolve(workspace, fest)
             if not (0.5 <= float(seconds) <= 30):
-                return "Fehler: seconds muss zwischen 0.5 und 30 liegen."
+                return fehler("Fehler: seconds muss zwischen 0.5 und 30 liegen.")
             html_filename, html_path = _check(slug, html_filename, ws)
             stem = Path(html_filename).stem
-            job_id = f"{datetime.now(timezone.utc):%Y%m%dT%H%M%S}_{slug}_{stem}"
+            # Zeitstempel plus Zufall: Zwei Aufrufe derselben Slide in einer
+            # Sekunde bekommen trotzdem getrennte Job-Ordner.
+            job_id = f"{datetime.now(timezone.utc):%Y%m%dT%H%M%S}_{slug}_{stem}_{secrets.token_hex(4)}"
             job_dir = ws.safe_path("drafts", ".render_jobs", job_id)
-            job_dir.mkdir(parents=True, exist_ok=True)
+            job_dir.mkdir(parents=True, exist_ok=False)
 
             tmp = _prepare_html(ws, html_path)
-            render_input = tmp or html_path
             out_base = html_path.with_suffix("")  # → <stem>.mp4
 
             status = {
                 "status": "running", "slug": slug, "html": html_filename,
                 "seconds": float(seconds), "started": datetime.now(timezone.utc).isoformat(),
                 "mp4": str(out_base.with_suffix(".mp4")),
+                "eingabe": str(tmp), "renderer": str(RENDER_SCRIPT), "timeout": ANIMATION_TIMEOUT_S,
             }
-            (job_dir / "status.json").write_text(json.dumps(status, ensure_ascii=False, indent=1))
-
-            # Wrapper-Prozess: rendert, schreibt Endstatus, räumt Temp weg. Er
-            # wartet selbst auf den Renderer (kein Zombie-Ratespiel im Server).
+            (job_dir / "status.json").write_text(json.dumps(status, ensure_ascii=False, indent=1), encoding="utf-8")
             runner = job_dir / "runner.py"
-            runner.write_text(f"""\
-import json, subprocess, sys, pathlib
-job = pathlib.Path(r'''{job_dir}''')
-tmp = pathlib.Path(r'''{tmp if tmp else ""}''') if r'''{tmp if tmp else ""}''' else None
-st = json.loads((job / 'status.json').read_text())
-try:
-    r = subprocess.run(
-        [sys.executable, r'''{RENDER_SCRIPT}''', r'''{render_input}''',
-         '--animate', '{float(seconds)}', '-o', r'''{out_base}'''],
-        capture_output=True, text=True, timeout=280)
-    mp4 = pathlib.Path(st['mp4'])
-    if r.returncode == 0 and mp4.is_file():
-        st.update(status='done', mp4_size=mp4.stat().st_size)
-    else:
-        st.update(status='error', error=(r.stderr or r.stdout or '')[-1500:])
-except Exception as e:
-    st.update(status='error', error=str(e))
-finally:
-    if tmp is not None and tmp.exists():
-        try: tmp.unlink()
-        except OSError: pass
-(job / 'status.json').write_text(json.dumps(st, ensure_ascii=False, indent=1))
-""", encoding="utf-8")
+            runner.write_text(RUNNER, encoding="utf-8")
             subprocess.Popen(
-                [sys.executable, str(runner)],
+                [sys.executable, str(runner), str(job_dir)],
                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                 start_new_session=True,
             )
@@ -198,9 +217,9 @@ finally:
                 f"Erwartete Ausgabe: {ws.rel(out_base.with_suffix('.mp4'))}."
             )
         except WorkspaceError as e:
-            return f"Fehler: {e}"
+            return fehler(f"Fehler: {e}")
         except Exception as e:  # noqa: BLE001
-            return f"Unerwarteter Fehler beim Start: {e}"
+            return fehler(f"Unerwarteter Fehler beim Start: {e}")
 
     @mcp.tool
     def check_render_status(job_id: str, workspace: str = "") -> str:
@@ -216,10 +235,10 @@ finally:
             ws = lokal.resolve(workspace, fest)
             job_id = (job_id or "").strip().strip("/")
             if not SLUG_RE.match(job_id):
-                return f"Ungültige Job-ID »{job_id}«."
+                return fehler(f"Ungültige Job-ID »{job_id}«.")
             status_file = ws.safe_path("drafts", ".render_jobs", job_id, "status.json")
             if not status_file.is_file():
-                return f"Kein Job mit ID {job_id} gefunden."
+                return fehler(f"Kein Job mit ID {job_id} gefunden.")
             st = json.loads(status_file.read_text(encoding="utf-8"))
             state = st.get("status")
             if state == "running":
@@ -234,10 +253,10 @@ finally:
                 mp4 = Path(st["mp4"])
                 return f"Job {job_id}: FERTIG.\nMP4: {ws.rel(mp4)} ({st.get('mp4_size')} B)"
             if state == "error":
-                fehler = str(st.get("error") or "(kein Detail)")
-                return f"Job {job_id}: FEHLER.\n{fehler[-1500:]}{_hinweis(fehler)}"
+                meldung = str(st.get("error") or "(kein Detail)")
+                return fehler(f"Job {job_id}: FEHLER.\n{meldung[-1500:]}{_hinweis(meldung)}")
             return f"Job {job_id}: Status {state}."
         except WorkspaceError as e:
-            return f"Fehler: {e}"
+            return fehler(f"Fehler: {e}")
         except Exception as e:  # noqa: BLE001
-            return f"Unerwarteter Fehler: {e}"
+            return fehler(f"Unerwarteter Fehler: {e}")

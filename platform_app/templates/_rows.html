@@ -18,7 +18,7 @@
     </section>
   {% endfor %}
   </div>
-  <script>
+  <script nonce="{{ csp_nonce() }}">
   (function () {
     const KEY = 'postmakr-open-formats:' + location.pathname;
     const list = document.getElementById('format-list');

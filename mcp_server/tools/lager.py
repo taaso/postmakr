@@ -15,6 +15,7 @@ from pathlib import Path
 import yaml
 
 from .. import lokal, modelle
+from ..ergebnis import fehler
 from ..workspace import Workspace, WorkspaceError
 from .drafts import _check_slug
 
@@ -119,7 +120,7 @@ def register(mcp, fest: Workspace | None = None) -> None:
                     + "\n\nMit use_footage(clip_id, von, bis, slug) schneidest du eine Stelle in den Beitrag. "
                       "Du kannst von und bis auch selbst setzen, etwa auf die Grenzen einer anderen Szene." + hinweis)
         except WorkspaceError as e:
-            return f"Fehler: {e}"
+            return fehler(f"Fehler: {e}")
 
     @mcp.tool
     def use_footage(clip_id: str, von: float, bis: float, slug: str, name: str = "", hochkant: bool = False,
@@ -144,36 +145,36 @@ def register(mcp, fest: Workspace | None = None) -> None:
             ws = lokal.resolve(workspace, fest)
             clip_id = (clip_id or "").strip()
             if not CLIP_ID_RE.match(clip_id):
-                return f"Fehler: »{clip_id[:100]}« ist keine gültige clip_id. Nimm die id aus find_footage."
+                return fehler(f"Fehler: »{clip_id[:100]}« ist keine gültige clip_id. Nimm die id aus find_footage.")
             ordner = ws.safe_path("lager", clip_id)
             if not (ordner / "meta.yaml").is_file():
-                return f"Fehler: Den Clip {clip_id} gibt es im Lager nicht."
+                return fehler(f"Fehler: Den Clip {clip_id} gibt es im Lager nicht.")
             meta = lager_schnitt.meta_lesen(ordner)
             auto = meta.get("auto") if isinstance(meta.get("auto"), dict) else {}
             if auto.get("art") == "foto":
-                return "Fehler: Das ist ein Foto. Fotos kannst du direkt aus dem Lager nehmen, schneiden geht nur bei Videos."
+                return fehler("Fehler: Das ist ein Foto. Fotos kannst du direkt aus dem Lager nehmen, schneiden geht nur bei Videos.")
             quelle = lager_schnitt.quelle_fuer_schnitt(ordner)
             if quelle is None:
-                return "Fehler: Zu diesem Clip fehlt das Original."
+                return fehler("Fehler: Zu diesem Clip fehlt das Original.")
             try:
                 von, bis = float(von), float(bis)
             except (TypeError, ValueError):
-                return "Fehler: von und bis müssen Sekunden sein, zum Beispiel von=7.5, bis=12."
+                return fehler("Fehler: von und bis müssen Sekunden sein, zum Beispiel von=7.5, bis=12.")
             dauer = float(auto.get("dauer") or 0)
             if not (math.isfinite(von) and math.isfinite(bis)) or von < 0 or bis <= von:
-                return "Fehler: bis muss nach von liegen, beide ab 0 Sekunden."
+                return fehler("Fehler: bis muss nach von liegen, beide ab 0 Sekunden.")
             if dauer and bis > dauer + 0.05:
                 if von >= dauer:
-                    return f"Fehler: Der Clip ist nur {dauer:.1f} s lang."
+                    return fehler(f"Fehler: Der Clip ist nur {dauer:.1f} s lang.")
                 bis = dauer
             laenge = bis - von
             if laenge < lager_schnitt.AUSSCHNITT_MIN or laenge > lager_schnitt.AUSSCHNITT_MAX:
-                return (f"Fehler: Ein Ausschnitt darf {lager_schnitt.AUSSCHNITT_MIN:g} bis "
-                        f"{lager_schnitt.AUSSCHNITT_MAX:g} Sekunden lang sein, gewünscht waren {laenge:.1f} s.")
+                return (fehler(f"Fehler: Ein Ausschnitt darf {lager_schnitt.AUSSCHNITT_MIN:g} bis "
+                        f"{lager_schnitt.AUSSCHNITT_MAX:g} Sekunden lang sein, gewünscht waren {laenge:.1f} s."))
             slug = _check_slug(slug)
             beitrag = ws.safe_path("drafts", slug)
             if not beitrag.is_dir():
-                return f"Fehler: Den Beitrag drafts/{slug} gibt es noch nicht. Leg ihn zuerst an, etwa mit save_draft."
+                return fehler(f"Fehler: Den Beitrag drafts/{slug} gibt es noch nicht. Leg ihn zuerst an, etwa mit save_draft.")
             stamm = _name(name, f"{meta.get('titel') or clip_id}-{von:.0f}s")
             ziel = ws.safe_path("drafts", slug, "material", f"{stamm}.mp4")
             n = 2
@@ -183,7 +184,7 @@ def register(mcp, fest: Workspace | None = None) -> None:
             try:
                 info = lager_schnitt.ausschnitt_schneiden(quelle, ziel, von, bis, hochkant=hochkant)
             except RuntimeError as exc:
-                return f"Fehler beim Schneiden: {exc}"
+                return fehler(f"Fehler beim Schneiden: {exc}")
             datei = f"material/{ziel.name}"
             try:
                 bmeta = yaml.safe_load((beitrag / "meta.yaml").read_text(encoding="utf-8")) or {}
@@ -199,4 +200,4 @@ def register(mcp, fest: Workspace | None = None) -> None:
                     f"Im Beitrag bindest du ihn als {datei} ein. Beim Clip im Lager steht jetzt, dass er in "
                     f"»{titel}« verwendet wird.")
         except WorkspaceError as e:
-            return f"Fehler: {e}"
+            return fehler(f"Fehler: {e}")

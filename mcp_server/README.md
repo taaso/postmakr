@@ -17,14 +17,16 @@ python3 -m playwright install chromium    # einmalig, für render_slide
 
 Dazu brauchst du ffmpeg auf dem System (auf dem Mac etwa `brew install ffmpeg`).
 Die Modelle für die Suche nach Bedeutung und Klang und für den Hörcheck sind
-optional. Fehlen sie, laufen die Tools trotzdem und sagen dir, was fehlt. Beim
-ersten Gebrauch laden sie einmalig aus dem Netz.
+optional und stehen in `requirements-extras.txt`
+(`./postmakr installieren --extras` richtet sie ein und lädt die Suchmodelle
+gleich mit). Fehlen sie, laufen die Tools trotzdem und sagen dir, was fehlt.
+Der Server selbst lädt beim Start nichts aus dem Netz.
 
 ## Starten
 
 ```bash
 python3 -m mcp_server                       # stdio, so starten Claude Desktop und Claude Code ihn
-python3 -m mcp_server --http --port 4712    # für andere Clients: http://127.0.0.1:4712/mcp
+python3 -m mcp_server --http --port 4713    # für andere Clients: http://127.0.0.1:4713/mcp
 ```
 
 Der HTTP-Modus hört nur auf 127.0.0.1 und nimmt nur Anfragen an, die von diesem
@@ -84,7 +86,7 @@ claude mcp add postmakr \
 ```
 
 Läuft der Server schon im HTTP-Modus, geht auch
-`claude mcp add --transport http postmakr http://127.0.0.1:4712/mcp`.
+`claude mcp add --transport http postmakr http://127.0.0.1:4713/mcp`.
 Mit `--scope user` steht er in allen Projekten bereit. Prüfen kannst du die
 Verbindung mit `claude mcp list` oder in Claude Code mit `/mcp`.
 

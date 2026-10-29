@@ -37,13 +37,15 @@ Die Grafiken zu allen Abläufen stehen in [docs/ARCHITEKTUR.md](docs/ARCHITEKTUR
 | `platform_app/blueprints/lager.py`, `lager_verarbeitung.py` | Materiallager und seine Verarbeitung im Hintergrund (Vorschau, Szenen, Transkript, Index) |
 | `platform_app/blueprints/platform.py` | Startseite, Auswahl, Workspace anlegen |
 | `platform_app/render_job.py` | Render-Warteschlange für „Beitrag rendern“ |
+| `platform_app/sicherheit.py` | CSP und weitere Sicherheits-Header für alle Antworten |
 | `platform_app/veroeffentlichen.py` | Andockstelle `bei_freigabe()` für eigenes Posten, tut standardmäßig nichts |
 | `platform_app/workspace.py` | Klasse `Workspace` (brand.yaml, Bereiche, `safe_path`) |
 | `mcp_server/server.py` | baut den FastMCP-Server, registriert alle Tool-Module |
 | `mcp_server/lokal.py` | Datenordner, Workspace-Auswahl, `workspace_anlegen` |
 | `mcp_server/tools/*.py` | die Tools, ein Modul pro Bereich, jedes mit `register(mcp, fest)` |
 | `mcp_server/workflows.py` | Anleitungen für `start_create`, `start_revise`, `start_approve`, `start_scan_review` |
-| `engine-shared/tools/render_static/render.py` | HTML zu PNG und MP4 (Playwright und ffmpeg), liest Farben aus `brand.yaml` |
+| `engine-shared/tools/render_static/render.py` | HTML zu PNG und MP4 (Playwright und ffmpeg), liest Farben aus `brand.yaml`, begrenzt gleichzeitige Läufe (`POSTMAKR_RENDER_PLAETZE`) |
+| `engine-shared/tools/slide_bereinigung.py`, `schriften.py`, `dateisperre.py` | Bereinigte Slide-Kopien, mitgelieferte Schriften, Dateisperren für alle Systeme |
 | `engine-shared/tools/sinnsuche.py` | Suche nach Stichwort, Bedeutung, Klang und Bild |
 | `engine-shared/tools/vektor.py`, `vektor_client.py` | lokale Modelle (e5-small, SigLIP, CLAP) |
 | `engine-shared/tools/hoercheck.py` | Hörcheck für fertige Reels (earshot, whisper) |
@@ -121,15 +123,11 @@ python3 -m mcp_server                   # MCP über stdio
 ```
 
 Tests laufen **jede Datei einzeln**, nicht gesammelt (die Konfiguration liest
-den Datenordner beim Import):
-
-```bash
-export PYTHONPATH=. VEKTOR_AUS=1
-for t in platform_app/tests/test_*.py engine-shared/tools/test_*.py mcp_server/test_*.py test_handy.py; do
-  python3 "$t" || echo "ROT: $t"
-done
-node platform_app/tests/test_kalender_dom.mjs
-```
+den Datenordner beim Import). Das erledigt `./postmakr test`, unter Windows
+`python postmakr.py test`, mit `PYTHONPATH=.` und `VEKTOR_AUS=1`. Einzelne
+Dateien gehen mit `./postmakr test <datei> ...`. Die CI
+(`.github/workflows/tests.yml`) führt dasselbe unter Linux, macOS und Windows
+aus und rendert dazu eine Vorlage.
 
 `VEKTOR_AUS=1` schaltet die Modelle ab. Die Tests laufen dann ohne Downloads,
 die Suche fällt auf Stichworte zurück.
@@ -150,6 +148,21 @@ die Suche fällt auf Stichworte zurück.
   von etwas behandeln.
 - **Modelle sind optional.** Jeder Weg muss ohne Extras funktionieren und
   eine freundliche Meldung geben, wenn etwas fehlt.
+- **Läuft unter macOS, Linux und Windows.** Dateisperren nur über
+  `engine-shared/tools/dateisperre.py`, nie `fcntl` direkt. Kindprozesse, die
+  man abbrechen muss, starten mit `eigene_prozessgruppe()` aus
+  `platform_app/render_job.py`. Pfade aus `file://`-URLs über
+  `urllib.request.url2pathname`.
+- **Nichts Aktives ins Dashboard.** Markdown geht durch `render_markdown()`
+  (bereinigt mit nh3). Inline-Skripte in Templates brauchen
+  `nonce="{{ csp_nonce() }}"`, sonst blockt die CSP sie
+  (`platform_app/sicherheit.py`). Dateien liefert `send_file` aus, HTML und
+  SVG bekommen dabei automatisch eine CSP ohne Skripte.
+- **Fehler aus MCP-Tools** gibst du als `fehler("...")` aus
+  `mcp_server/ergebnis.py` zurück. Für die KI ist das normaler Text, das
+  Journal vermerkt den Aufruf als gescheitert.
+- **ffmpeg auf fremden Medien** immer mit `-protocol_whitelist file` vor dem
+  `-i`.
 - **Bereiche der Seitenleiste** stehen in `platform_app/workspace.py`
   (`MODULE_KEYS` standardmäßig an, `OPT_IN_MODULE` standardmäßig aus).
 

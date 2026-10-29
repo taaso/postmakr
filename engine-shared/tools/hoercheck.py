@@ -70,7 +70,7 @@ class HoerFehler(RuntimeError):
 def laden(pfad: str | Path, sr: int = SR) -> np.ndarray:
     """Tonspur als Mono-float32 (ffmpeg)."""
     try:
-        roh = subprocess.run(["ffmpeg", "-v", "error", "-i", str(pfad), "-vn", "-ac", "1", "-ar", str(sr),
+        roh = subprocess.run(["ffmpeg", "-v", "error", "-protocol_whitelist", "file", "-i", str(pfad), "-vn", "-ac", "1", "-ar", str(sr),
                               "-f", "f32le", "-"], capture_output=True, check=True).stdout
     except FileNotFoundError as exc:
         raise HoerFehler("ffmpeg ist nicht installiert") from exc
@@ -250,7 +250,7 @@ def stimme_pegel(mix: np.ndarray, woerter: list[dict], sr: int = SR) -> float | 
 def lautheit_ffmpeg(pfad: str | Path) -> dict:
     """Integrierte Lautheit und True Peak ohne earshot (ffmpeg ebur128)."""
     try:
-        aus = subprocess.run(["ffmpeg", "-hide_banner", "-nostats", "-i", str(pfad), "-vn", "-af", "ebur128=peak=true",
+        aus = subprocess.run(["ffmpeg", "-hide_banner", "-nostats", "-protocol_whitelist", "file", "-i", str(pfad), "-vn", "-af", "ebur128=peak=true",
                               "-f", "null", "-"], capture_output=True, text=True, timeout=300).stderr
     except (OSError, subprocess.SubprocessError):
         return {}

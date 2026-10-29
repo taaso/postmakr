@@ -4,6 +4,7 @@
     ./postmakr start [--handy] [--port 4711] [--handy-port 4712] [--neuer-code]
     ./postmakr mcp [weitere Argumente fuer den MCP-Server]
     ./postmakr installieren [--extras | --ohne-extras] [--ohne-browser]
+    ./postmakr test [datei ...]
 
 Unter Windows statt ./postmakr: python postmakr.py <befehl>.
 
@@ -269,6 +270,16 @@ def ausfuehren(befehl: list[str]) -> None:
         fehler("Der letzte Schritt ist fehlgeschlagen. Die Meldung steht darüber.")
 
 
+def suchmodelle_laden(py: Path) -> None:
+    """Laedt die Suchmodelle einmalig in den Cache. Der MCP-Server laedt beim
+    Start nur noch vor, was hier schon angekommen ist."""
+    sag("Lade die Suchmodelle (etwa 3 GB, nur beim ersten Mal).")
+    befehl = [str(py), "-c", "import vektor; [vektor._laden(art) for art in ('text', 'bild', 'klang')]"]
+    umgebung = {**os.environ, "PYTHONPATH": str(REPO / "engine-shared" / "tools")}
+    if subprocess.call(befehl, cwd=str(REPO), env=umgebung) != 0:
+        sag("Die Suchmodelle ließen sich gerade nicht laden. Das passiert dann beim ersten Gebrauch.")
+
+
 def befehl_installieren(args) -> None:
     python_pruefen()
     py = venv_python()
@@ -285,7 +296,8 @@ def befehl_installieren(args) -> None:
         if sys.stdin.isatty():
             sag()
             sag("Extras: Suche nach Bild und Bedeutung, Transkripte und Hörcheck.")
-            sag("Das sind Pakete von etwa 1 GB, die Modelle (etwa 4,5 GB) lädt postmakr beim ersten Gebrauch.")
+            sag("Das sind Pakete von etwa 1 GB. Die Suchmodelle (etwa 3 GB) lade ich gleich mit,")
+            sag("die Modelle für den Hörcheck (etwa 1,5 GB) lädt postmakr beim ersten Gebrauch.")
             extras = input("Extras jetzt installieren? [j/N] ").strip().lower() in ("j", "ja", "y", "yes")
         else:
             extras = False
@@ -295,6 +307,7 @@ def befehl_installieren(args) -> None:
             ausfuehren([str(py), "-m", "pip", "install", "torch", "--index-url",
                         "https://download.pytorch.org/whl/cpu"])
         ausfuehren([str(py), "-m", "pip", "install", "-r", "requirements-extras.txt"])
+        suchmodelle_laden(py)
 
     if not args.ohne_browser:
         ausfuehren([str(py), "-m", "playwright", "install", "chromium"])
@@ -313,15 +326,42 @@ def befehl_installieren(args) -> None:
 def _ordner_verknuepfen(ziel: Path, quelle: Path) -> str:
     """Macht ziel zu einer Verknuepfung auf quelle. Ein leerer Ordner wird ersetzt,
     ein Ordner mit Inhalt bleibt unangetastet."""
-    if ziel.is_symlink():
-        ziel.unlink()
+    if _ist_verbindung(ziel):
+        _verbindung_loesen(ziel)
     elif ziel.exists():
         if any(p for p in ziel.iterdir() if p.name != ".DS_Store"):
             fehler(f"{ziel} enthält schon Sounds. Verschieb sie zuerst in deinen Sound-Ordner, dann verbinde ihn.")
         shutil.rmtree(ziel)
     ziel.parent.mkdir(parents=True, exist_ok=True)
-    ziel.symlink_to(quelle, target_is_directory=True)
+    try:
+        ziel.symlink_to(quelle, target_is_directory=True)
+    except OSError:
+        if os.name != "nt":
+            raise
+        # Symlinks brauchen unter Windows Adminrechte oder den Entwicklermodus,
+        # eine Verzeichnisverbindung (Junction) nicht.
+        import _winapi  # noqa: PLC0415
+        _winapi.CreateJunction(str(quelle.resolve()), str(ziel))
     return f"{ziel} zeigt jetzt auf {quelle}"
+
+
+def _ist_verbindung(pfad: Path) -> bool:
+    """Symlink oder unter Windows eine Verzeichnisverbindung (Junction)."""
+    if pfad.is_symlink():
+        return True
+    if os.name != "nt":
+        return False
+    try:
+        return bool(os.lstat(pfad).st_file_attributes & 0x400)  # FILE_ATTRIBUTE_REPARSE_POINT
+    except OSError:
+        return False
+
+
+def _verbindung_loesen(pfad: Path) -> None:
+    if os.name == "nt" and not pfad.is_symlink():
+        os.rmdir(pfad)  # loest nur die Junction, das Ziel bleibt
+    else:
+        pfad.unlink()
 
 
 def befehl_sounds_verbinden(args) -> None:
@@ -356,6 +396,34 @@ def befehl_sounds_verbinden(args) -> None:
     sag("Fertig. Die Sounds bleiben in deinem Ordner, neue Uploads landen auch dort.")
 
 
+# ---------------------------------------------------------------------------
+# test
+# ---------------------------------------------------------------------------
+TEST_MUSTER = ("platform_app/tests/test_*.py", "engine-shared/tools/test_*.py", "mcp_server/test_*.py", "test_*.py")
+
+
+def befehl_test(args) -> None:
+    """Fuehrt jede Testdatei in einem eigenen Prozess aus. Die Konfiguration
+    liest den Datenordner beim Import, darum nicht alle in einem Lauf."""
+    dateien = [Path(d) for d in args.dateien] or sorted(
+        {p for muster in TEST_MUSTER for p in REPO.glob(muster)}, key=lambda p: p.as_posix())
+    umgebung = {**os.environ, "PYTHONPATH": str(REPO), "VEKTOR_AUS": "1", "PYTHONUTF8": "1"}
+    rot = []
+    for datei in dateien:
+        rel = datei.resolve().relative_to(REPO).as_posix()
+        sag(f"$ {rel}")
+        if subprocess.call([sys.executable, str(datei)], cwd=str(REPO), env=umgebung) != 0:
+            rot.append(rel)
+    if not args.dateien and shutil.which("node"):
+        sag("$ platform_app/tests/test_kalender_dom.mjs")
+        if subprocess.call(["node", "platform_app/tests/test_kalender_dom.mjs"], cwd=str(REPO)) != 0:
+            rot.append("platform_app/tests/test_kalender_dom.mjs")
+    sag()
+    if rot:
+        fehler("Rot: " + ", ".join(rot))
+    sag(f"Alle {len(dateien)} Testdateien grün.")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(prog="postmakr", description="postmakr lokal")
     unter = parser.add_subparsers(dest="befehl", metavar="befehl")
@@ -381,6 +449,9 @@ def main() -> None:
     wahl.add_argument("--ohne-extras", dest="extras", action="store_false")
     inst.add_argument("--ohne-browser", action="store_true", help="Playwright-Chromium nicht laden")
 
+    test = unter.add_parser("test", help="alle Tests ausführen, jede Datei für sich")
+    test.add_argument("dateien", nargs="*", help="nur diese Testdateien")
+
     if len(sys.argv) > 1 and sys.argv[1] == "mcp":
         befehl_mcp(sys.argv[2:])
         return
@@ -394,6 +465,8 @@ def main() -> None:
         befehl_sounds_verbinden(args)
     elif args.befehl == "installieren":
         befehl_installieren(args)
+    elif args.befehl == "test":
+        befehl_test(args)
     else:
         parser.print_help()
 

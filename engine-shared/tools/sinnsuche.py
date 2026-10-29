@@ -350,10 +350,10 @@ def lager_bild_indexieren(ordner: Path) -> int:
     try:
         vorschau = ordner / "vorschau.mp4"
         if vorschau.is_file():
-            dauer = float(subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0",
+            dauer = float(subprocess.run(["ffprobe", "-v", "error", "-protocol_whitelist", "file", "-show_entries", "format=duration", "-of", "csv=p=0",
                                           str(vorschau)], capture_output=True, text=True).stdout.strip() or 0)
             rate = BILD_PRO_SEKUNDE if dauer * BILD_PRO_SEKUNDE <= MAX_BILDER else MAX_BILDER / max(dauer, 1)
-            subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", str(vorschau), "-vf", f"fps={rate:.4f},scale=320:-2",
+            subprocess.run(["ffmpeg", "-v", "error", "-y", "-protocol_whitelist", "file", "-i", str(vorschau), "-vf", f"fps={rate:.4f},scale=320:-2",
                             "-q:v", "4", str(tmp / "%05d.jpg")], check=True)
             bilder = sorted(tmp.glob("*.jpg"))
             zeiten = [round((i + 0.5) / rate, 2) for i in range(len(bilder))]

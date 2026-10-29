@@ -192,7 +192,7 @@ def test_modelle_fehlen(tmp: Path) -> None:
         with mock.patch.object(modelle, "_da", lambda m: m not in ("sentence_transformers", "earshot")):
             s = modelle.hinweis_suche()
             h = modelle.hinweis_hoeren()
-        pruefe("sentence-transformers" in s and "Stichworten" in s and "requirements-mcp.txt" in s,
+        pruefe("sentence-transformers" in s and "Stichworten" in s and "installieren --extras" in s,
                "fehlendes Such-Paket: freundlicher Hinweis")
         pruefe("earshot" in h and "faster-whisper" not in h, "fehlendes Hör-Paket: nur das fehlende genannt")
         with mock.patch.object(modelle, "_da", lambda m: True):
@@ -257,7 +257,7 @@ def test_import_fehler_wird_zur_meldung(tmp: Path) -> None:
                 bericht = fake.tools["check_reel_sound"]("drafts/reel/mix.wav")
             pruefe(bericht.startswith("# Hörcheck"), "Hörcheck ohne Modelle läuft durch")
             pruefe("nicht installiert" in bericht and "earshot" in bericht, "Hörcheck nennt das fehlende Paket")
-            pruefe("requirements-mcp.txt" in bericht, "Hörcheck sagt, wie man es installiert")
+            pruefe("installieren --extras" in bericht, "Hörcheck sagt, wie man es installiert")
         finally:
             if alt is not None:
                 os.environ["VEKTOR_AUS"] = alt
@@ -287,11 +287,11 @@ def test_nur_lokal() -> None:
         asyncio.run(schutz({"type": "http", "path": "/mcp", "headers": kopf}, receive, send))
         return status[0]
 
-    pruefe(anfrage("127.0.0.1:4712") == 200, "127.0.0.1 erlaubt")
-    pruefe(anfrage("localhost:4712", "http://localhost:3000") == 200, "localhost mit lokalem Origin erlaubt")
-    pruefe(anfrage("[::1]:4712") == 200, "IPv6 loopback erlaubt")
-    pruefe(anfrage("boese.example:4712") == 403, "fremder Host abgewiesen")
-    pruefe(anfrage("127.0.0.1:4712", "https://boese.example") == 403, "fremder Origin abgewiesen")
+    pruefe(anfrage("127.0.0.1:4713") == 200, "127.0.0.1 erlaubt")
+    pruefe(anfrage("localhost:4713", "http://localhost:3000") == 200, "localhost mit lokalem Origin erlaubt")
+    pruefe(anfrage("[::1]:4713") == 200, "IPv6 loopback erlaubt")
+    pruefe(anfrage("boese.example:4713") == 403, "fremder Host abgewiesen")
+    pruefe(anfrage("127.0.0.1:4713", "https://boese.example") == 403, "fremder Origin abgewiesen")
     pruefe(server.HOST == "127.0.0.1", "HTTP bindet nur an 127.0.0.1")
 
 

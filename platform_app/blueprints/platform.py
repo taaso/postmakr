@@ -7,13 +7,21 @@ Diese Routen sind NICHT an einen Workspace gebunden.
              Sonst die Auswahl.
   /auswahl   Alle lokalen Workspaces plus "Neuen Workspace anlegen".
   /health    JSON-Status fuer Startskripte.
+  /schriften/<datei>  Mitgelieferte Schriften fuer die Slide-Vorschau.
 """
 
 import os
+import sys
+from pathlib import Path
 
 from flask import Blueprint, abort, jsonify, redirect, render_template, request, send_file, url_for
 
 from ..workspace import Workspace, WorkspaceFehler, workspace_anlegen
+
+_WERKZEUGE = str(Path(__file__).resolve().parents[2] / "engine-shared" / "tools")
+if _WERKZEUGE not in sys.path:
+    sys.path.insert(0, _WERKZEUGE)
+import schriften  # noqa: E402
 
 bp = Blueprint("platform", __name__)
 
@@ -77,6 +85,15 @@ def favicon():
 @bp.route("/health")
 def health():
     return jsonify({"ok": True, "status": "ok"})
+
+
+@bp.route("/schriften/<name>")
+def schrift(name):
+    """Schriften aus assets/fonts, damit die Slide-Vorschau auch ohne Internet
+    die Schriften des Renderers zeigt."""
+    if name not in schriften.DATEIEN:
+        abort(404)
+    return send_file(schriften.FONTS_DIR / name, mimetype="font/ttf", max_age=31536000)
 
 
 @bp.route("/ws-logo/<slug>")

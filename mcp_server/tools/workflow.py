@@ -16,6 +16,7 @@ from pathlib import Path
 import yaml
 
 from .. import workflows
+from ..ergebnis import fehler
 from .. import lokal
 from ..workspace import Workspace, WorkspaceError
 from .context import _reference_posts, _load_yaml
@@ -128,7 +129,7 @@ def register(mcp, fest: Workspace | None = None) -> None:
             )
             return _clip(out)
         except WorkspaceError as e:
-            return f"Fehler: {e}"
+            return fehler(f"Fehler: {e}")
 
     @mcp.tool
     def start_revise(slug: str, workspace: str = "") -> str:
@@ -144,7 +145,7 @@ def register(mcp, fest: Workspace | None = None) -> None:
             ws = lokal.resolve(workspace, fest)
             slug = (slug or "").strip().strip("/")
             if not SLUG_RE.match(slug) or set(slug) == {"."}:
-                return f"Ungültiger Slug »{slug}«."
+                return fehler(f"Ungültiger Slug »{slug}«.")
             draft_dir = ws.safe_path("drafts", slug)
             if not draft_dir.is_dir():
                 return f"Draft nicht gefunden: {ws.rel(draft_dir)}. Vorhandene per list_drafts."
@@ -166,7 +167,7 @@ def register(mcp, fest: Workspace | None = None) -> None:
             )
             return _clip(out)
         except WorkspaceError as e:
-            return f"Fehler: {e}"
+            return fehler(f"Fehler: {e}")
 
     @mcp.tool
     def start_approve(slug: str, workspace: str = "") -> str:
@@ -182,13 +183,13 @@ def register(mcp, fest: Workspace | None = None) -> None:
             ws = lokal.resolve(workspace, fest)
             slug = (slug or "").strip().strip("/")
             if not SLUG_RE.match(slug) or set(slug) == {"."}:
-                return f"Ungültiger Slug »{slug}«."
+                return fehler(f"Ungültiger Slug »{slug}«.")
             draft_dir = ws.safe_path("drafts", slug)
             if not draft_dir.is_dir():
                 return f"Draft nicht gefunden: {ws.rel(draft_dir)}."
             return workflows.approve_instruction(slug, ws.load_brand())
         except WorkspaceError as e:
-            return f"Fehler: {e}"
+            return fehler(f"Fehler: {e}")
 
     @mcp.tool
     def start_scan_review(workspace: str = "") -> str:
@@ -219,7 +220,7 @@ def register(mcp, fest: Workspace | None = None) -> None:
             )
             return _clip(out)
         except WorkspaceError as e:
-            return f"Fehler: {e}"
+            return fehler(f"Fehler: {e}")
 
     @mcp.tool
     def approve_post(slug: str, format: str = "", thema: str = "", hook: str = "",
@@ -255,7 +256,7 @@ def register(mcp, fest: Workspace | None = None) -> None:
             ws = lokal.resolve(workspace, fest)
             slug = (slug or "").strip().strip("/")
             if not SLUG_RE.match(slug) or set(slug) == {"."}:
-                return f"Ungültiger Slug »{slug}«."
+                return fehler(f"Ungültiger Slug »{slug}«.")
             src = ws.safe_path("drafts", slug)
             if not src.is_dir():
                 return f"Draft nicht gefunden: {ws.rel(src)}."
@@ -310,6 +311,6 @@ def register(mcp, fest: Workspace | None = None) -> None:
                 f"die fertigen Dateien liegen im Archivordner bereit."
             )
         except WorkspaceError as e:
-            return f"Fehler: {e}"
+            return fehler(f"Fehler: {e}")
         except OSError as e:
-            return f"Fehler beim Verschieben: {e}"
+            return fehler(f"Fehler beim Verschieben: {e}")

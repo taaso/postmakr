@@ -120,7 +120,7 @@ def quelle_fuer_schnitt(ordner: Path) -> Path | None:
 
 def _format(datei: Path) -> tuple[int, int, bool]:
     """Breite, Hoehe (Drehung beachtet) und ob eine Tonspur da ist."""
-    r = subprocess.run(["ffprobe", "-v", "error", "-print_format", "json", "-show_streams", str(datei)],
+    r = subprocess.run(["ffprobe", "-v", "error", "-protocol_whitelist", "file", "-print_format", "json", "-show_streams", str(datei)],
                        capture_output=True, text=True)
     try:
         spuren = json.loads(r.stdout or "{}").get("streams") or []
@@ -149,7 +149,7 @@ def ausschnitt_schneiden(quelle: Path, ziel: Path, von: float, bis: float, *, ho
         vf = "scale='min(1920,iw)':-2:flags=lanczos,setsar=1"
     ziel.parent.mkdir(parents=True, exist_ok=True)
     tmp = ziel.with_name(f".{ziel.stem}.{secrets.token_hex(3)}.mp4")
-    r = subprocess.run(["ffmpeg", "-v", "error", "-y", "-ss", f"{von:.3f}", "-i", str(quelle), "-t", f"{bis - von:.3f}",
+    r = subprocess.run(["ffmpeg", "-v", "error", "-y", "-ss", f"{von:.3f}", "-protocol_whitelist", "file", "-i", str(quelle), "-t", f"{bis - von:.3f}",
                         "-vf", vf, "-c:v", "libx264", "-crf", "16", "-preset", "medium", "-pix_fmt", "yuv420p",
                         "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", str(tmp)],
                        capture_output=True, text=True)
