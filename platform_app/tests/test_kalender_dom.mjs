@@ -184,7 +184,8 @@ const markup = quelle
 // Kanaele des Workspace. Der Test setzt dafuer vier Kanaele ein.
 const KANAELE = { instagram: 'Instagram', tiktok: 'TikTok', facebook: 'Facebook', linkedin: 'LinkedIn' };
 const KANAL_SVG = Object.fromEntries(Object.keys(KANAELE).map((k) => [k, '<svg class="kalender-kanal"></svg>']));
-const skript = quelle.slice(quelle.indexOf('<script>') + 8, quelle.lastIndexOf('</script>'))
+const skriptStart = quelle.indexOf('>', quelle.indexOf('<script nonce=')) + 1
+const skript = quelle.slice(skriptStart, quelle.lastIndexOf('</script>'))
   .replace(/var KANAL_SVG = \{[\s\S]*?\n  \};/, () => 'var KANAL_SVG = ' + JSON.stringify(KANAL_SVG) + ';')
   .replace('{{ kanal_namen | tojson }}', () => JSON.stringify(KANAELE))
   .replace(/\{\{ kanal_verzeichnis\(\)[^}]*\}\}/, () => JSON.stringify(Object.keys(KANAELE)));

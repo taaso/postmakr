@@ -113,7 +113,7 @@
       </section>
     {% endif %}
   </div>
-  <script>
+  <script nonce="{{ csp_nonce() }}">
   // Auf dem Handy direkt in die Handy-Ansicht des Workspace.
   if (window.matchMedia && window.matchMedia('(max-width: 820px)').matches) {
     document.querySelectorAll('a.tile[data-mobil]').forEach(function (a) { a.href = a.dataset.mobil; });

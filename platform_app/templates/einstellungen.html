@@ -189,7 +189,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 const $ = id => document.getElementById(id);
 function sag(el, text, ok) {
   if (!el) return;

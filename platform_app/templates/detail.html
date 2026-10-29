@@ -259,7 +259,7 @@
             {% endfor %}
             </div>
           </section>
-          <script>
+          <script nonce="{{ csp_nonce() }}">
           (function () {
             var KEY = 'postmakr-dateien-offen:' + location.pathname;
             var sec = document.getElementById('dateien-sec');
@@ -278,7 +278,7 @@
             });
           })();
           </script>
-          <script>
+          <script nonce="{{ csp_nonce() }}">
           /* Lightbox-Galerie: X und Pfeile am Bild, Zaehler, nur SICHTBARE
              Karten (versteckte Alt-Versionen und Geloeschtes blaettern nicht mit) */
           var lbListe = [];
@@ -485,7 +485,7 @@
           {% endfor %}
         </div>
       </section>
-      <script>
+      <script nonce="{{ csp_nonce() }}">
       (function () {
         var KEY = 'postmakr-material-offen:' + location.pathname;
         var sec = document.getElementById('material-sec');
@@ -590,7 +590,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 document.getElementById('finder-btn')?.addEventListener('click', function () {
   const btn = this;
   const body = new URLSearchParams({ kind: btn.dataset.kind, slug: btn.dataset.slug });

@@ -1,4 +1,3 @@
-import fcntl
 import hashlib
 import json
 import os
@@ -22,6 +21,7 @@ from platform_app.blueprints.workspace import (  # noqa: E402
     _slide_dateien,
     build_media_groups,
 )
+from dateisperre import sperren  # noqa: E402  (engine-shared/tools, siehe workspace.py)
 from platform_app.render_job import (  # noqa: E402
     _sanitize_snapshot_html,
     drain_queue,
@@ -317,7 +317,7 @@ class QuellvorschauTest(unittest.TestCase):
 
         worker_lock_path = self.root / ".platform" / "render_worker.lock"
         with open(worker_lock_path, "a+", encoding="utf-8") as worker_lock:
-            fcntl.flock(worker_lock.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            sperren(worker_lock, warten=False)
             response = self.client.get(
                 "/w/demo/api/beitrag/drafts/source-only/render/status",
                 query_string={"job_id": started["job_id"]},

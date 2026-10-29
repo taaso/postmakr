@@ -6,6 +6,7 @@ import subprocess
 import sys
 
 from .. import lokal
+from ..ergebnis import fehler
 from ..workspace import Workspace, WorkspaceError
 
 SCAN_TIMEOUT_S = 120
@@ -49,7 +50,7 @@ def register(mcp, fest: Workspace | None = None) -> None:
             parts.append(f"\n\n# Präferenzen (praeferenzen.yaml)\n{praef}")
             return "".join(parts)
         except WorkspaceError as e:
-            return f"Fehler: {e}"
+            return fehler(f"Fehler: {e}")
 
     @mcp.tool
     def run_scan(hours: int = 48, workspace: str = "") -> str:
@@ -70,7 +71,7 @@ def register(mcp, fest: Workspace | None = None) -> None:
                         f"{lokal.SCAN_SKRIPT} dorthin und trag deine Feeds in scan/sources.yaml ein. "
                         "Neue Workspaces aus create_workspace bringen das Skript schon mit.")
             if not (1 <= int(hours) <= 168):
-                return "Fehler: hours muss zwischen 1 und 168 liegen."
+                return fehler("Fehler: hours muss zwischen 1 und 168 liegen.")
             proc = subprocess.run(
                 [sys.executable, str(script), "--hours", str(int(hours))],
                 capture_output=True, text=True, timeout=SCAN_TIMEOUT_S, cwd=str(ws.root),
@@ -82,8 +83,8 @@ def register(mcp, fest: Workspace | None = None) -> None:
             tail = f"\n\nHinweis (stderr):\n{err[-500:]}" if err else ""
             return f"Scan fertig.\n{out[-3000:]}{tail}\n\nRohdaten liegen in scan/results/raw-*.md/json."
         except WorkspaceError as e:
-            return f"Fehler: {e}"
+            return fehler(f"Fehler: {e}")
         except subprocess.TimeoutExpired:
-            return f"Scan dauerte länger als {SCAN_TIMEOUT_S}s und wurde abgebrochen."
+            return fehler(f"Scan dauerte länger als {SCAN_TIMEOUT_S}s und wurde abgebrochen.")
         except Exception as e:  # noqa: BLE001
-            return f"Unerwarteter Fehler beim Scan: {e}"
+            return fehler(f"Unerwarteter Fehler beim Scan: {e}")

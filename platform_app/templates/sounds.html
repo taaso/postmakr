@@ -103,7 +103,7 @@
     </div>
   {% endif %}
 
-  <script>
+  <script nonce="{{ csp_nonce() }}">
   (function () {
     var ton = new Audio(), aktiv = null;
     function stopp() {

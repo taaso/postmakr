@@ -212,7 +212,7 @@ def einstellungen_markensound():
 def _ffprobe(args: list[str], pfad: Path) -> str:
     try:
         out = subprocess.run(
-            ["ffprobe", "-v", "error", *args, "-of", "default=nw=1:nk=1", str(pfad)],
+            ["ffprobe", "-v", "error", "-protocol_whitelist", "file", *args, "-of", "default=nw=1:nk=1", str(pfad)],
             capture_output=True, text=True, timeout=30,
         )
     except (OSError, subprocess.SubprocessError):
@@ -245,7 +245,7 @@ def video_ist_stumm(pfad: Path) -> bool:
     else:
         try:
             out = subprocess.run(
-                ["ffmpeg", "-hide_banner", "-nostats", "-i", str(pfad), "-vn",
+                ["ffmpeg", "-hide_banner", "-nostats", "-protocol_whitelist", "file", "-i", str(pfad), "-vn",
                  "-af", "volumedetect", "-f", "null", "-"],
                 capture_output=True, text=True, timeout=60,
             )
@@ -324,7 +324,7 @@ def mit_markensound(video: Path, cta_bei: float | None = None) -> Path:
             # Reel: Markensound in Schleife plus CTA-Sound genau beim Tippen.
             verzug = max(0, int(round((cta_bei - CTA_SOUND_ANSCHLAG_S) * 1000)))
             ton = [
-                "-i", str(cta_sound),
+                "-protocol_whitelist", "file", "-i", str(cta_sound),
                 "-filter_complex",
                 f"[1:a]{filter_}[m];[2:a]adelay={verzug}|{verzug},volume={lautstaerke:.2f},apad[c];"
                 f"[m][c]amix=inputs=2:duration=first:normalize=0,alimiter=limit=0.95[a]",
@@ -334,8 +334,8 @@ def mit_markensound(video: Path, cta_bei: float | None = None) -> Path:
             ton = ["-map", "0:v:0", "-map", "1:a:0", "-af", filter_]
         befehl = [
             "ffmpeg", "-y", "-loglevel", "error",
-            "-i", str(video),
-            *schleife, "-i", str(sound),
+            "-protocol_whitelist", "file", "-i", str(video),
+            *schleife, "-protocol_whitelist", "file", "-i", str(sound),
             *ton,
             "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-ar", "44100",
             "-t", f"{dauer:.3f}",

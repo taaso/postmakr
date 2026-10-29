@@ -7,6 +7,7 @@ import os
 import yaml
 
 from .. import lokal
+from ..ergebnis import fehler
 from ..workspace import Workspace, WorkspaceError
 
 
@@ -75,9 +76,9 @@ def register(mcp, fest: Workspace | None = None) -> None:
         try:
             ws = lokal.workspace_anlegen(slug, name)
         except WorkspaceError as e:
-            return f"Fehler: {e}"
+            return fehler(f"Fehler: {e}")
         except OSError as e:
-            return f"Fehler beim Anlegen: {e}"
+            return fehler(f"Fehler beim Anlegen: {e}")
         anzahl = len(lokal.alle_namen())
         folge = ("Weil es jetzt mehrere Workspaces gibt, gib bei den Tools workspace=\""
                  f"{ws.root.name}\" mit oder setz POSTMAKR_WORKSPACE.") if anzahl > 1 else \

@@ -133,7 +133,7 @@
     <button type="button" class="btn btn-sm ghost lg-loeschen" id="lg-loeschen">Aus dem Lager nehmen</button>
   </section>
 
-  <script>
+  <script nonce="{{ csp_nonce() }}">
   (function () {
     var SPEICHERN = {{ url_for('lager_speichern', clip_id=clip.id) | tojson }};
     var VERWENDUNG = {{ url_for('lager_verwendung', clip_id=clip.id) | tojson }};

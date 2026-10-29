@@ -18,7 +18,7 @@ from flask import (
 )
 from flask import url_for as flask_url_for
 
-from . import config
+from . import config, sicherheit
 from .blueprints.platform import bp as platform_bp
 from .blueprints.workspace import format_label
 from .blueprints.workspace import bp as workspace_bp
@@ -93,6 +93,9 @@ def create_app() -> Flask:
 
     # Bare url_for-Aufrufe in Templates auf den Workspace-Blueprint umbiegen.
     app.jinja_env.globals["url_for"] = _smart_url_for
+    # Inline-Skripte laufen nur mit der Nonce der Anfrage (sicherheit.py).
+    app.jinja_env.globals["csp_nonce"] = sicherheit.nonce
+    app.after_request(sicherheit.header_setzen)
 
     @app.context_processor
     def inject_nav():

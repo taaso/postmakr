@@ -127,7 +127,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 (function () {
   var dlg = document.getElementById('wissen-dialog');
   var titleEl = document.getElementById('wissen-dialog-title');

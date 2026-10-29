@@ -23,6 +23,7 @@ from pathlib import Path
 import yaml
 
 from .. import lokal, modelle
+from ..ergebnis import fehler
 from ..workspace import Workspace, WorkspaceError
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -190,7 +191,7 @@ def register(mcp, fest: Workspace | None = None) -> None:
             return (f"# Sounds für {titel} ({len(treffer)}, beste zuerst)\n"
                     + "\n".join(_zeile(t["sound"], t["grund"]) for t in treffer) + _hinweise(bestaende, fall))
         except WorkspaceError as e:
-            return f"Fehler: {e}"
+            return fehler(f"Fehler: {e}")
 
     @mcp.tool
     def suggest_sounds(skript: str, dauer: float = 0, workspace: str = "") -> str:
@@ -236,7 +237,7 @@ def register(mcp, fest: Workspace | None = None) -> None:
                 return f"{kopf}\n\n{hinweis}\n\n{liste}"
             return text + ("\n\n" + hinweis if hinweis else "")
         except WorkspaceError as e:
-            return f"Fehler: {e}"
+            return fehler(f"Fehler: {e}")
 
     @mcp.tool
     def index_sounds(workspace: str = "") -> str:
@@ -264,15 +265,15 @@ def register(mcp, fest: Workspace | None = None) -> None:
                 for ordner, liste in ordner_listen:
                     neu += sinnsuche.sounds_indexieren(ordner, liste, ausgabe=_log)
             except sinnsuche.VektorFehlt as e:
-                return (f"Den Such-Index konnte ich nicht bauen: {e}. Installiere die Modelle mit "
-                        f"`{modelle.INSTALL}`; bis dahin sucht find_sounds nach Stichworten.")
+                return (fehler(f"Den Such-Index konnte ich nicht bauen: {e}. Installiere die Modelle mit "
+                        f"`{modelle.INSTALL}`; bis dahin sucht find_sounds nach Stichworten."))
             except Exception as e:  # noqa: BLE001 - etwa Modell-Download ohne Netz
-                return (f"Den Such-Index konnte ich nicht bauen ({str(e)[:200]}). Beim ersten Mal laden die "
-                        "Modelle aus dem Netz; prüf die Verbindung und versuch es noch einmal.")
+                return (fehler(f"Den Such-Index konnte ich nicht bauen ({str(e)[:200]}). Beim ersten Mal laden die "
+                        "Modelle aus dem Netz; prüf die Verbindung und versuch es noch einmal."))
             gesamt = sum(len(liste) for _, liste in ordner_listen)
             return (f"Such-Index für {gesamt} Sounds ist fertig, {neu} davon neu angehört. "
                     "find_sounds und suggest_sounds finden sie jetzt auch nach Bedeutung und Klang.")
         except WorkspaceError as e:
-            return f"Fehler: {e}"
+            return fehler(f"Fehler: {e}")
         except OSError as e:
-            return f"Fehler beim Schreiben des Such-Index: {e}"
+            return fehler(f"Fehler beim Schreiben des Such-Index: {e}")

@@ -28,6 +28,8 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
+from .ergebnis import ist_fehler
+
 MAX_LINES = 2000
 
 # Parameter-Namen, die -- falls vorhanden -- in den Journal-Eintrag uebernommen
@@ -129,6 +131,9 @@ class JournalingMCP:
             result = ""
             try:
                 result = fn(*args, **kwargs)
+                # Tools melden viele Fehler als Text (ergebnis.Fehler), damit
+                # die KI sie lesen kann. Im Journal zaehlen sie als gescheitert.
+                ok = not ist_fehler(result)
                 return result
             except Exception as exc:  # noqa: BLE001
                 ok = False

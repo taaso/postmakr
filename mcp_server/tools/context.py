@@ -8,6 +8,7 @@ from pathlib import Path
 import yaml
 
 from .. import lokal
+from ..ergebnis import fehler
 from ..workspace import Workspace, WorkspaceError
 
 # Referenz-Briefs werden gekürzt, damit start_create/Referenz-Ergebnisse klar
@@ -108,7 +109,7 @@ def register(mcp, fest: Workspace | None = None) -> None:
         except lokal.WorkspaceWahl as wahl:
             return str(wahl)
         except WorkspaceError as e:
-            return f"Fehler: {e}"
+            return fehler(f"Fehler: {e}")
         try:
             brand = _load_yaml(ws.root / "brand.yaml")
             claude_md = ws.read_text(ws.root / "CLAUDE.md", "(keine CLAUDE.md)")
@@ -153,7 +154,7 @@ def register(mcp, fest: Workspace | None = None) -> None:
                 f"## learnings.md\n{learnings}\n"
             )
         except WorkspaceError as e:
-            return f"Fehler: {e}"
+            return fehler(f"Fehler: {e}")
 
     @mcp.tool
     def get_reference_posts(thema: str, format: str = "", limit: int = 3, workspace: str = "") -> str:
@@ -182,7 +183,7 @@ def register(mcp, fest: Workspace | None = None) -> None:
                 )
             return "".join(parts)
         except WorkspaceError as e:
-            return f"Fehler: {e}"
+            return fehler(f"Fehler: {e}")
 
     @mcp.tool
     def archive_search(query: str, limit: int = 8, workspace: str = "") -> str:
@@ -218,4 +219,4 @@ def register(mcp, fest: Workspace | None = None) -> None:
                 return f"Keine Treffer für »{query}«."
             return f"# Archiv-Treffer für »{query}« ({len(hits)})\n" + "\n".join(hits)
         except WorkspaceError as e:
-            return f"Fehler: {e}"
+            return fehler(f"Fehler: {e}")

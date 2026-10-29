@@ -81,7 +81,7 @@ def _lauf(args: list[str], **kw) -> subprocess.CompletedProcess:
 
 def pruefen(datei: Path) -> dict:
     """ffprobe: Laenge, Format (Drehung beachtet), fps, HDR, Aufnahmezeit."""
-    r = _lauf(["ffprobe", "-v", "error", "-print_format", "json", "-show_format", "-show_streams", str(datei)])
+    r = _lauf(["ffprobe", "-v", "error", "-protocol_whitelist", "file", "-print_format", "json", "-show_format", "-show_streams", str(datei)])
     try:
         info = json.loads(r.stdout or "{}")
     except json.JSONDecodeError:
@@ -121,12 +121,12 @@ def _sdr_kopie(quelle: Path, ziel: Path) -> str:
             return "avconvert"
     kette = ("zscale=t=linear:npl=100,format=gbrpf32le,zscale=p=bt709,tonemap=hable:desat=0,"
              "zscale=t=bt709:m=bt709:r=tv,format=yuv420p")
-    r = _lauf(["ffmpeg", "-v", "error", "-y", "-i", str(quelle), "-vf", kette, "-c:v", "libx264", "-crf", "16",
+    r = _lauf(["ffmpeg", "-v", "error", "-y", "-protocol_whitelist", "file", "-i", str(quelle), "-vf", kette, "-c:v", "libx264", "-crf", "16",
                "-c:a", "copy", str(ziel)])
     if r.returncode == 0:
         return "ffmpeg-tonemap"
     # Letzter Ausweg: ohne Tonemapping (Farben ungenau, wird so markiert).
-    _lauf(["ffmpeg", "-v", "error", "-y", "-i", str(quelle), "-c:v", "libx264", "-crf", "16", "-pix_fmt", "yuv420p",
+    _lauf(["ffmpeg", "-v", "error", "-y", "-protocol_whitelist", "file", "-i", str(quelle), "-c:v", "libx264", "-crf", "16", "-pix_fmt", "yuv420p",
            "-c:a", "copy", str(ziel)])
     return "ungenau"
 
@@ -138,7 +138,7 @@ def _bogen(quelle: Path, ziel: Path, dauer: float) -> list[float]:
     zeilen = math.ceil(anzahl / BOGEN_SPALTEN)
     spalten = min(BOGEN_SPALTEN, anzahl)
     fps = anzahl / dauer if dauer > 0 else 1
-    _lauf(["ffmpeg", "-v", "error", "-y", "-i", str(quelle), "-vf",
+    _lauf(["ffmpeg", "-v", "error", "-y", "-protocol_whitelist", "file", "-i", str(quelle), "-vf",
            f"fps={fps:.5f},scale=200:-2,tile={spalten}x{zeilen}", "-frames:v", "1", "-q:v", "4", str(ziel)])
     return zeiten
 
@@ -155,7 +155,7 @@ BEWEGUNG_RUHIG, BEWEGUNG_BEWEGT = 0.005, 0.02
 
 
 def _bild_unterschiede(quelle: Path) -> tuple[list[float], list[float]]:
-    r = _lauf(["ffmpeg", "-hide_banner", "-i", str(quelle), "-vf",
+    r = _lauf(["ffmpeg", "-hide_banner", "-protocol_whitelist", "file", "-i", str(quelle), "-vf",
                "scale=160:-2,select='gte(scene\\,0)',metadata=print:key=lavfi.scene_score:file=-",
                "-an", "-f", "null", "-"])
     zeiten = [float(t) for t in re.findall(r"pts_time:([0-9.]+)", r.stdout)]
@@ -230,12 +230,12 @@ def _szenen_bilder(quelle: Path, ziel: Path, szenen: list[dict]) -> bool:
         return False
     with tempfile.TemporaryDirectory() as tmp:
         for i, s in enumerate(szenen):
-            _lauf(["ffmpeg", "-v", "error", "-y", "-ss", f"{s['bild']:.2f}", "-i", str(quelle), "-frames:v", "1",
+            _lauf(["ffmpeg", "-v", "error", "-y", "-ss", f"{s['bild']:.2f}", "-protocol_whitelist", "file", "-i", str(quelle), "-frames:v", "1",
                    "-vf", f"scale=-2:{SZENE_KACHEL_HOEHE}", "-q:v", "4", str(Path(tmp) / f"{i:04d}.jpg")])
         bilder = sorted(Path(tmp).glob("*.jpg"))
         if len(bilder) != len(szenen):
             return False
-        r = _lauf(["ffmpeg", "-v", "error", "-y", "-i", str(Path(tmp) / "%04d.jpg"), "-vf", f"tile={len(bilder)}x1",
+        r = _lauf(["ffmpeg", "-v", "error", "-y", "-protocol_whitelist", "file", "-i", str(Path(tmp) / "%04d.jpg"), "-vf", f"tile={len(bilder)}x1",
                    "-frames:v", "1", "-q:v", "4", str(ziel)])
         return r.returncode == 0 and ziel.is_file()
 
@@ -267,7 +267,7 @@ def szenen_nachrechnen(ordner: Path) -> list[dict] | None:
 
 
 def _helligkeit(quelle: Path) -> float | None:
-    r = _lauf(["ffmpeg", "-v", "info", "-i", str(quelle), "-vf",
+    r = _lauf(["ffmpeg", "-v", "info", "-protocol_whitelist", "file", "-i", str(quelle), "-vf",
                "fps=1,scale=160:-2,signalstats,metadata=print:key=lavfi.signalstats.YAVG:file=-", "-an", "-f", "null", "-"])
     werte = [float(v) for v in re.findall(r"YAVG=([0-9.]+)", r.stdout)]
     return round(sum(werte) / len(werte), 1) if werte else None
@@ -283,7 +283,7 @@ def _gesichter(quelle: Path, dauer: float) -> dict | None:
     if not MODELL_GESICHT.is_file():
         return None
     b, h = 320, 568
-    r = subprocess.run(["ffmpeg", "-v", "error", "-i", str(quelle), "-vf",
+    r = subprocess.run(["ffmpeg", "-v", "error", "-protocol_whitelist", "file", "-i", str(quelle), "-vf",
                         f"fps=2,scale={b}:{h}:force_original_aspect_ratio=decrease,pad={b}:{h}:(ow-iw)/2:(oh-ih)/2",
                         "-f", "rawvideo", "-pix_fmt", "bgr24", "-"], capture_output=True)
     bilder = np.frombuffer(r.stdout, np.uint8)
@@ -331,7 +331,7 @@ def _transkript(quelle: Path) -> list[dict] | None:
         return None
     with tempfile.TemporaryDirectory() as tmp:
         wav = Path(tmp) / "ton.wav"
-        _lauf(["ffmpeg", "-v", "error", "-y", "-i", str(quelle), "-vn", "-ac", "1", "-ar", "16000", str(wav)])
+        _lauf(["ffmpeg", "-v", "error", "-y", "-protocol_whitelist", "file", "-i", str(quelle), "-vn", "-ac", "1", "-ar", "16000", str(wav)])
         if not wav.is_file() or wav.stat().st_size < 4000:
             return []
         _lauf(["whisper", str(wav), "--model", "small", "--output_format", "json", "--output_dir", tmp,
@@ -402,7 +402,7 @@ def verarbeiten(ordner: Path) -> dict:
         auto: dict = {"art": art}
         if art == "foto":
             auto.update(pruefen(quelle))
-            _lauf(["ffmpeg", "-v", "error", "-y", "-i", str(quelle), "-vf", "scale=480:-2", str(ordner / "titelbild.jpg")])
+            _lauf(["ffmpeg", "-v", "error", "-y", "-protocol_whitelist", "file", "-i", str(quelle), "-vf", "scale=480:-2", str(ordner / "titelbild.jpg")])
             auto["helligkeit"] = _helligkeit(quelle)
         else:
             auto.update(pruefen(quelle))
@@ -414,10 +414,10 @@ def verarbeiten(ordner: Path) -> dict:
                     arbeit = ziel
             # Vorschau: kurze Seite 540 px, leicht komprimiert, mit Ton.
             skal = "scale=540:-2" if auto["hoehe"] >= auto["breite"] else "scale=-2:540"
-            _lauf(["ffmpeg", "-v", "error", "-y", "-i", str(arbeit), "-vf", f"{skal},fps=30", "-c:v", "libx264",
+            _lauf(["ffmpeg", "-v", "error", "-y", "-protocol_whitelist", "file", "-i", str(arbeit), "-vf", f"{skal},fps=30", "-c:v", "libx264",
                    "-crf", "27", "-preset", "veryfast", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "96k",
                    "-movflags", "+faststart", str(ordner / "vorschau.mp4")])
-            _lauf(["ffmpeg", "-v", "error", "-y", "-ss", str(min(1.0, auto["dauer"] / 3)), "-i", str(arbeit),
+            _lauf(["ffmpeg", "-v", "error", "-y", "-ss", str(min(1.0, auto["dauer"] / 3)), "-protocol_whitelist", "file", "-i", str(arbeit),
                    "-frames:v", "1", "-vf", "scale=480:-2", "-q:v", "3", str(ordner / "titelbild.jpg")])
             auto["bogen"] = _bogen(arbeit, ordner / "bogen.jpg", auto["dauer"] or 1)
             # Bildindex vor den Szenen: die Szenenerkennung nutzt ihn mit

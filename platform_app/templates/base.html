@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='makeover.css') }}?v=20261026a">
   {# Auf dem Handy gibt es eine eigene Ansicht (Raster, Wischen, Speichern,
      Planen). Die Detailseite eines Beitrags oeffnet dort direkt den Beitrag. #}
-  <script>
+  <script nonce="{{ csp_nonce() }}">
   (function () {
     if (!window.matchMedia || !window.matchMedia('(max-width: 820px)').matches) return;
     var ziel = {{ url_for('mobil') | tojson }};
@@ -99,7 +99,7 @@
     </div>
   </main>
 </div>
-<script>
+<script nonce="{{ csp_nonce() }}">
 // Hilfe-Popover schliessen, sobald irgendwo daneben geklickt wird.
 document.addEventListener('click', function (e) {
   document.querySelectorAll('details.help-pop[open]').forEach(function (d) {

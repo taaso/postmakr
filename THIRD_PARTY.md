@@ -11,9 +11,15 @@ ersten Gebrauch aus dem Netz kommt.
 |---|---|---|---|
 | Inter (Schrift, variable TTF, aufrecht und kursiv) | `assets/fonts/Inter*.ttf` | SIL Open Font License 1.1 | `assets/fonts/OFL-Inter.txt` |
 | Source Sans 3 (Schrift, variable TTF, aufrecht und kursiv) | `assets/fonts/SourceSans3*.ttf` | SIL Open Font License 1.1, Reserved Font Name "Source" | `assets/fonts/OFL-SourceSans3.txt` |
+| Anton (Schrift, TTF) | `assets/fonts/Anton-Regular.ttf` | SIL Open Font License 1.1 | `assets/fonts/OFL-Anton.txt` |
+| Archivo Black (Schrift, TTF) | `assets/fonts/ArchivoBlack-Regular.ttf` | SIL Open Font License 1.1 | `assets/fonts/OFL-ArchivoBlack.txt` |
+| Caveat (Schrift, variable TTF) | `assets/fonts/Caveat[wght].ttf` | SIL Open Font License 1.1 | `assets/fonts/OFL-Caveat.txt` |
 | DM Sans (Schrift, WOFF2, 400/500/700) | `platform_app/static/fonts/dm-sans-*.woff2` | SIL Open Font License 1.1 | `licenses/OFL-DMSans.txt` |
 | DM Mono (Schrift, WOFF2, 400/500) | `platform_app/static/fonts/dm-mono-*.woff2` | SIL Open Font License 1.1 | `licenses/OFL-DMMono.txt` |
 | YuNet Gesichtserkennung (`face_detection_yunet_2023mar.onnx`, aus dem OpenCV Zoo) | `platform_app/modelle/` | MIT, Copyright (c) 2020 Shiqi Yu | `licenses/MIT-YuNet.txt` |
+
+Anton, Archivo Black und Caveat stammen unverändert aus dem Repository
+github.com/google/fonts (Ordner `ofl/`).
 
 Geprüft: Die Lizenzangaben in den Namenstabellen der DM-Schriften verweisen auf
 die OFL, die Copyright-Zeilen stimmen mit den beiliegenden Lizenztexten
@@ -28,11 +34,10 @@ Animations-Bibliothek, aber ohne deren Code (siehe
 
 ## Beim Rendern aus dem Netz
 
-Einige Slide-Vorlagen in `engine-shared/tools/render_static/templates/` binden
-die Zierschriften Anton, Archivo Black und Caveat über Google Fonts ein
-(alle SIL Open Font License 1.1). Sie werden nicht mitgeliefert. Ohne
-Internet fällt der Renderer auf die mitgelieferten Schriften zurück. Die
-Länderflaggen in einigen Vorlagen kommen von flagcdn.com.
+Die mitgelieferten Vorlagen laden keine Schriften mehr aus dem Netz, der
+Renderer und die Vorschau im Dashboard nutzen die Schriften aus
+`assets/fonts`. Eigene Slides dürfen weiterhin Schriften von Google Fonts
+einbinden. Die Länderflaggen in einigen Vorlagen kommen von flagcdn.com.
 
 ## Bei der Installation (nicht mitgeliefert)
 
@@ -55,8 +60,9 @@ Paketmanager. Es steht je nach Build unter LGPL oder GPL.
 
 Die Modelle kommen beim ersten Gebrauch vom Hugging Face Hub und liegen danach
 im Cache auf deinem Rechner (Standard `~/.cache/huggingface`, die Hörcheck-
-Modelle von earshot unter `EARSHOT_HOME`). Lizenz laut Modellkarte, Stand
-Oktober 2026:
+Modelle von earshot unter `EARSHOT_HOME`). Die drei Suchmodelle sind auf einen
+festen Stand festgelegt (`REVISIONEN` in `engine-shared/tools/vektor.py`).
+Lizenz laut Modellkarte, Stand Oktober 2026:
 
 | Modell | Wofür | Lizenz |
 |---|---|---|

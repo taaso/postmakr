@@ -114,7 +114,7 @@
   </section>
 
 
-  <script>
+  <script nonce="{{ csp_nonce() }}">
   (function () {
     var SPEICHERN = {{ url_for('trial_reel_speichern', slug=reel.slug) | tojson }};
     var meldung = document.getElementById('tr-meldung');

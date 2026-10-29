@@ -161,7 +161,7 @@
     </article>
   </template>
 
-  <script>
+  <script nonce="{{ csp_nonce() }}">
   window.MOBIL = {
     karten: {{ karten | tojson }},
     kanaele: {{ kanal_liste | tojson }},
@@ -173,6 +173,6 @@
     markensound: {{ markensound | tojson }}
   };
   </script>
-  <script src="{{ url_for('static', filename='mobil.js') }}?v=20261018b"></script>
+  <script nonce="{{ csp_nonce() }}" src="{{ url_for('static', filename='mobil.js') }}?v=20261018b"></script>
 </body>
 </html>

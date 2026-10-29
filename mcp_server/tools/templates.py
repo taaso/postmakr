@@ -37,6 +37,7 @@ from pathlib import Path
 import yaml
 
 from .. import lokal
+from ..ergebnis import fehler
 from ..workspace import Workspace, WorkspaceError
 
 SLUG_RE = re.compile(r"^[A-Za-z0-9._-]+$")
@@ -502,7 +503,7 @@ def register(mcp, fest: Workspace | None = None) -> None:
                 return f"Beitrag nicht gefunden: {ws.rel(post_dir)}."
             name = (name or "").strip()
             if not name:
-                return "Fehler: Bitte einen Namen für das Template angeben."
+                return fehler("Fehler: Bitte einen Namen für das Template angeben.")
             feld_liste = parse_felder(felder)
 
             keys = [f["key"] for f in feld_liste]
@@ -529,9 +530,9 @@ def register(mcp, fest: Workspace | None = None) -> None:
                 f"\"{', '.join(f'{k}=…' for k in keys)}\")."
             )
         except WorkspaceError as e:
-            return f"Fehler: {e}"
+            return fehler(f"Fehler: {e}")
         except OSError as e:
-            return f"Fehler beim Schreiben: {e}"
+            return fehler(f"Fehler beim Schreiben: {e}")
 
     @mcp.tool
     def list_templates(workspace: str = "") -> str:
@@ -570,7 +571,7 @@ def register(mcp, fest: Workspace | None = None) -> None:
             )
             return "\n".join(zeilen)
         except WorkspaceError as e:
-            return f"Fehler: {e}"
+            return fehler(f"Fehler: {e}")
 
     @mcp.tool
     def create_from_template(template: str, werte: str, workspace: str = "") -> str:
@@ -634,6 +635,6 @@ def register(mcp, fest: Workspace | None = None) -> None:
                 spuren, alt, daten["hinweise"], kopiert, nicht_kopiert,
             )
         except WorkspaceError as e:
-            return f"Fehler: {e}"
+            return fehler(f"Fehler: {e}")
         except OSError as e:
-            return f"Fehler beim Kopieren: {e}"
+            return fehler(f"Fehler beim Kopieren: {e}")

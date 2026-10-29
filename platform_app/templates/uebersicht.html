@@ -14,7 +14,7 @@
 
   {% include "_kalender.html" %}
 
-  <script>
+  <script nonce="{{ csp_nonce() }}">
   // Die Uebersicht ist nur noch der Kalender: Seite steht
   // fest, der Kalender nimmt die volle Resthoehe.
   document.documentElement.classList.add('kalender-aktiv');

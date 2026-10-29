@@ -96,7 +96,7 @@
     </div>
   {% endif %}
 
-  <script>
+  <script nonce="{{ csp_nonce() }}">
   (function () {
     var HOCHLADEN = {{ url_for('lager_hochladen') | tojson }};
     var STATUS = {{ url_for('lager_status') | tojson }};

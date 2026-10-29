@@ -14,6 +14,7 @@ import sys
 from pathlib import Path
 
 from .. import lokal, modelle
+from ..ergebnis import fehler
 from ..workspace import Workspace, WorkspaceError
 from .sounds import _bestaende
 
@@ -84,17 +85,17 @@ def register(mcp, fest: Workspace | None = None) -> None:
             ws = lokal.resolve(workspace, fest)
             pfad = ws.safe_path(datei)
             if not pfad.is_file():
-                return f"Fehler: Datei nicht gefunden: {datei}"
+                return fehler(f"Fehler: Datei nicht gefunden: {datei}")
             if pfad.suffix.lower() not in ENDUNGEN:
-                return f"Fehler: {pfad.name} ist keine Video- oder Audiodatei ({', '.join(sorted(ENDUNGEN))})."
+                return fehler(f"Fehler: {pfad.name} ist keine Video- oder Audiodatei ({', '.join(sorted(ENDUNGEN))}).")
             if isinstance(sounds, str):
                 try:
                     sounds = json.loads(sounds) if sounds.strip() else []
                 except json.JSONDecodeError:
-                    return "Fehler: sounds ist kein gültiges JSON. Erwartet wird eine Liste wie [{\"nr\": 1042, \"zeit\": 3.2}]."
+                    return fehler("Fehler: sounds ist kein gültiges JSON. Erwartet wird eine Liste wie [{\"nr\": 1042, \"zeit\": 3.2}].")
             sounds = sounds or []
             if not isinstance(sounds, list) or len(sounds) > MAX_SOUNDS:
-                return f"Fehler: sounds muss eine Liste mit höchstens {MAX_SOUNDS} Einträgen sein."
+                return fehler(f"Fehler: sounds muss eine Liste mit höchstens {MAX_SOUNDS} Einträgen sein.")
             soll, fehlt = [], []
             bestaende = _bestaende(ws) if any(isinstance(e, dict) and not e.get("datei") for e in sounds) else []
             for e in sounds:
@@ -115,17 +116,17 @@ def register(mcp, fest: Workspace | None = None) -> None:
                     eintrag["spitze_db"] = float(e["spitze_db"])
                 soll.append(eintrag)
             if fehlt:
-                return ("Fehler: Diese Sounds aus der Soll-Liste kenne ich nicht: " + ", ".join(fehlt)
-                        + ". Nimm die Nummer aus find_sounds oder gib datei relativ zum Workspace an.")
+                return (fehler("Fehler: Diese Sounds aus der Soll-Liste kenne ich nicht: " + ", ".join(fehlt)
+                        + ". Nimm die Nummer aus find_sounds oder gib datei relativ zum Workspace an."))
             erg = vektor_client.hoeren(pfad, soll)
             hinweis = modelle.hinweis_hoeren()
             return (hoercheck.bericht(erg) + f"\n\nGehört in {hoercheck.zahl(erg.get('sekunden') or 0, 1)} s."
                     + (f"\n\n{hinweis}" if hinweis else ""))
         except WorkspaceError as e:
-            return f"Fehler: {e}"
+            return fehler(f"Fehler: {e}")
         except hoercheck.HoerFehler as e:
             zusatz = (" Installiere ffmpeg über die Paketverwaltung deines Systems, auf dem Mac etwa mit "
                       "`brew install ffmpeg`.") if "ffmpeg" in str(e) else ""
-            return f"Fehler beim Hörcheck: {e}.{zusatz}"
+            return fehler(f"Fehler beim Hörcheck: {e}.{zusatz}")
         except Exception as e:  # noqa: BLE001 - kein Traceback an den Client
-            return f"Der Hörcheck ist unerwartet gescheitert ({str(e)[:200]}). Versuch es noch einmal."
+            return fehler(f"Der Hörcheck ist unerwartet gescheitert ({str(e)[:200]}). Versuch es noch einmal.")

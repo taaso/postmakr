@@ -251,7 +251,7 @@
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   {% if reel %}
-  <script>
+  <script nonce="{{ csp_nonce() }}">
   window.TRIAL = {
     slug: {{ reel.slug | tojson }},
     speichern: {{ url_for('trial_reel_speichern', slug=reel.slug) | tojson }},
@@ -259,7 +259,7 @@
     hooks: {{ reel.versionen | map(attribute='hook') | list | tojson }}
   };
   </script>
-  <script src="{{ url_for('static', filename='mobil-trial.js') }}?v=20261021a"></script>
+  <script nonce="{{ csp_nonce() }}" src="{{ url_for('static', filename='mobil-trial.js') }}?v=20261021a"></script>
   {% endif %}
 </body>
 </html>

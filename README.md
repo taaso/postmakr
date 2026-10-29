@@ -120,8 +120,9 @@ aufgerufen.
   Mac: `brew install ffmpeg`, Linux: `sudo apt install ffmpeg`,
   Windows: `winget install ffmpeg`
 - Etwa 1 GB Platz für die Grundausstattung. Mit den Extras kommen etwa
-  1 GB Pakete und beim ersten Gebrauch die Modelle dazu: etwa 3 GB für die
-  Suche nach Bild und Bedeutung und etwa 1,5 GB für den Hörcheck.
+  1 GB Pakete und die Modelle dazu: etwa 3 GB für die Suche nach Bild und
+  Bedeutung (lädt die Installation gleich mit) und etwa 1,5 GB für den
+  Hörcheck (lädt beim ersten Gebrauch).
 
 ## Installation
 
@@ -136,9 +137,13 @@ Grundausstattung und den Browser für das Rendern. Danach fragt es, ob du die
 Extras willst (Suche nach Bild und Bedeutung, Transkripte, Hörcheck). Du
 kannst das auch direkt sagen: `./postmakr installieren --extras` oder
 `--ohne-extras`. Ohne Extras läuft alles andere, die Suche arbeitet dann mit
-Stichworten.
+Stichworten, und es kommen keine Modellpakete auf den Rechner.
 
 Unter Windows ersetzt du `./postmakr` überall durch `python postmakr.py`.
+postmakr läuft unter macOS, Linux und Windows, die Tests laufen bei jedem
+Pull Request auf allen drei Systemen. Unter Windows verbindet
+`sounds verbinden` deinen Ordner ohne Adminrechte über eine
+Verzeichnisverbindung.
 
 ## Start
 
@@ -253,9 +258,11 @@ Beiträgen (`drafts/`, `archive/`), Quellen, Styleguide und `brand.yaml`.
 Einen anderen Ort wählst du mit der Umgebungsvariable `POSTMAKR_DATEN`, zum
 Beispiel `POSTMAKR_DATEN=~/Dokumente/postmakr ./postmakr start`.
 
-Die Modelle für Suche und Hörcheck liegen nach dem ersten Gebrauch im Cache
-unter `~/.cache/huggingface`. Löschen ist jederzeit möglich, sie werden dann
-beim nächsten Mal neu geladen.
+Die Modelle für Suche und Hörcheck liegen im Cache unter
+`~/.cache/huggingface`, jeweils in einem festgelegten Stand. Löschen ist
+jederzeit möglich, sie werden dann beim nächsten Gebrauch neu geladen. Der
+MCP-Server lädt beim Start nur vor, was schon im Cache liegt, und holt nie
+etwas aus dem Netz.
 
 ## Gut zu wissen
 
@@ -263,11 +270,15 @@ beim nächsten Mal neu geladen.
   `brand.yaml`) und lässt auf der Festplatte immer 5 GB frei. Die Reserve
   änderst du mit `POSTMAKR_PLATZ_RESERVE_GB`.
 - Farben deiner Marke stehen in `brand.yaml` (`accent` und `farben:`). Der
-  Renderer übernimmt sie in die Slide-Vorlagen, die Schriften Inter und
-  Source Sans 3 liegen bei.
+  Renderer übernimmt sie in die Slide-Vorlagen. Die Schriften Inter,
+  Source Sans 3, Anton, Archivo Black und Caveat liegen bei, die Vorlagen
+  rendern auch ohne Internet gleich.
 - Wenn du Chrome installiert hast und den Render-Browser nicht laden willst:
   `./postmakr installieren --ohne-browser` und vor dem Start
   `export POSTMAKR_BROWSER_KANAL=chrome`.
+- Dashboard-Export und MCP rechnen gemeinsam mit höchstens zwei Browsern
+  gleichzeitig. Mehr oder weniger stellst du mit `POSTMAKR_RENDER_PLAETZE`
+  ein.
 - `engine-shared/tools/sinnsuche.py` gewichtet Stichworte, Bedeutung und
   Klang. Wenn du die Gewichte für deine eigene Sound-Bibliothek messen
   willst, leg dir ein Testset aus Suchfragen und erwarteten Sounds an.
@@ -276,7 +287,7 @@ beim nächsten Mal neu geladen.
 
 Fehler und Ideen gern als Issue. Wenn du am Code arbeitest (selbst oder mit
 einer KI), lies zuerst [AGENTS.md](AGENTS.md): Dort stehen Aufbau, Regeln und
-wie du die Tests startest.
+wie du die Tests startest (kurz: `./postmakr test`).
 
 ## Lizenz
 
@@ -303,8 +314,10 @@ collect statistics or have user accounts.
 
 Requirements: Python 3.10+, ffmpeg. Install with `./postmakr installieren` after `git clone https://github.com/taaso/postmakr.git`
 (add `--extras` for semantic search, transcripts and the sound check; the
-models, about 3 GB for search and 1.5 GB for the sound check, download on
-first use). Start with `./postmakr start` and open http://127.0.0.1:4711.
+search models, about 3 GB, download during installation, the 1.5 GB sound
+check models on first use; without extras no model packages are installed).
+Runs on macOS, Linux and Windows (`python postmakr.py` instead of
+`./postmakr`). Start with `./postmakr start` and open http://127.0.0.1:4711.
 `./postmakr start --handy` additionally serves HTTPS on your LAN (port 4712)
 with a local certificate authority and an access code shown as a QR code,
 so a phone can use the camera recorder. Anyone on your Wi-Fi who has the

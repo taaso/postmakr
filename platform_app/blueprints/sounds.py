@@ -14,6 +14,7 @@ Schnitt wird ein Sound ueber seine Nummer angesprochen.
 """
 from __future__ import annotations
 
+import os
 import secrets
 import subprocess
 import sys
@@ -30,6 +31,7 @@ _WERKZEUGE = str(REPO_ROOT / "engine-shared" / "tools")
 if _WERKZEUGE not in sys.path:
     sys.path.insert(0, _WERKZEUGE)
 import sinnsuche  # noqa: E402
+from dateisperre import gesperrt  # noqa: E402
 
 SOUND_ENDUNGEN = {".mp3", ".wav", ".m4a", ".ogg"}
 EIGENE_AB = 1001
@@ -40,6 +42,9 @@ THEMEN = ("Technik & Handy", "Übergänge & Bewegung", "Spannung & Drama", "Wuch
           "Comedy & Fail", "Magie & Glanz", "Alltag & Natur", "Menschen & Publikum", "Gaming & Anime",
           "Internet-Memes", "Musik")
 OHNE_THEMA = "Ohne Thema"
+# ffmpeg darf fremde Uploads nur als lokale Datei lesen, nie Netz- oder
+# Playlist-Verweise darin aufloesen.
+NUR_DATEIEN = ("-protocol_whitelist", "file")
 _index_sperre = threading.Lock()
 
 
@@ -61,6 +66,22 @@ def _yaml_liste(pfad: Path) -> list:
     except (OSError, yaml.YAMLError):
         return []
     return daten if isinstance(daten, list) else []
+
+
+def _katalog_sperre(ordner: Path):
+    """Eine Sperre je Sound-Ordner fuer alle Aenderungen an sounds.yaml."""
+    return gesperrt(ordner / ".sounds.lock")
+
+
+def _katalog_schreiben(ordner: Path, liste: list) -> None:
+    """Schreibt sounds.yaml atomar: erst eine Nebendatei, dann umbenennen."""
+    ziel = ordner / "sounds.yaml"
+    tmp = ordner / f".sounds.{secrets.token_hex(4)}.yaml"
+    try:
+        tmp.write_text(yaml.safe_dump(liste, allow_unicode=True, sort_keys=False), encoding="utf-8")
+        os.replace(tmp, ziel)
+    finally:
+        tmp.unlink(missing_ok=True)
 
 
 def _bestand(ordner: Path, quelle: str) -> list[dict]:
@@ -197,10 +218,9 @@ def sound_hochladen():
     thema = thema if thema in THEMEN else OHNE_THEMA
     ordner = _eigene_ordner()
     ordner.mkdir(exist_ok=True)
-    liste = _yaml_liste(ordner / "sounds.yaml")
-    nr = max([EIGENE_AB - 1] + [int(e.get("nr") or 0) for e in liste if isinstance(e, dict)]) + 1
-    tmp = ordner / f".upload.{secrets.token_hex(4)}{Path(d.filename).suffix.lower()}"
-    ziel = ordner / f"{nr}_{secrets.token_hex(3)}.mp3"
+    marke = secrets.token_hex(4)
+    tmp = ordner / f".upload.{marke}{Path(d.filename).suffix.lower()}"
+    fertig = ordner / f".upload.{marke}.mp3"
     try:
         geschrieben = 0
         with open(tmp, "wb") as fh:
@@ -209,25 +229,39 @@ def sound_hochladen():
                 if geschrieben > MAX_BYTES:
                     raise ValueError("Die Datei ist größer als 25 MB.")
                 fh.write(stueck)
-        # Einheitlich als MP3 ablegen, hoechstens zwei Minuten
-        subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", str(tmp), "-t", str(MAX_SEKUNDEN), "-vn", "-ac", "2",
-                        "-ar", "44100", "-b:a", "192k", str(ziel)], check=True, capture_output=True, timeout=120)
-        dauer = float(subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", str(ziel)],
+        # Einheitlich als MP3 ablegen, hoechstens zwei Minuten. Die Umwandlung
+        # laeuft ausserhalb der Sperre, damit parallele Uploads nicht warten.
+        subprocess.run(["ffmpeg", "-v", "error", "-y", *NUR_DATEIEN, "-i", str(tmp), "-t", str(MAX_SEKUNDEN),
+                        "-vn", "-ac", "2", "-ar", "44100", "-b:a", "192k", str(fertig)],
+                       check=True, capture_output=True, timeout=120)
+        dauer = float(subprocess.run(["ffprobe", "-v", "error", *NUR_DATEIEN, "-show_entries", "format=duration",
+                                      "-of", "csv=p=0", str(fertig)],
                                      capture_output=True, text=True, timeout=30).stdout.strip() or 0)
     except ValueError as exc:
-        ziel.unlink(missing_ok=True)
+        fertig.unlink(missing_ok=True)
         return jsonify({"ok": False, "error": str(exc)}), 413
     except (OSError, subprocess.SubprocessError):
-        ziel.unlink(missing_ok=True)
+        fertig.unlink(missing_ok=True)
         return jsonify({"ok": False, "error": "Die Datei ließ sich nicht als Sound lesen."}), 400
     finally:
         tmp.unlink(missing_ok=True)
-    eintrag = {"nr": nr, "datei": ziel.name, "name": name, "kategorie": "Eigene", "thema": thema,
+    eintrag = {"name": name, "kategorie": "Eigene", "thema": thema,
                "stimmung": (request.form.get("stimmung") or "").strip()[:60],
                "passt_zu": (request.form.get("passt_zu") or "").strip()[:160],
                "schlagworte": [w.strip() for w in (request.form.get("schlagworte") or "").split(",") if w.strip()][:12],
                "beschreibung": "Eigener Upload.", "dauer": round(dauer, 2)}
-    (ordner / "sounds.yaml").write_text(yaml.safe_dump(liste + [eintrag], allow_unicode=True, sort_keys=False), encoding="utf-8")
+    # Nummer vergeben und Katalog schreiben in einem Zug, mit frisch gelesenem
+    # Stand: Sonst ueberschreibt ein paralleler Upload den Eintrag des anderen.
+    try:
+        with _katalog_sperre(ordner):
+            liste = _yaml_liste(ordner / "sounds.yaml")
+            nr = max([EIGENE_AB - 1] + [int(e.get("nr") or 0) for e in liste if isinstance(e, dict)]) + 1
+            ziel = ordner / f"{nr}_{secrets.token_hex(3)}.mp3"
+            os.replace(fertig, ziel)
+            _katalog_schreiben(ordner, liste + [{"nr": nr, "datei": ziel.name, **eintrag}])
+    except OSError:
+        fertig.unlink(missing_ok=True)
+        return jsonify({"ok": False, "error": "Der Sound ließ sich nicht speichern."}), 500
     _index_aktualisieren(ordner)
     return jsonify({"ok": True, "nr": nr})
 
@@ -239,14 +273,14 @@ def sound_loeschen(nr):
     if sound is None:
         abort(404)
     ordner = _ordner_von(sound)
-    liste = _yaml_liste(ordner / "sounds.yaml")
-    treffer = next((e for e in liste if isinstance(e, dict) and int(e.get("nr") or 0) == nr), None)
-    if treffer is None:
-        abort(404)
-    datei = str(treffer.get("datei") or "")
-    if datei and "/" not in datei and not datei.startswith("."):
-        (ordner / datei).unlink(missing_ok=True)
-    rest = [e for e in liste if e is not treffer]
-    (ordner / "sounds.yaml").write_text(yaml.safe_dump(rest, allow_unicode=True, sort_keys=False), encoding="utf-8")
+    with _katalog_sperre(ordner):
+        liste = _yaml_liste(ordner / "sounds.yaml")
+        treffer = next((e for e in liste if isinstance(e, dict) and int(e.get("nr") or 0) == nr), None)
+        if treffer is None:
+            abort(404)
+        datei = str(treffer.get("datei") or "")
+        if datei and "/" not in datei and not datei.startswith("."):
+            (ordner / datei).unlink(missing_ok=True)
+        _katalog_schreiben(ordner, [e for e in liste if e is not treffer])
     _index_aktualisieren(ordner)
     return jsonify({"ok": True})

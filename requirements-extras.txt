@@ -10,5 +10,5 @@ sentence-transformers>=3
 sentencepiece>=0.2    # Tokenizer des mehrsprachigen Bildmodells (SigLIP)
 protobuf>=4
 faster-whisper>=1.1   # engine-shared/tools/transcribe.py und Hoercheck: Sprache zu Text
-# earshot (MIT): Ohr fuer den Hoercheck, festgelegt auf einen geprueften Stand
-earshot @ https://github.com/Leonxlnx/earshot/archive/591fa3e028032e6dce56620a20e932e35667e8d8.tar.gz
+# earshot (MIT): Ohr fuer den Hoercheck, festgelegt auf einen geprueften Stand mit Pruefsumme
+earshot @ https://github.com/Leonxlnx/earshot/archive/591fa3e028032e6dce56620a20e932e35667e8d8.tar.gz#sha256=dff3b63247e11c01e4c433357071e38a686e98ea2598ac2a0b186a9e6dd1a670

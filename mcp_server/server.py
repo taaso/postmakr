@@ -3,7 +3,7 @@
 Start (aus dem Repo-Ordner):
 
     python3 -m mcp_server                    # stdio, so starten Claude Desktop und Claude Code ihn
-    python3 -m mcp_server --http --port 4712 # zusätzlich für andere Clients, nur an 127.0.0.1
+    python3 -m mcp_server --http --port 4713 # zusätzlich für andere Clients, nur an 127.0.0.1
 
 Es gibt keine Anmeldung und keine Schlüssel. Der Server arbeitet mit den
 Workspaces im Datenordner (siehe lokal.py) und ist nur auf dem eigenen Rechner
@@ -40,7 +40,7 @@ from .tools import workflow as workflow_tools
 from .tools import workspaces as workspaces_tools
 
 HOST = "127.0.0.1"
-STANDARD_PORT = 4712
+STANDARD_PORT = 4713
 MCP_PATH = "/mcp"
 
 MODULE = (workspaces_tools, context_tools, drafts_tools, hoercheck_tools, render_tools, scan_tools,

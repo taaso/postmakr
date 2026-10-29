@@ -30,7 +30,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 (function () {
   const toggle = document.getElementById('old-toggle');
   if (!toggle) return;

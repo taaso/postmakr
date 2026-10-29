@@ -15,16 +15,8 @@ PyYAML==6.0.3           # brand.yaml, meta.yaml, sounds.yaml und so weiter
 numpy>=1.26             # Such-Index und Hoercheck
 
 # -- Modelle (optional) ---------------------------------------------------
-# Ohne diesen Block laufen alle Tools trotzdem: die Suche nach Sounds und
-# Material nutzt dann nur Stichworte, der Hoercheck misst Soll-Liste und
+# Die Modelle fuer Suche nach Bedeutung und Bild, Transkripte und Hoercheck
+# stehen in requirements-extras.txt und kommen nur mit
+# ./postmakr installieren --extras dazu. Ohne sie laufen alle Tools trotzdem:
+# Die Suche nutzt dann nur Stichworte, der Hoercheck misst Soll-Liste und
 # Lautheit ohne Modelle. Die Tools sagen dazu, was fehlt.
-# Beim ersten Gebrauch laden die Modelle einmalig aus dem Netz (einige GB,
-# Ablage unter HF_HOME bzw. EARSHOT_HOME).
-torch>=2.2
-transformers>=4.44
-sentence-transformers>=3
-sentencepiece>=0.2      # Tokenizer des mehrsprachigen Bildmodells
-protobuf>=4
-Pillow>=10              # Standbilder fuer die Bildsuche im Lager
-faster-whisper>=1.1     # Wortzeiten fuer den Hoercheck und engine-shared/tools/transcribe.py
-earshot @ https://github.com/Leonxlnx/earshot/archive/591fa3e028032e6dce56620a20e932e35667e8d8.tar.gz
